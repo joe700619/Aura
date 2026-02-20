@@ -1,0 +1,248 @@
+<div x-data="{
+    rows: [],
+    serviceFeeTotal: 0,
+    init() {
+        // Initialize rows from hidden input if data exists
+        const initialData = JSON.parse(document.getElementById('id_cost_sharing_data').value || '[]');
+        if (initialData.length > 0) {
+            this.rows = initialData;
+        } else {
+            this.addRow(); // Add default empty row
+        }
+        
+        // Watch for changes and update hidden input
+        this.$watch('rows', (value) => {
+            document.getElementById('id_cost_sharing_data').value = JSON.stringify(value);
+            this.recalculateAmounts();
+        });
+
+        // Listen for service fee changes from quotation table
+        window.addEventListener('service-fee-changed', (e) => {
+            console.log('Service Fee Changed:', e.detail.total);
+            this.serviceFeeTotal = e.detail.total;
+            this.recalculateAmounts();
+        });
+        
+        // Request initial total from quotation table
+        console.log('Requesting initial service fee total...');
+        window.dispatchEvent(new CustomEvent('request-service-fee'));
+    },
+    addRow() {
+        this.rows.push({
+            employee_id: '',
+            employee_name: '',
+            // department: '', // Removed as per request
+            ratio: 0,
+            amount: 0
+        });
+    },
+    removeRow(index) {
+        this.rows.splice(index, 1);
+        if (this.rows.length === 0) {
+            this.addRow();
+        }
+    },
+    calculateTotalAmount() {
+        return this.rows.reduce((sum, row) => sum + (parseInt(row.amount) || 0), 0);
+    },
+    calculateTotalRatio() {
+        return this.rows.reduce((sum, row) => sum + (parseFloat(row.ratio) || 0), 0);
+    },
+    recalculateAmounts() {
+        // Only recalculate if we have a service fee total > 0
+        // Or if the user wants to see 0 when total is 0.
+        this.rows.forEach(row => {
+            if (row.ratio) {
+                row.amount = Math.round(this.serviceFeeTotal * (parseFloat(row.ratio) / 100));
+            }
+        });
+    },
+    updateRow(index, data) {
+        this.rows[index].employee_id = data.id;
+        this.rows[index].employee_name = data.name;
+        // this.rows[index].department = data.department || ''; // Removed
+    }
+}" class="space-y-4">
+
+    <!-- Warning Message -->
+    <!-- Validation: Warn if Total Amount != Service Fee AND Service Fee > 0 -->
+    <div x-show="serviceFeeTotal > 0 && calculateTotalAmount() !== serviceFeeTotal"
+        class="bg-red-50 border-l-4 border-red-400 p-4 mb-4" style="display: none;">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">
+                    警訊：分攤公費總額 (<span x-text="calculateTotalAmount().toLocaleString()"></span>) 不等於 服務費用合計 (<span
+                        x-text="serviceFeeTotal.toLocaleString()"></span>)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th scope="col"
+                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/12">
+                        操作</th>
+                    <th scope="col"
+                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-5/12">
+                        姓名</th>
+                    <th scope="col"
+                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">
+                        比例 (%)</th>
+                    <th scope="col"
+                        class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">
+                        分攤公費</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-200">
+                <template x-for="(row, index) in rows" :key="index">
+                    <tr>
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-500 align-top">
+                            <button type="button" @click="removeRow(index)" class="text-red-500 hover:text-red-700">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                    </path>
+                                </svg>
+                            </button>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-900 align-top">
+                            <div class="space-y-2">
+                                <div class="relative">
+                                    <input type="text" x-model="row.employee_name"
+                                        class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        placeholder="搜尋員工..." readonly
+                                        @click="$dispatch('open-employee-modal', { index: index })">
+                                    <button type="button" @click="$dispatch('open-employee-modal', { index: index })"
+                                        class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-blue-500">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Department Column Removed -->
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-900 align-top">
+                            <input type="number" x-model="row.ratio" @input="recalculateAmounts()" step="1" min="0"
+                                max="100"
+                                class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-right">
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-900 align-top">
+                            <input type="text" :value="row.amount.toLocaleString()" readonly
+                                class="block w-full rounded-md border-slate-200 bg-slate-50 text-slate-500 shadow-sm sm:text-sm text-right">
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+            <tfoot class="bg-slate-50 font-bold">
+                <tr>
+                    <td colspan="2" class="px-4 py-3 text-right text-sm text-slate-700">合計:</td>
+                    <td class="px-4 py-3 text-right text-sm text-blue-600">
+                        <span x-text="calculateTotalRatio() + '%'"></span>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm text-blue-600">
+                        <span x-text="calculateTotalAmount().toLocaleString()"></span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Actions -->
+    <div>
+        <button type="button" @click="addRow()"
+            class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clip-rule="evenodd" />
+            </svg>
+            新增分攤人員
+        </button>
+    </div>
+
+    <!-- Employee Search Modal -->
+    <div x-data="{ 
+            isOpen: false, 
+            searchQuery: '', 
+            targetRowIndex: null,
+            searchResults: [],
+            isSearching: false,
+            
+            openModal(event) {
+                this.targetRowIndex = event.detail.index;
+                this.isOpen = true;
+                this.$nextTick(() => $refs.searchInput.focus());
+                this.search(); 
+            },
+            
+            async search() {
+                this.isSearching = true;
+                const response = await fetch(`/hr/api/employees/search/?q=${this.searchQuery}`, {
+                   headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const html = await response.text();
+                this.searchResults = html; 
+                this.isSearching = false;
+            },
+            
+            selectItem(data) {
+                this.$dispatch('update-row-employee', { index: this.targetRowIndex, data: data });
+                this.isOpen = false;
+            }
+        }" @open-employee-modal.window="openModal($event)" x-show="isOpen" style="display: none;"
+        class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+                @click="isOpen = false"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div x-show="isOpen" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">搜尋員工</h3>
+                    <div class="mt-4">
+                        <input type="text" x-model="searchQuery" @input.debounce.500ms="search()" x-ref="searchInput"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="輸入姓名或編號搜尋...">
+                    </div>
+                    <div class="mt-4 max-h-60 overflow-y-auto">
+                        <div x-html="searchResults"></div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="isOpen = false"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listener to update specific row from modal selection -->
+    <div @update-row-employee.window="updateRow($event.detail.index, $event.detail.data)"></div>
+</div>

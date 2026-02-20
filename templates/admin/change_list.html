@@ -1,0 +1,65 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* FORCE FLEX LAYOUT FOR ADMIN CHANGE LIST */
+    #changelist {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        justify-content: space-between !important;
+    }
+
+    /* Main content (table and actions) */
+    #changelist #changelist-form {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Filter sidebar */
+    #changelist #changelist-filter {
+        flex: 0 0 260px !important;
+        /* Fixed width */
+        width: 260px !important;
+        position: static !important;
+        float: none !important;
+        margin: 0 0 0 20px !important;
+        background: #f8f8f8 !important;
+        border-left: 1px solid #eee !important;
+    }
+
+    /* Responsive: Stack on small screens */
+    @media (max-width: 1024px) {
+        #changelist {
+            flex-direction: column !important;
+        }
+
+        #changelist #changelist-filter {
+            width: 100% !important;
+            margin: 20px 0 0 0 !important;
+            border-left: none !important;
+            border-top: 1px solid #eee !important;
+        }
+    }
+
+    /* CUSTOM SEARCH BAR LAYOUT ADJUSTMENTS */
+    /* Target the search bar container */
+    #toolbar {
+        /* You can add padding or margin here */
+        margin-bottom: 15px;
+    }
+
+    /* Target the search input field specifically */
+    #toolbar form input[type="text"] {
+        /* Adjust width here */
+        width: 300px !important;
+        /* Set a fixed width or max-width */
+        max-width: 100%;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}

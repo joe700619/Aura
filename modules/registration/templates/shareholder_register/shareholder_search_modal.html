@@ -1,0 +1,83 @@
+
+<!-- Shareholder Search Modal (Extracted V5) -->
+<div x-data="{ 
+        isShareholderSearchOpen: false, 
+        searchQuery: '', 
+        targetRowIndex: null,
+        targetField: null, // 'name' or 'entity'
+        searchResults: '',
+        isSearching: false,
+        
+        openModal(event) {
+            this.targetRowIndex = event.detail.index; // index from loop
+            this.targetField = event.detail.field;
+            this.isShareholderSearchOpen = true;
+            this.searchQuery = '';
+            this.searchResults = '';
+            this.$nextTick(() => $refs.searchInput.focus());
+        },
+        
+        async search() {
+            if (!this.searchQuery) return;
+            this.isSearching = true;
+            try {
+                const response = await fetch(`/registration/api/shareholder-search/?q=${this.searchQuery}`);
+                this.searchResults = await response.text();
+            } catch (e) {
+                console.error('Search failed', e);
+            }
+            this.isSearching = false;
+        },
+        
+        selectItem(name, display, data) {
+            this.$dispatch('update-director-row', { 
+                index: this.targetRowIndex, 
+                field: this.targetField,
+                data: data 
+            });
+            this.isShareholderSearchOpen = false;
+        }
+    }" 
+    @open-shareholder-modal.window="openModal($event)" 
+    x-show="isShareholderSearchOpen" 
+    style="display: none;"
+    class="fixed inset-0 z-[100] overflow-y-auto" 
+    aria-labelledby="modal-title" 
+    role="dialog" 
+    aria-modal="true">
+
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Backdrop -->
+        <div x-show="isShareholderSearchOpen" x-transition.opacity
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+            @click="isShareholderSearchOpen = false"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&nbsp;</span>
+
+        <!-- Modal Panel -->
+        <div x-show="isShareholderSearchOpen" x-transition.scale
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full mx-auto"
+            style="width: 90vw !important; max-width: 1200px !important;">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">搜尋股東</h3>
+                <div class="mt-4">
+                    <input type="text" x-model="searchQuery" @input.debounce.500ms="search()" x-ref="searchInput"
+                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="輸入姓名或身分證字號搜尋...">
+                </div>
+                <div class="mt-4 max-h-60 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-gray-200" x-html="searchResults">
+                        </tbody>
+                    </table>
+                    <p x-show="!searchResults && !isSearching" class="text-center text-gray-500 py-4">請輸入關鍵字搜尋</p>
+                    <p x-show="isSearching" class="text-center text-gray-500 py-4">搜尋中...</p>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" @click="isShareholderSearchOpen = false"
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">取消</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,284 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{% if form.instance.pk %}編輯{% else %}新增{% endif %}案件評估表{% endblock %}
+{% block header_title %}{% if form.instance.pk %}編輯{% else %}新增{% endif %}案件評估表{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'registration:case_assessment_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+
+{# Approval Action Buttons #}
+{% if object %}
+{% include "components/approval/actions.html" %}
+{% endif %}
+{% endblock %}
+
+{# Approval Status Display #}
+{% block form_top_block %}
+{% if object %}
+{% include "components/approval/status.html" %}
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶 (帶入基本資料)</label>
+            {{ form.search_customer }}
+        </div>
+        {% include "components/form_field.html" with field=form.company_name %}
+        {% include "components/form_field.html" with field=form.unified_business_no %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.line_id %}
+            {% include "components/form_field.html" with field=form.room_id %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">聯絡人資料</h4>
+    </div>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">搜尋聯絡人 (帶入聯絡資料)</label>
+            {{ form.search_contact }}
+        </div>
+        {% include "components/form_field.html" with field=form.main_contact %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.mobile %}
+            {% include "components/form_field.html" with field=form.phone %}
+        </div>
+        {% include "components/form_field.html" with field=form.address %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">其他資料</h4>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋登記進度 (帶入公司資料)</label>
+        {{ form.search_registration_no }}
+    </div>
+    <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.date %}
+            {% include "components/form_field.html" with field=form.registration_no %}
+        </div>
+        {% include "components/form_field.html" with field=form.risk_level %}
+        {% include "components/form_field.html" with field=form.is_accepted %}
+        {% include "components/form_field.html" with field=form.is_completed %}
+        {% include "components/form_field.html" with field=form.needs_reporting %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_tabs %}
+<div x-data="{ activeTab: 'transaction' }" class="mt-8">
+    <!-- Tabs Header -->
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button type="button" @click="activeTab = 'transaction'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'transaction' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                交易類型
+            </button>
+            <button type="button" @click="activeTab = 'warning'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'warning' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                警示交易
+            </button>
+            <button type="button" @click="activeTab = 'appendix'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'appendix' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                附件
+            </button>
+            <button type="button" @click="activeTab = 'approval'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'approval' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                核准狀態
+            </button>
+
+        </nav>
+    </div>
+
+    <!-- Tabs Content -->
+    <div class="mt-4">
+        <!-- Transaction Type Tab -->
+        <div x-show="activeTab === 'transaction'" class="py-4">
+            <table class="min-w-full divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th
+                            class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-16">
+                            代碼</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            交易種類</th>
+                        <th
+                            class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">
+                            勾選</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for field in form %}
+                    {% if field.name|slice:":12" == "transaction_" %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900 font-medium">{{ field.name|slice:"12:" }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-900">{{ field.label|slice:"3:" }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ field }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Warning Transaction Tab -->
+        <div x-show="activeTab === 'warning'" class="py-4">
+            <table class="min-w-full divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            警示交易內容</th>
+                        <th
+                            class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">
+                            勾選</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for field in form %}
+                    {% if field.name|slice:":8" == "warning_" %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900">{{ field.label }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ field }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Appendix Tab -->
+        <div x-show="activeTab === 'appendix'" class="py-4">
+            <table
+                class="min-w-full table-fixed divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="w-2/3 px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
+
+                            附件</th>
+                        <th class="w-20 px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
+
+                            勾選</th>
+                        <th class="w-72 px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
+
+                            備註</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    <!-- Appendix 1 -->
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900">
+                            1. 法務部調查局之網頁：<a href="http://www.mjib.gov.tw/MLPC" target="_blank"
+                                class="text-blue-600 hover:underline">http://www.mjib.gov.tw/MLPC</a>，確認其國籍是否為制裁名單中之國家。
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ form.appendix_1 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ form.appendix_1_note }}
+                        </td>
+                    </tr>
+                    <!-- Appendix 2 -->
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900">
+                            2. 台灣集中保管結算所：<a href="http://aml.tdcc.com.tw/AMLP" target="_blank"
+                                class="text-blue-600 hover:underline">http://aml.tdcc.com.tw/AMLP</a>，以帳號登入後，確認該人物是否為
+                            PEP。
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ form.appendix_2 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ form.appendix_2_note }}
+                        </td>
+                    </tr>
+                    <!-- Appendix 3 -->
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900">
+                            3. 取得資本簽證必要文件
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ form.appendix_3 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ form.appendix_3_note }}
+                        </td>
+                    </tr>
+                    <!-- Appendix 4 -->
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900">
+                            4. 取得資金來源證明
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex justify-center">
+                                {{ form.appendix_4 }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ form.appendix_4_note }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Approval Status Tab -->
+        <div x-show="activeTab === 'approval'" class="py-4">
+            {% include "components/approval/history.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+{% endblock %}

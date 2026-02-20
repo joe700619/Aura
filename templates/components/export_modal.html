@@ -1,0 +1,218 @@
+<!-- Export Sidebar Component -->
+<div id="export-modal" x-data="exportModal()" @open-export-modal.window="openSidebar($event.detail)">
+    <div class="fixed inset-0" style="z-index: 9999; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
+        aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="isOpen">
+
+        <!-- Backdrop -->
+        <div x-show="isOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" @click="closeSidebar()"></div>
+
+        <div class="fixed inset-0 overflow-hidden"
+            style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+            <div class="absolute inset-0 overflow-hidden"
+                style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10"
+                    style="position: fixed; top: 0; bottom: 0; right: 0; display: flex; max-width: 100%; padding-left: 2.5rem;">
+
+                    <!-- Panel -->
+                    <div x-show="isOpen"
+                        x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+                        x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+                        class="pointer-events-auto w-screen max-w-md" style="width: 100vw; max-width: 28rem;">
+
+                        <div class="flex h-full flex-col bg-white shadow-xl">
+                            <div class="px-4 py-6 sm:px-6 bg-slate-50 border-b border-slate-200">
+                                <div class="flex items-start justify-between">
+                                    <h2 class="text-base font-semibold leading-6 text-slate-900" id="slide-over-title">
+                                        匯出資料</h2>
+                                    <div class="ml-3 flex h-7 items-center">
+                                        <button type="button"
+                                            class="relative rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                            @click="closeSidebar()">
+                                            <span class="absolute -inset-2.5"></span>
+                                            <span class="sr-only">Close panel</span>
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-sm text-slate-500">請選擇要匯出的欄位</p>
+                            </div>
+
+                            <div class="relative flex-1 px-4 sm:px-6 py-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+                                <!-- Content -->
+                                <form method="post" :action="exportUrl" @submit.prevent="submitForm" id="export-form">
+                                    {% csrf_token %}
+
+                                    <!-- Loading State -->
+                                    <div x-show="loading" class="flex justify-center py-12">
+                                        <svg class="animate-spin h-8 w-8 text-indigo-600"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Field Selection -->
+                                    <div x-show="!loading">
+                                        <div class="flex items-center mb-4 pb-2 border-b border-slate-100">
+                                            <input type="checkbox" id="select-all"
+                                                class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                                                x-model="selectAll" @change="toggleAll">
+                                            <label for="select-all"
+                                                class="ml-2 block text-sm font-medium text-slate-900 cursor-pointer">全選</label>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <template x-for="field in fields" :key="field.name">
+                                                <div class="flex items-start">
+                                                    <div class="flex h-6 items-center">
+                                                        <input :id="'field-' + field.name" :value="field.name"
+                                                            x-model="selectedFields" type="checkbox"
+                                                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600">
+                                                    </div>
+                                                    <div class="ml-3 text-sm leading-6">
+                                                        <label :for="'field-' + field.name"
+                                                            class="font-medium text-slate-900 cursor-pointer"
+                                                            x-text="field.label"></label>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="flex flex-shrink-0 justify-end px-4 py-4 bg-slate-50 border-t border-slate-200">
+                                <button type="button"
+                                    class="cursor-pointer rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                                    @click="closeSidebar()">取消</button>
+                                <button type="submit" form="export-form"
+                                    class="cursor-pointer ml-4 inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    :disabled="selectedFields.length === 0 || loading">確認匯出</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportModal() {
+        return {
+            isOpen: false,
+            loading: false,
+            appLabel: '',
+            modelName: '',
+            exportUrl: '',
+            fields: [],
+            selectedFields: [],
+            selectAll: false,
+            ids: [],
+
+            openSidebar(detail) {
+                this.appLabel = detail.appLabel;
+                this.modelName = detail.modelName;
+                this.ids = detail.ids || [];
+                this.exportUrl = `/core/export/${this.appLabel}/${this.modelName}/`;
+                this.isOpen = true;
+                this.fetchFields();
+            },
+
+            closeSidebar() {
+                this.isOpen = false;
+                this.fields = [];
+                this.selectedFields = [];
+                this.selectAll = false;
+            },
+
+            async fetchFields() {
+                this.loading = true;
+                try {
+                    const response = await fetch(`/core/export/fields/${this.appLabel}/${this.modelName}/`);
+                    const data = await response.json();
+                    this.fields = data.fields;
+                    // Default select all
+                    this.selectedFields = this.fields.map(f => f.name);
+                    this.selectAll = true;
+                } catch (error) {
+                    console.error('Error fetching fields:', error);
+                    alert('無法載入欄位資料');
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            toggleAll() {
+                if (this.selectAll) {
+                    this.selectedFields = this.fields.map(f => f.name);
+                } else {
+                    this.selectedFields = [];
+                }
+            },
+
+            submitForm(e) {
+                const form = e.target;
+
+                // Clear any existing hidden fields we added previously
+                const toRemove = form.querySelectorAll('input[name="fields[]"], input[name="ids[]"]');
+                toRemove.forEach(el => el.remove());
+
+                const hiddenDiv = document.createElement('div');
+                hiddenDiv.style.display = 'none';
+
+                // Add fields
+                this.selectedFields.forEach(field => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'fields[]';
+                    input.value = field;
+                    hiddenDiv.appendChild(input);
+                });
+
+                // Add IDs
+                if (this.ids && this.ids.length > 0) {
+                    this.ids.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
+                        hiddenDiv.appendChild(input);
+                    });
+                }
+
+                // Ensure CSRF token is present
+                if (!form.querySelector('input[name="csrfmiddlewaretoken"]')) {
+                    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                    if (csrf) {
+                        form.appendChild(csrf.cloneNode(true));
+                    }
+                }
+
+                form.appendChild(hiddenDiv);
+
+                this.loading = true;
+                setTimeout(() => {
+                    form.submit();
+                    setTimeout(() => {
+                        this.loading = false;
+                        this.closeSidebar();
+                    }, 500);
+                }, 10);
+            }
+        }
+    }
+</script>

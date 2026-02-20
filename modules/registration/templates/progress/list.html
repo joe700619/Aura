@@ -1,0 +1,131 @@
+{% extends 'components/list_view.html' %}
+{% load i18n %}
+
+{% block page_title %}登記進度表{% endblock %}
+{% block header_title %}登記進度表{% endblock %}
+{% block header_description %}管理公司登記案件進度與狀態{% endblock %}
+
+{% block model_name %}registration:progress{% endblock %}
+{% block create_button_label %}新增案件{% endblock %}
+
+{% block filters %}
+<div class="flex items-center">
+    <label for="status" class="px-3 text-sm text-slate-600">進度:</label>
+    <select name="status" id="status"
+        class="border-0 bg-transparent py-1.5 pl-0 pr-8 text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
+        onchange="window.location.href='?status=' + this.value">
+        <option value="">全部</option>
+        {% for option in status_options %}
+        <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>{{ option.label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記單號</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">承接日期</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">統一編號</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">主要聯絡人</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">案件種類</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記進度</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in progress_list %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    <!-- Checkbox Column -->
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="{{ item.pk }}" x-model.number="selectedRows">
+            <div :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes({{ item.pk }})">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+
+    <td class="px-4 py-4 font-medium text-slate-900">{{ item.registration_no }}</td>
+    <td class="px-4 py-4 text-slate-600">{{ item.acceptance_date|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 text-slate-600">{{ item.unified_business_no }}</td>
+    <td class="px-4 py-4 text-slate-900">{{ item.company_name }}</td>
+    <td class="px-4 py-4 text-slate-600">{{ item.main_contact }}</td>
+    <td class="px-4 py-4 text-slate-600">
+        {% for type in item.case_type %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-1">
+            {% if type == 'setup' %}設立{% endif %}
+            {% if type == 'capital_increase' %}增資{% endif %}
+            {% if type == 'equity_change' %}股權異動{% endif %}
+            {% if type == 'business_change' %}營業人變更{% endif %}
+        </span>
+        {% endfor %}
+    </td>
+    <td class="px-4 py-4">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if item.progress_status == 'new_case' %}bg-blue-100 text-blue-800
+            {% elif item.progress_status == 'discussing' %}bg-yellow-100 text-yellow-800
+            {% elif item.progress_status == 'data_collection' %}bg-indigo-100 text-indigo-800
+            {% elif item.progress_status == 'document_preparation' %}bg-purple-100 text-purple-800
+            {% elif item.progress_status == 'cpa_audit' %}bg-pink-100 text-pink-800
+            {% elif item.progress_status == 'submission' %}bg-cyan-100 text-cyan-800
+            {% elif item.progress_status == 'approved' %}bg-green-100 text-green-800
+            {% elif item.progress_status == 'closed' %}bg-gray-100 text-gray-800
+            {% else %}bg-gray-100 text-gray-800{% endif %}">
+            {{ item.get_progress_status_display }}
+        </span>
+    </td>
+    <td class="px-4 py-4 text-center">
+        <div class="flex items-center justify-center space-x-3">
+            <a href="{% url 'registration:progress_edit' item.pk %}"
+                class="text-blue-600 hover:text-blue-800 transition-colors" title="編輯">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </a>
+            <a href="{% url 'registration:progress_delete' item.pk %}"
+                class="text-red-400 hover:text-red-600 transition-colors" title="刪除">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="px-6 py-12 text-center text-slate-500">
+        <div class="flex flex-col items-center justify-center">
+            <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-lg font-medium text-slate-900">目前沒有登記案件</p>
+            <p class="text-sm text-slate-500 mt-1">點擊上方「新增案件」按鈕建立第一筆資料</p>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+<script id="list-metadata" type="application/json">
+[
+    {% for item in progress_list %}
+    { 
+        "id": {{ item.pk }}, 
+        "category": "ALL", 
+        "content": "{{ item.registration_no }} {{ item.company_name }} {{ item.unified_business_no }}" 
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{% endblock %}

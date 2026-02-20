@@ -1,0 +1,93 @@
+<div x-data="{ 
+    open: false, 
+    selectedLabel: '{{ label|default:'請選擇...'|escapejs }}', 
+    selectedValue: '{{ value|default:''|escapejs }}',
+    selectItem(value, label, extraData) { 
+        this.selectedValue = value; 
+        this.selectedLabel = label; 
+        this.open = false; 
+        
+        const input = document.getElementById('{{ name }}_input'); 
+        if(input) { 
+            input.value = value;
+            input.dispatchEvent(new Event('change')); 
+        } 
+        
+        if (extraData) { 
+            for (const [key, val] of Object.entries(extraData)) { 
+                const targetField = document.querySelector(`[name='{{ form_prefix }}${key}']`); 
+                if (targetField) { 
+                    targetField.value = val; 
+                } 
+            } 
+        } 
+    } 
+}" class="relative">
+
+    <!-- Hidden Input for Form Submission -->
+    <input type="hidden" id="{{ name }}_input" name="{{ name }}" x-model="selectedValue">
+
+    <!-- Trigger Button -->
+    <button type="button" @click="open = true; $nextTick(() => $refs.searchInput.focus())"
+        class="w-full bg-white border border-slate-300 text-slate-700 py-2 px-3 rounded-md shadow-sm text-left focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm flex justify-between items-center">
+        <span x-text="selectedLabel" :class="{'text-slate-400': !selectedValue}"></span>
+        <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+            aria-hidden="true">
+            <path fill-rule="evenodd"
+                d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                clip-rule="evenodd" />
+        </svg>
+    </button>
+
+    <!-- Modal Backdrop -->
+    <div x-show="open" style="display: none;"
+        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50 flex items-center justify-center p-4">
+
+        <!-- Modal Panel -->
+        <div x-show="open" @click.away="open = false"
+            class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-xl w-full max-h-[80vh] flex flex-col">
+
+            <!-- Header -->
+            <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">搜尋{{ label_text|default:"資料" }}</h3>
+                <button @click="open = false" type="button" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="p-4 border-b border-gray-200">
+                <input type="text" x-ref="searchInput" name="q" hx-get="{{ search_url }}"
+                    hx-trigger="keyup changed delay:500ms, search" hx-target="#{{ name }}_results"
+                    placeholder="輸入關鍵字搜尋..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <!-- Results List (Scrollable) -->
+            <div class="overflow-y-auto flex-1 p-0">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <tbody id="{{ name }}_results" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">
+                                請輸入關鍵字進行搜尋
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                <button type="button" @click="open = false"
+                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    關閉
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

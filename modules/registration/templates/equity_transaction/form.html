@@ -1,0 +1,269 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{% if action == 'create' %}新增股權交易{% else %}編輯股權交易{% endif %}{% endblock %}
+{% block header_title %}{% if action == 'create' %}新增股權交易{% else %}編輯股權交易{% endif %}{% endblock %}
+
+{% block form_card_1 %}
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center gap-2 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd" />
+        </svg>
+        <h4 class="font-bold text-blue-800 text-sm">所屬股東名簿公司資料</h4>
+    </div>
+
+    {% if shareholder_register %}
+    {# Hidden input so the FK value is submitted when the register is pre-set from URL #}
+    <input type="hidden" name="shareholder_register" value="{{ shareholder_register.pk }}">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-900">
+        <div><span class="font-semibold">公司名稱:</span> {{ shareholder_register.company_name }}</div>
+        <div><span class="font-semibold">統一編號:</span> {{ shareholder_register.unified_business_no }}</div>
+    </div>
+    {% else %}
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋公司 (帶入股東名簿)</label>
+        {{ form.search_shareholder_register }}
+        {{ form.shareholder_register }}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">{{ form.display_company_name.label }}</label>
+            {{ form.display_company_name }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">{{ form.display_unified_business_no.label }}</label>
+            {{ form.display_unified_business_no }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">股東資料</h4>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋股東 (帶入股東資料)</label>
+        {{ form.search_shareholder }}
+    </div>
+    <div>
+        <label for="{{ form.shareholder_name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shareholder_name.label }}</label>
+        {{ form.shareholder_name }}
+        {{ form.shareholder_name.errors }}
+    </div>
+    <div>
+        <label for="{{ form.shareholder_id_number.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">{{ form.shareholder_id_number.label }}</label>
+        {{ form.shareholder_id_number }}
+        {{ form.shareholder_id_number.errors }}
+    </div>
+    <div>
+        <label for="{{ form.shareholder_address.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">{{ form.shareholder_address.label }}</label>
+        {{ form.shareholder_address }}
+        {{ form.shareholder_address.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">交易資料</h4>
+    </div>
+    <div>
+        <label for="{{ form.transaction_date.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.transaction_date.label }}</label>
+        {{ form.transaction_date }}
+        {{ form.transaction_date.errors }}
+    </div>
+    <div>
+        <label for="{{ form.organization_type.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.organization_type.label }}</label>
+        {{ form.organization_type }}
+        {{ form.organization_type.errors }}
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div x-data="{ show: false }" @focusin="show = true" @focusout="show = false" class="relative">
+            <label for="{{ form.stock_type.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.stock_type.label }}</label>
+            {{ form.stock_type }}
+            <div x-show="show" x-transition
+                class="absolute z-50 top-full left-0 mt-2 w-64 p-2 bg-slate-800 text-white text-xs rounded shadow-lg pointer-events-none"
+                style="display: none;">
+                有限公司請選擇普通股；如果同時有普通股及特別股，是兩個交易，需要填寫兩次
+                <div class="absolute bottom-full left-4 -mb-1 border-4 border-transparent border-b-slate-800"></div>
+            </div>
+            {{ form.stock_type.errors }}
+        </div>
+        <div>
+            <label for="{{ form.transaction_reason.id_for_label }}"
+                class="block text-sm font-medium text-slate-700 mb-1">{{ form.transaction_reason.label }}</label>
+            {{ form.transaction_reason }}
+            {{ form.transaction_reason.errors }}
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div x-data="{ show: false }" @focusin="show = true" @focusout="show = false" class="relative">
+            <label for="{{ form.share_count.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.share_count.label }}</label>
+            {{ form.share_count }}
+            <div x-show="show" x-transition
+                class="absolute z-50 top-full left-0 mt-2 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg pointer-events-none"
+                style="display: none;">
+                請填寫總出資額
+                <div class="absolute bottom-full left-4 -mb-1 border-4 border-transparent border-b-slate-800"></div>
+            </div>
+            {{ form.share_count.errors }}
+        </div>
+        <div x-data="{ show: false }" @focusin="show = true" @focusout="show = false" class="relative">
+            <label for="{{ form.unit_price.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.unit_price.label }}</label>
+            {{ form.unit_price }}
+            <div x-show="show" x-transition
+                class="absolute z-50 top-full left-0 mt-2 w-32 p-2 bg-slate-800 text-white text-xs rounded shadow-lg pointer-events-none"
+                style="display: none;">
+                面額填寫1
+                <div class="absolute bottom-full left-4 -mb-1 border-4 border-transparent border-b-slate-800"></div>
+            </div>
+            {{ form.unit_price.errors }}
+        </div>
+    </div>
+    <div>
+        <label for="{{ form.total_amount.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.total_amount.label }}</label>
+        {{ form.total_amount }}
+        {{ form.total_amount.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Custom JS Loaded v5 - 2026-02-18 23:58");
+        const companyNameInput = document.getElementById('id_company_name');
+        const organizationTypeSelect = document.getElementById('id_organization_type');
+        const shareCountInput = document.getElementById('id_share_count');
+        const unitPriceInput = document.getElementById('id_unit_price');
+        const totalAmountInput = document.getElementById('id_total_amount');
+
+        // Auto-determine Organization Type
+        function updateOrganizationType() {
+            const displayCompanyInput = document.getElementById('id_display_company_name');
+            if (displayCompanyInput && organizationTypeSelect) {
+                const name = displayCompanyInput.value.trim();
+                if (name.endsWith('股份有限公司')) {
+                    organizationTypeSelect.value = 'CORP';
+                } else if (name.endsWith('有限公司')) {
+                    organizationTypeSelect.value = 'LTD';
+                }
+            }
+        }
+
+        // Auto-calculate Total Amount
+        function calculateTotal() {
+            if (!shareCountInput || !unitPriceInput || !totalAmountInput) return;
+            const count = parseFloat(shareCountInput.value) || 0;
+            const price = parseFloat(unitPriceInput.value) || 0;
+            if (count > 0 && price > 0) {
+                totalAmountInput.value = (count * price).toFixed(0);
+            } else {
+                totalAmountInput.value = '';
+            }
+        }
+
+        if (shareCountInput && unitPriceInput && totalAmountInput) {
+            shareCountInput.addEventListener('input', calculateTotal);
+            unitPriceInput.addEventListener('input', calculateTotal);
+            calculateTotal(); // Run on load
+        }
+
+        // Listen changes on display name for organization type
+        const displayCompanyInput = document.getElementById('id_display_company_name');
+        if (displayCompanyInput) {
+            const observer = new MutationObserver(function (mutations) {
+                updateOrganizationType();
+            });
+            observer.observe(displayCompanyInput, { attributes: true, attributeFilter: ['value'] });
+
+            let lastVal = displayCompanyInput.value;
+            setInterval(() => {
+                if (displayCompanyInput.value !== lastVal) {
+                    lastVal = displayCompanyInput.value;
+                    updateOrganizationType();
+                }
+            }, 500);
+        }
+
+        // Global delegator for search results
+        // The modal widget renders results in a tbody with id="{fieldname}_results"
+        // We listen for clicks on any tr[data-id] row anywhere on the page
+        document.addEventListener('click', function (event) {
+            const row = event.target.closest('tr[data-id]');
+            if (!row) return;
+
+            console.log('Detected click on search result row', row.dataset);
+
+            const registerId = row.dataset.id;
+            const companyName = row.dataset.title;
+            const ubn = row.dataset.ubn;
+
+            // Only handle rows that have a registerId (shareholder register rows)
+            if (!registerId) return;
+
+            // Find the hidden shareholder_register input
+            // The ModalSelectWidget renders a hidden input with id="{name}_input"
+            // For search_shareholder_register field, it's "search_shareholder_register_input"
+            // But we also have the form's HiddenInput with id="id_shareholder_register"
+            const hiddenInput = document.getElementById('id_shareholder_register');
+            const nameInput = document.getElementById('id_display_company_name');
+            const ubnInput = document.getElementById('id_display_unified_business_no');
+
+            console.log('Target Fields:', { hiddenInput, nameInput, ubnInput });
+
+            if (hiddenInput) {
+                hiddenInput.value = registerId;
+                console.log('Set hidden input to', registerId);
+            }
+            if (nameInput) {
+                // Remove disabled attribute temporarily to set value
+                nameInput.removeAttribute('disabled');
+                nameInput.value = companyName || '';
+                nameInput.setAttribute('disabled', 'disabled');
+                console.log('Set company name to', companyName);
+            }
+            if (ubnInput) {
+                ubnInput.removeAttribute('disabled');
+                ubnInput.value = ubn || '';
+                ubnInput.setAttribute('disabled', 'disabled');
+                console.log('Set UBN to', ubn);
+            }
+
+            if (typeof updateOrganizationType === 'function') {
+                updateOrganizationType();
+            }
+
+            // Close the Alpine.js modal by dispatching a click on the close button
+            // The modal widget uses Alpine x-show="open" toggled by @click.away or button
+            const closeBtn = document.querySelector('[x-data] button[type="button"][class*="text-gray-400"]');
+            if (closeBtn) {
+                closeBtn.click();
+                console.log('Closed modal via close button');
+            }
+        });
+    });
+</script>
+{% endblock %}

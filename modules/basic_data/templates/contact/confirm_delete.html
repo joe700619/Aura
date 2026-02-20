@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block header %}刪除聯絡人{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto pt-10 pb-12">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+        <div class="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center">
+            <svg class="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 class="text-xl font-bold text-red-800">確認刪除</h3>
+        </div>
+
+        <div class="p-8">
+            <p class="text-slate-600 text-lg mb-4">
+                您確定要刪除聯絡人 <span class="font-bold text-slate-800">{{ object.name }}</span> 嗎？
+            </p>
+            <p class="text-slate-500 mb-8">
+                此動作無法復原。如果此聯絡人與其他資料有關聯，可能會影響相關功能。
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex justify-end space-x-4">
+                    <a href="{% url 'contact_list' %}"
+                        class="px-6 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                        取消
+                    </a>
+                    <button type="submit"
+                        class="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors shadow-md">
+                        確認刪除
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+[
+    {
+        "model": "system_config.systemparameter",
+        "pk": 5,
+        "fields": {
+            "key": "LINE_CHANNEL_ACCESS_TOKEN",
+            "value": "",
+            "description": "Line Bot Channel Access Token",
+            "is_secret": true,
+            "group": "line",
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    },
+    {
+        "model": "system_config.systemparameter",
+        "pk": 6,
+        "fields": {
+            "key": "LINE_CHANNEL_SECRET",
+            "value": "",
+            "description": "Line Bot Channel Secret",
+            "is_secret": true,
+            "group": "line",
+            "updated_at": "2024-01-01T00:00:00Z"
+        }
+    }
+]

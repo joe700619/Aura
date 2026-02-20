@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block header %}
+{% block page_title %}表單{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12 relative" x-data="{ historyOpen: false }">
+
+    <!-- Sticky Toolbar -->
+    <div
+        class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20">
+        <div class="flex flex-wrap gap-2 mb-4 sm:mb-0">
+            {% block toolbar_actions %}
+            {% load action_tags %}
+            {% get_available_actions object as actions %}
+
+            <!-- Standard Buttons: Add, Copy, Delete, Cancel, Save, Actions -->
+            <!-- Child templates can use {{ block.super }} if they need to add extra buttons -->
+
+            <!-- Add Button -->
+            <a href="{% url request.resolver_match.view_name|to_create_url %}"
+                class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增
+            </a>
+
+            {% if object.pk %}
+            <!-- Copy Button -->
+            <a href="{% url request.resolver_match.view_name|to_create_url %}?source_id={{ object.pk }}"
+                class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                複製
+            </a>
+
+            <!-- Delete Button -->
+            <a href="{% url request.resolver_match.view_name|to_delete_url pk=object.pk %}"
+                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                刪除
+            </a>
+            {% endif %}
+
+            <!-- Cancel Button -->
+            {% if cancel_url %}
+            <a href="{{ cancel_url }}"
+                class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                取消
+            </a>
+            {% else %}
+            <button type="button" onclick="history.back()"
+                class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                取消
+            </button>
+            {% endif %}
+
+            <!-- Save Button -->
+            <button type="button" onclick="document.getElementById('main-form').requestSubmit()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                儲存
+            </button>
+
+            <!-- Action Dropdown -->
+            {% if object.pk %}
+            {% if actions.has_documents or actions.has_email or actions.has_line %}
+            <div class="relative inline-block text-left" x-data="{ open: false }" @click.away="open = false">
+                <button @click="open = !open" type="button"
+                    class="bg-white border border-slate-300 text-slate-700 shadow-sm px-3 py-1.5 rounded-md text-sm font-bold hover:bg-slate-50 flex items-center transition-colors">
+                    動作
+                    <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div x-show="open" style="display: none;" x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="transform opacity-100 scale-100"
+                    x-transition:leave-end="transform opacity-0 scale-95"
+                    class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <div class="py-1">
+                        {% if actions.has_documents %}
+                        <button type="button"
+                            @click="$dispatch('open-document-modal', { appLabel: '{{ object|app_label }}', modelName: '{{ object|model_name }}', objectId: '{{ object.pk }}', format: 'docx' })"
+                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                            role="menuitem">
+                            <svg class="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-500"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            產生 Word
+                        </button>
+                        <button type="button"
+                            @click="$dispatch('open-document-modal', { appLabel: '{{ object|app_label }}', modelName: '{{ object|model_name }}', objectId: '{{ object.pk }}', format: 'pdf' })"
+                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                            role="menuitem">
+                            <svg class="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-500"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            產生 PDF
+                        </button>
+                        {% endif %}
+
+                        {% if actions.has_email %}
+                        <button type="button"
+                            @click="$dispatch('open-email-modal', { appLabel: '{{ object|app_label }}', modelName: '{{ object|model_name }}', objectId: '{{ object.pk }}' })"
+                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                            role="menuitem">
+                            <svg class="mr-3 h-5 w-5 text-slate-400 group-hover:text-slate-500"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            寄出 Email
+                        </button>
+                        {% endif %}
+
+                        {% if actions.has_line %}
+                        <button type="button"
+                            @click="$dispatch('open-line-modal', { appLabel: '{{ object|app_label }}', modelName: '{{ object|model_name }}', objectId: '{{ object.pk }}' })"
+                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                            role="menuitem">
+                            <svg class="mr-3 h-5 w-5 text-slate-400 group-hover:text-[#06C755]"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            傳送 Line
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% endblock %}
+        </div>
+
+        <div class="flex items-center gap-2">
+            {% block toolbar_nav %}
+            {% if prev_object %}
+            <a href="{% url request.resolver_match.view_name pk=prev_object.pk %}"
+                class="bg-white hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-l-md text-sm font-bold border border-slate-300 border-r-0 flex items-center transition-colors"
+                title="上一筆">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+            {% else %}
+            <button disabled
+                class="bg-slate-50 text-slate-300 px-3 py-1.5 rounded-l-md text-sm font-bold border border-slate-200 border-r-0 flex items-center cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            {% endif %}
+
+            {% if next_object %}
+            <a href="{% url request.resolver_match.view_name pk=next_object.pk %}"
+                class="bg-white hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-r-md text-sm font-bold border border-slate-300 flex items-center transition-colors"
+                title="下一筆">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+            {% else %}
+            <button disabled
+                class="bg-slate-50 text-slate-300 px-3 py-1.5 rounded-r-md text-sm font-bold border border-slate-200 flex items-center cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            {% endif %}
+            {% endblock %}
+
+            <!-- History Toggle Button -->
+            {% block history_toggle %}
+            <button @click="historyOpen = !historyOpen"
+                class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center gap-1 transition-colors"
+                :class="{'bg-slate-100': historyOpen}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span x-text="historyOpen ? '隱藏紀錄' : '顯示紀錄'"></span>
+            </button>
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Main Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Form Area -->
+        <div class="space-y-6 transition-all duration-300 ease-in-out"
+            :class="historyOpen ? 'lg:col-span-9 xl:col-span-10' : 'lg:col-span-12'">
+
+            <form id="main-form" method="post" class="space-y-6" {% block form_attributes %}{% endblock %}>
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                    <p class="text-sm text-red-700 font-bold">請修正以下錯誤：</p>
+                    <ul class="text-sm text-red-600 list-disc pl-5 mt-1 text-left">
+                        {% for field in form %}
+                        {% if field.errors %}
+                        {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Main Container -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 space-y-8">
+
+                        <!-- Top Block -->
+                        {% block form_top_block %}
+                        <!-- Default 3-col grid, override if needed -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {% block form_card_1 %}{% endblock %}
+                            {% block form_card_2 %}{% endblock %}
+                            {% block form_card_3 %}{% endblock %}
+                        </div>
+                        {% endblock %}
+
+                        <!-- Divider -->
+                        <div class="border-t border-slate-100"></div>
+
+                        <!-- Bottom Block -->
+                        {% block form_bottom_block %}
+                        <!-- Remarks area -->
+                        {% endblock %}
+
+                        <!-- Tabs Section -->
+                        {% block form_tabs %}
+                        <!-- 
+                            Tabs Architecture:
+                            Use Alpine.js for tab switching.
+                            Content can be static or loaded via HTMX.
+                        -->
+                        <div x-data="{ activeTab: '{% block initial_tab %}tab_0{% endblock %}' }" class="mt-8">
+                            <!-- Tabs Header -->
+                            <div class="border-b border-slate-200">
+                                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                                    {% block tabs_header %}
+                                    <!-- Define buttons with @click="activeTab = 'tab_name'" -->
+                                    {% endblock %}
+                                </nav>
+                            </div>
+
+                            <!-- Tabs Content -->
+                            <div class="mt-4">
+                                {% block tabs_content %}
+                                <!-- Define content divs with x-show="activeTab === 'tab_name'" -->
+                                {% endblock %}
+                            </div>
+                        </div>
+                        {% endblock %}
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Sidebar (History) -->
+        <div x-show="historyOpen" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
+            x-transition:leave-end="opacity-0 translate-x-4" class="lg:col-span-3 xl:col-span-2">
+
+            {% block history_sidebar %}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
+                <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-slate-800 uppercase">變更紀錄</h3>
+                    <button @click="historyOpen = false" class="text-slate-400 hover:text-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- History Logic -->
+                <div class="divide-y divide-slate-100 max-h-[calc(100vh-200px)] overflow-y-auto">
+                    {% if history %}
+                    {% for record in history %}
+                    <div class="p-3 hover:bg-slate-50 transition-colors">
+                        <div class="flex justify-between text-[10px] mb-1">
+                            <span class="font-bold text-slate-700">{{ record.history_user|default:"系統" }}</span>
+                            <span class="text-slate-400">{{ record.history_date|date:"m/d H:i" }}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            {% if record.history_type == '+' %}
+                            <span class="px-1 bg-green-100 text-green-700 text-[10px] rounded">新</span>
+                            {% elif record.history_type == '~' %}
+                            <span class="px-1 bg-yellow-100 text-yellow-700 text-[10px] rounded">改</span>
+                            {% elif record.history_type == '-' %}
+                            <span class="px-1 bg-red-100 text-red-700 text-[10px] rounded">刪</span>
+                            {% endif %}
+                            <span class="text-xs text-slate-500 truncate">{{ record.history_change_reason }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="p-6 text-center text-slate-400 text-xs italic">尚無紀錄</div>
+                    {% endif %}
+
+                    {% block history_more_link %}{% endblock %}
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+
+        {% block modals %}{% endblock %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block overlays %}
+{% include 'components/document_sidebar.html' %}
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Card 1 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-gray-500 text-sm font-medium">總收入</h3>
+        <p class="text-3xl font-bold text-gray-800">$120,000</p>
+    </div>
+    <!-- Card 2: Pending Tasks -->
+    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-400">
+        <h3 class="text-gray-500 text-sm font-medium">待核准項目</h3>
+        <div class="flex items-end justify-between">
+            <p class="text-3xl font-bold text-gray-800">{{ pending_count|default:"0" }}</p>
+            <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">需要處理</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Content Area -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">最近活動</h3>
+        <p class="text-gray-500">尚無最近活動。</p>
+    </div>
+
+    <!-- Pending Approvals List -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <span class="mr-2">📋</span> 待辦事項
+        </h3>
+
+        {% if pending_approvals %}
+        <div class="space-y-4">
+            {% for approval_req in pending_approvals %}
+            <div class="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span class="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                            {{ approval_req.workflow_template.name }}
+                        </span>
+                        <h4 class="font-medium text-gray-800 mt-1">{{ approval_req.content_object }}</h4>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ approval_req.submit_date|date:"m/d H:i" }}</span>
+                </div>
+
+                <div class="flex items-center justify-between mt-3">
+                    <div class="flex items-center text-xs text-gray-500">
+                        <span class="mr-1">申請人:</span>
+                        <span class="font-medium text-gray-700">{{ approval_req.requester.get_full_name }}</span>
+                    </div>
+
+                    <a href="{{ approval_req.content_object.get_absolute_url }}"
+                        class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors">
+                        審核
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+            <p>目前沒有待辦事項 🎉</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

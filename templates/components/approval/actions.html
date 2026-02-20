@@ -1,0 +1,221 @@
+{# Approval Actions Component #}
+{# 核准操作按鈕（送出、核准、拒絕、退回、撤回） #}
+{% load action_tags %}
+
+<div class="flex gap-2">
+    {% if object %}
+    {# 送出核准按鈕 (申請人) - 當沒有approval_request或狀態為DRAFT/RETURNED時顯示 #}
+    {% if not approval_request or approval_request.status == 'DRAFT' or approval_request.status == 'RETURNED' %}
+
+    <form method="post"
+        action="{% with app=object|app_label model=object|model_name %}{% url app|add:':'|add:model|add:'_submit_approval' object.pk %}{% endwith %}"
+        id="submitForm">
+        {% csrf_token %}
+        <button type="submit" style="background-color: #2563eb !important; color: white !important;"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            送出核准
+        </button>
+    </form>
+
+    {% endif %}
+
+    {# 撤回按鈕 (申請人) #}
+    {% if approval_request %}
+    {% if approval_request.status == 'PENDING' or approval_request.status == 'RETURNED' %}
+    {% if request.user == approval_request.requester %}
+    <button type="button" onclick="showCancelModal()"
+        style="background-color: #4b5563 !important; color: white !important;"
+        class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        撤回申請
+    </button>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+
+    {# 核准/拒絕/退回按鈕 (核准者) #}
+    {% if approval_request %}
+    {% if approval_request.status == 'PENDING' %}
+    {% if can_approve %}
+    <button type="button" onclick="showApproveModal()"
+        style="background-color: #16a34a !important; color: white !important;"
+        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        核准
+    </button>
+
+    <button type="button" onclick="showReturnModal()"
+        style="background-color: #ea580c !important; color: white !important;"
+        class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+        </svg>
+        退回
+    </button>
+
+    <button type="button" onclick="showRejectModal()"
+        style="background-color: #dc2626 !important; color: white !important;"
+        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        拒絕
+    </button>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    {% endif %}
+</div>
+
+{# Modal Forms #}
+{% if object and approval_request %}
+{% with app=object|app_label model=object|model_name %}
+
+{# 核准 Modal #}
+<div id="approveModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">確認核准</h3>
+        <form method="post" action="{% url app|add:':'|add:model|add:'_approve' object.pk %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">核准意見（選填）</label>
+                <textarea name="comments" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    placeholder="請輸入核准意見..."></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="closeModal('approveModal')"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm">
+                    取消
+                </button>
+                <button type="submit" style="background-color: #16a34a !important; color: white !important;"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm">
+                    確認核准
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# 退回 Modal #}
+<div id="returnModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">退回修正</h3>
+        <form method="post" action="{% url app|add:':'|add:model|add:'_return' object.pk %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">退回理由（必填）</label>
+                <textarea name="comments" rows="3" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="請說明需要修正的地方..."></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="closeModal('returnModal')"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm">
+                    取消
+                </button>
+                <button type="submit" style="background-color: #ea580c !important; color: white !important;"
+                    class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm">
+                    確認退回
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# 拒絕 Modal #}
+<div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">拒絕申請</h3>
+        <form method="post" action="{% url app|add:':'|add:model|add:'_reject' object.pk %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">拒絕理由（必填）</label>
+                <textarea name="comments" rows="3" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                    placeholder="請說明拒絕原因..."></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="closeModal('rejectModal')"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm">
+                    取消
+                </button>
+                <button type="submit" style="background-color: #dc2626 !important; color: white !important;"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm">
+                    確認拒絕
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# 撤回 Modal #}
+<div id="cancelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">撤回申請</h3>
+        <form method="post" action="{% url app|add:':'|add:model|add:'_cancel_approval' object.pk %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">撤回原因（選填）</label>
+                <textarea name="comments" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
+                    placeholder="請輸入撤回原因..."></textarea>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="closeModal('cancelModal')"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm">
+                    取消
+                </button>
+                <button type="submit" style="background-color: #4b5563 !important; color: white !important;"
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm">
+                    確認撤回
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endwith %}
+
+<script>
+    function showApproveModal() {
+        document.getElementById('approveModal').classList.remove('hidden');
+    }
+
+    function showReturnModal() {
+        document.getElementById('returnModal').classList.remove('hidden');
+    }
+
+    function showRejectModal() {
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+
+    function showCancelModal() {
+        document.getElementById('cancelModal').classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // 點擊背景關閉 modal
+    document.addEventListener('click', function (event) {
+        const modals = ['approveModal', 'returnModal', 'rejectModal', 'cancelModal'];
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (event.target === modal) {
+                closeModal(modalId);
+            }
+        });
+    });
+</script>
+
+{% endif %}

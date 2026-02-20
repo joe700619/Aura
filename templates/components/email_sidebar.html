@@ -1,0 +1,254 @@
+<!-- Email Notification Sidebar Component -->
+<div id="email-sidebar" x-data="emailSidebar()" @open-email-modal.window="openSidebar($event.detail)">
+    <div class="fixed inset-0" style="z-index: 9999; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
+        aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="isOpen">
+
+        <!-- Backdrop -->
+        <div x-show="isOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" @click="closeSidebar()"></div>
+
+        <div class="fixed inset-0 overflow-hidden"
+            style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+            <div class="absolute inset-0 overflow-hidden"
+                style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10"
+                    style="position: fixed; top: 0; bottom: 0; right: 0; display: flex; max-width: 100%; padding-left: 2.5rem;">
+
+                    <!-- Panel -->
+                    <div x-show="isOpen"
+                        x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+                        x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+                        class="pointer-events-auto w-screen max-w-md" style="width: 100vw; max-width: 28rem;">
+
+                        <div class="flex h-full flex-col bg-white shadow-xl">
+                            <div class="px-4 py-6 sm:px-6 bg-slate-50 border-b border-slate-200">
+                                <div class="flex items-start justify-between">
+                                    <h2 class="text-base font-semibold leading-6 text-slate-900" id="slide-over-title">
+                                        寄出 Email</h2>
+                                    <div class="ml-3 flex h-7 items-center">
+                                        <button type="button"
+                                            class="relative rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                            @click="closeSidebar()">
+                                            <span class="absolute -inset-2.5"></span>
+                                            <span class="sr-only">Close panel</span>
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-sm text-slate-500" x-show="!objectIds || objectIds.length === 0">請選擇
+                                    Email 範本</p>
+                                <p class="mt-1 text-sm text-blue-600 font-bold"
+                                    x-show="objectIds && objectIds.length > 0"
+                                    x-text="'即將發送給 ' + objectIds.length + ' 位收件者'"></p>
+                            </div>
+
+                            <div class="relative flex-1 px-4 sm:px-6 py-6 overflow-y-auto">
+                                <!-- Content -->
+                                <form method="post" @submit.prevent="submitForm" id="email-form">
+                                    {% csrf_token %}
+
+                                    <!-- Loading State -->
+                                    <div x-show="loading" class="flex justify-center py-12">
+                                        <svg class="animate-spin h-8 w-8 text-indigo-600"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Template Selection -->
+                                    <div x-show="!loading">
+                                        <template x-if="templates.length > 0">
+                                            <div class="space-y-3">
+                                                <template x-for="template in templates" :key="template.id">
+                                                    <div class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        :class="selectedTemplate === template.id ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50' : ''"
+                                                        @click="selectedTemplate = template.id">
+                                                        <div class="flex h-5 items-center">
+                                                            <input type="radio" :name="'template'" :value="template.id"
+                                                                x-model="selectedTemplate"
+                                                                class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-600">
+                                                        </div>
+                                                        <div class="ml-3 text-sm">
+                                                            <label class="font-medium text-slate-900 cursor-pointer"
+                                                                x-text="template.name"></label>
+                                                            <p class="text-slate-500" x-text="template.subject">
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="templates.length === 0">
+                                            <div class="text-center py-12">
+                                                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                    <path vector-effect="non-scaling-stroke" stroke-linecap="round"
+                                                        stroke-linejoin="round" stroke-width="2"
+                                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                <h3 class="mt-2 text-sm font-semibold text-slate-900">沒有可用的 Email 範本
+                                                </h3>
+                                                <p class="mt-1 text-sm text-slate-500">請先在後台新增範本。</p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Scheduling -->
+                                        <div class="mt-6 border-t border-slate-200 pt-4" x-show="templates.length > 0">
+                                            <label class="text-sm font-medium text-slate-700 block mb-2">排程寄送
+                                                (選填)</label>
+                                            <input type="datetime-local" x-model="scheduleTime"
+                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                            <p class="mt-1 text-xs text-slate-500">若不選擇則立即寄出</p>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="flex flex-shrink-0 justify-end px-4 py-4 bg-slate-50 border-t border-slate-200">
+                                <button type="button"
+                                    class="cursor-pointer rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                                    @click="closeSidebar()">取消</button>
+                                <button type="submit" form="email-form"
+                                    class="cursor-pointer ml-4 inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                    :disabled="!selectedTemplate || loading || sending">
+                                    <span x-show="sending">
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                        寄送中...
+                                    </span>
+                                    <span x-show="!sending" x-text="scheduleTime ? '確認預約' : '確認寄出'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function emailSidebar() {
+        return {
+            isOpen: false,
+            loading: false,
+            sending: false,
+            appLabel: '',
+            modelName: '',
+            objectId: null,
+            objectIds: [],
+            templates: [],
+            selectedTemplate: null,
+            scheduleTime: '',
+
+            openSidebar(detail) {
+                console.log('openEmailSidebar called', detail);
+                this.appLabel = detail.appLabel;
+                this.modelName = detail.modelName;
+                if (detail.objectIds) {
+                    this.objectIds = detail.objectIds;
+                    this.objectId = null;
+                } else {
+                    this.objectId = detail.objectId;
+                    this.objectIds = [];
+                }
+                this.isOpen = true;
+                this.selectedTemplate = null;
+                this.fetchTemplates();
+            },
+
+            closeSidebar() {
+                this.isOpen = false;
+                this.templates = [];
+                this.selectedTemplate = null;
+                this.objectIds = []; // Reset on close
+            },
+
+            async fetchTemplates() {
+                this.loading = true;
+                try {
+                    // Include appLabel and modelName to filter templates by content type
+                    const response = await fetch(`/core/notifications/templates/?app_label=${this.appLabel}&model_name=${this.modelName}`);
+                    const data = await response.json();
+                    this.templates = data.templates;
+                    if (this.templates.length > 0) {
+                        this.selectedTemplate = this.templates[0].id;
+                    }
+                } catch (error) {
+                    console.error('Error fetching email templates:', error);
+                    alert('無法載入 Email 範本');
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async submitForm() {
+                if (!this.selectedTemplate) {
+                    alert('請選擇 Email 範本');
+                    return;
+                }
+
+                this.sending = true;
+                let url;
+                const formData = new FormData();
+                formData.append('template_id', this.selectedTemplate);
+                const form = document.getElementById('email-form');
+                const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+                formData.append('csrfmiddlewaretoken', csrfToken);
+                if (this.scheduleTime) {
+                    formData.append('schedule_time', this.scheduleTime);
+                }
+
+                if (this.objectIds && this.objectIds.length > 0) {
+                    // Bulk Send
+                    url = `/core/notifications/send/bulk/${this.appLabel}/${this.modelName}/`;
+                    formData.append('object_ids', this.objectIds.join(','));
+                } else {
+                    // Single Send
+                    url = `/core/notifications/send/${this.appLabel}/${this.modelName}/${this.objectId}/`;
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert('Email 已寄出！'); // Optional: replace with toast
+                        this.closeSidebar();
+                    } else {
+                        const error = await response.json();
+                        alert('寄送失敗: ' + (error.error || '未知錯誤'));
+                    }
+                } catch (error) {
+                    console.error('Error sending email:', error);
+                    alert('寄送失敗，請稍後再試');
+                } finally {
+                    this.sending = false;
+                }
+            }
+        }
+    }
+</script>

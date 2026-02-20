@@ -1,0 +1,50 @@
+{% load static %}
+{% for item in menu_tree %}
+<li class="px-3" title="{{ item.title }}" {% if item.children.exists %}
+    x-data="{ open: {% if item.is_active_path %}true{% else %}false{% endif %} }" {% endif %}>
+
+    {% if item.children.exists %}
+    <!-- Item with Children (Dropdown) -->
+    <button @click="open = !open; sidebarOpen = true" class="flex items-center justify-between w-full font-medium p-2 rounded-lg transition-colors duration-200 focus:outline-none 
+        {% if item.is_active_path %}bg-blue-50 text-blue-600{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+        <div class="flex items-center gap-3">
+            {% if item.icon_svg %}
+            <span class="w-6 h-6 flex justify-center items-center">
+                {{ item.icon_svg|safe }}
+            </span>
+            {% endif %}
+            <span x-show="sidebarOpen" class="whitespace-nowrap">{{ item.title }}</span>
+        </div>
+        <svg x-show="sidebarOpen" :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Recursive Sub-menu -->
+    <ul x-show="open && sidebarOpen" x-transition class="mt-1 space-y-1">
+        {% for child in item.children_list %}
+        <li>
+            <a href="{% if child.url_name %}{% url child.url_name %}{% else %}#{% endif %}"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                {% if child.is_active_path %}text-blue-600 bg-blue-50{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}">
+                {{ child.title }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% else %}
+    <!-- Leaf Item (Link) -->
+    <a href="{% if item.url_name %}{% url item.url_name %}{% else %}#{% endif %}" class="flex items-center gap-3 font-medium p-2 rounded-lg transition-colors duration-200 
+        {% if item.is_active_path %}bg-blue-50 text-blue-600{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+        {% if item.icon_svg %}
+        <span class="w-6 h-6 flex justify-center items-center">
+            {{ item.icon_svg|safe }}
+        </span>
+        {% endif %}
+        <span x-show="sidebarOpen" class="whitespace-nowrap">{{ item.title }}</span>
+    </a>
+    {% endif %}
+</li>
+{% endfor %}

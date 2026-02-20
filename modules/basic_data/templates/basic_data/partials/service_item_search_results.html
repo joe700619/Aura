@@ -1,0 +1,16 @@
+{% for item in service_items %}
+<div class="cursor-pointer hover:bg-slate-50 p-2 border-b border-gray-100 last:border-0"
+    @click="selectItem({ name: '{{ item.name|escapejs }}', reference_fee: '{{ item.reference_fee|default:0 }}', remark: '{{ item.remark|default:''|escapejs }}' })">
+    <div class="flex justify-between">
+        <span class="font-medium text-slate-800">{{ item.name }}</span>
+        <span class="text-slate-500 text-sm">$ {{ item.reference_fee|default:0 }}</span>
+    </div>
+    {% if item.remark %}
+    <div class="text-xs text-slate-400 mt-1">{{ item.remark|truncatechars:30 }}</div>
+    {% endif %}
+</div>
+{% empty %}
+<div class="p-4 text-center text-sm text-gray-500">
+    沒有找到符合的結果
+</div>
+{% endfor %}

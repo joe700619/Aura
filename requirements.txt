@@ -1,0 +1,13 @@
+Django>=5.0
+psycopg2-binary
+celery
+redis
+django-tailwind
+django-browser-reload
+openpyxl
+python-docx
+weasyprint
+requests
+Pillow
+docxtpl
+docx2pdf

@@ -1,0 +1,117 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}
+{% if object %}編輯服務項目 - {{ object.name }}{% else %}新增服務項目{% endif %}
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'service_item_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+
+    {% if object %}
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">服務項目編號</label>
+        <input type="text" value="{{ object.service_id }}" readonly
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-600 cursor-not-allowed text-sm" />
+    </div>
+    {% endif %}
+
+    <div>
+        <label for="{{ form.department.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.department.label }} <span class="text-red-500">*</span>
+        </label>
+        {{ form.department }}
+        {% if form.department.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.department.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.name.label }} <span class="text-red-500">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="{{ form.reference_fee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.reference_fee.label }} （新台幣）
+        </label>
+        {{ form.reference_fee }}
+        {% if form.reference_fee.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.reference_fee.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label for="{{ form.remark.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.remark.label }}
+        </label>
+        {{ form.remark }}
+        {% if form.remark.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.remark.errors.0 }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">聯絡資訊</h4>
+    </div>
+
+    <div class="p-4 bg-slate-50 rounded-md text-slate-500 text-sm text-center">
+        暫無資料欄位
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">其他設定</h4>
+    </div>
+
+    <div class="space-y-3">
+        <div class="flex items-center">
+            {{ form.is_company_law_22_1 }}
+            <label for="{{ form.is_company_law_22_1.id_for_label }}" class="ml-2 block text-sm text-slate-700">
+                {{ form.is_company_law_22_1.label }}
+            </label>
+        </div>
+
+        <div class="flex items-center">
+            {{ form.is_money_laundering_check }}
+            <label for="{{ form.is_money_laundering_check.id_for_label }}" class="ml-2 block text-sm text-slate-700">
+                {{ form.is_money_laundering_check.label }}
+            </label>
+        </div>
+
+        <div class="flex items-center">
+            {{ form.is_business_entity_change }}
+            <label for="{{ form.is_business_entity_change.id_for_label }}" class="ml-2 block text-sm text-slate-700">
+                {{ form.is_business_entity_change.label }}
+            </label>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+{# No bottom block needed if remarks are in card 1 #}
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block header %}{% block page_title %}列表{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 pb-8" x-data="{ 
+        selectedRows: [], 
+        selectAll: false,
+        filter: 'ALL',
+        search: '',
+        allItems: [],
+        init() {
+            const dataEl = document.getElementById('{% block metadata_id %}list-metadata{% endblock %}');
+            if (dataEl) {
+                try {
+                    this.allItems = JSON.parse(dataEl.textContent);
+                } catch (e) {
+                    console.error('Failed to parse metadata:', e);
+                }
+            }
+            {% block extra_init %}{% endblock %}
+        },
+        toggleAll() {
+            if (this.selectAll) {
+                // Only select items that match the current filter and search
+                this.selectedRows = this.allItems
+                    .filter(item => this.matches(item.category, item.content))
+                    .map(item => item.id);
+            } else {
+                this.selectedRows = [];
+            }
+        },
+        matches(category, content) {
+            const matchesFilter = this.filter === 'ALL' || this.filter === category;
+            const matchesSearch = this.search === '' || 
+                                 content.toLowerCase().includes(this.search.toLowerCase());
+            return matchesFilter && matchesSearch;
+        }
+    }">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">{% block header_title %}列表標題{% endblock %}</h2>
+            <p class="text-sm text-slate-500 mt-1">{% block header_description %}列表描述{% endblock %}</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Action Dropdown -->
+            {% load list_action_tags %}
+            {% if model_class %}
+            {% get_list_available_actions model_class as list_actions %}
+            {% endif %}
+
+            <div class="relative" x-data="{ open: false }" @click.away="open = false" x-cloak>
+                <button @click="open = !open"
+                    class="bg-white border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition duration-200 inline-flex items-center shadow-sm">
+                    動作按鈕
+                    <svg class="w-4 h-4 ml-2 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    class="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden"
+                    style="display: none;">
+                    {% block bulk_actions %}
+                    <!-- Excel Export (Always Available) -->
+                    <button type="button"
+                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-export-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', ids: selectedRows }))"
+                        class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
+                        <svg class="w-4 h-4 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        下載 Excel
+                    </button>
+
+                    <!-- Email (If Template Exists) -->
+                    {% if list_actions.has_email %}
+                    <button type="button"
+                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-email-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+                        class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
+                        <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        寄出 Email
+                    </button>
+                    {% endif %}
+
+                    <!-- Line (If Template Exists) -->
+                    {% if list_actions.has_line %}
+                    <button type="button"
+                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-line-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+                        class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-green-50 hover:text-green-600 transition-colors text-left">
+                        <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 3.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        傳送 Line
+                    </button>
+                    {% endif %}
+
+                    <!-- Custom Bulk Actions (Override in child templates if needed) -->
+                    {% block custom_bulk_actions %}{% endblock %}
+                    {% endblock %}
+                </div>
+            </div>
+
+            <!-- Standard Create Button (if model_name is provided) -->
+            {% if model_name %}
+            {% url model_name|add:'_create' as create_url %}
+            {% if create_url %}
+            <a href="{{ create_url }}"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% if create_button_label %}{{ create_button_label }}{% else %}新增資料{% endif %}
+            </a>
+            {% endif %}
+            {% endif %}
+
+            <!-- Custom Actions (Override in child templates if needed) -->
+            {% block actions %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
+        <!-- Table Search & Filter -->
+        <div
+            class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+            <div class="flex items-center text-sm text-slate-600 order-2 md:order-1">
+                <span>每頁顯示</span>
+                <select
+                    class="mx-2 border-slate-200 rounded-md py-1 px-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+                    <option>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                </select>
+                <span>筆數據</span>
+            </div>
+
+            <div class="relative w-full md:w-auto flex flex-col md:flex-row items-center gap-4 order-1 md:order-2">
+                <!-- Filter Button Group -->
+                <div class="inline-flex rounded-lg shadow-sm border border-slate-200 p-1 bg-white">
+                    {% block filters %}{% endblock %}
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full md:w-64">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" placeholder="{% block search_placeholder %}輸入關鍵字搜尋...{% endblock %}"
+                        x-model="search"
+                        class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition duration-150 shadow-sm">
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-4">
+                            <label class="relative flex cursor-pointer select-none items-center">
+                                <input type="checkbox" class="sr-only" @change="toggleAll" x-model="selectAll">
+                                <div :class="selectAll ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                                    class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                                    <template x-if="selectAll">
+                                        <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </template>
+                                </div>
+                            </label>
+                        </th>
+                        {% block table_headers %}{% endblock %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100">
+                    {% block table_rows %}{% endblock %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Info -->
+        <div
+            class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <span class="text-sm text-slate-500">
+                {% block pagination_info %}
+                {% if is_paginated %}
+                顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+                {% else %}
+                顯示第 1 到 {{ object_list|length }} 筆，共 {{ object_list|length }} 筆資料
+                {% endif %}
+                {% endblock %}
+            </span>
+            <div class="flex items-center space-x-2">
+                <button class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 disabled:opacity-50"
+                    disabled>上一頁</button>
+                <button class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium">1</button>
+                <button
+                    class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block overlays %}{% endblock %}

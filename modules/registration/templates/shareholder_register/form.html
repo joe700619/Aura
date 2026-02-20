@@ -1,0 +1,571 @@
+﻿{% extends 'components/form_view.html' %}
+{% load humanize %}
+
+{% block page_title %}{% if action == 'create' %}新增股東名簿查詢{% else %}編輯股東名簿查詢{% endif %}{% endblock %}
+{% block header_title %}{% if action == 'create' %}新增股東名簿查詢{% else %}編輯股東名簿查詢{% endif %}{% endblock %}
+
+{% block form_top_block %}
+<!-- Search Customer -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶 (帶入基本資料)</label>
+    {{ form.search_customer }}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Company Name -->
+    <div>
+        <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.company_name.label }}
+            {% if form.company_name.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.company_name }}
+        {{ form.company_name.errors }}
+    </div>
+
+    <!-- Unified Business No -->
+    <div>
+        <label for="{{ form.unified_business_no.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.unified_business_no.label }}
+            {% if form.unified_business_no.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.unified_business_no }}
+        {{ form.unified_business_no.errors }}
+    </div>
+
+    <!-- Line ID -->
+    <div>
+        <label for="{{ form.line_id.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.line_id.label }}
+            {% if form.line_id.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.line_id }}
+        {{ form.line_id.errors }}
+    </div>
+
+    <!-- Room ID -->
+    <div>
+        <label for="{{ form.room_id.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.room_id.label }}
+            {% if form.room_id.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.room_id }}
+        {{ form.room_id.errors }}
+    </div>
+
+    <!-- Service Status -->
+    <div>
+        <label for="{{ form.service_status.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.service_status.label }}
+            {% if form.service_status.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.service_status }}
+        {{ form.service_status.errors }}
+    </div>
+
+    <!-- Completion Status -->
+    <div>
+        <label for="{{ form.completion_status.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            {{ form.completion_status.label }}
+            {% if form.completion_status.field.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {{ form.completion_status }}
+        {{ form.completion_status.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block initial_tab %}register{% endblock %}
+
+{% block tabs_header %}
+<button type="button" @click="activeTab = 'register'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+    :class="activeTab === 'register' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    股東名簿查詢
+</button>
+<button type="button" @click="activeTab = 'transaction'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+    :class="activeTab === 'transaction' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    股權交易紀錄
+</button>
+{% if object.pk %}
+<button type="button" @click="activeTab = 'directors'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+    :class="activeTab === 'directors' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    董監事名單
+</button>
+{% endif %}
+{% endblock %}
+
+{% block tabs_content %}
+
+<!-- ── Shareholder Register Tab ── -->
+<div x-show="activeTab === 'register'" class="py-2">
+    <div x-data="registerTabData()">
+
+        {% if object.pk and equity_transactions.exists %}
+        <script>
+            function registerTabData() {
+                const allTx = JSON.parse('{{ all_tx_json|escapejs }}');
+                const dates = JSON.parse('{{ timeline_dates_json|escapejs }}');
+                return {
+                    allTx, dates,
+                    selectedDate: dates.length ? dates[0] : null,
+                    get rows() {
+                        const filtered = this.selectedDate ? this.allTx.filter(t => t.date <= this.selectedDate) : this.allTx;
+                        const map = {};
+                        filtered.forEach(t => {
+                            const k = t.id + '|' + t.stype + '|' + t.price;
+                            if (!map[k]) map[k] = { name: t.name, id: t.id, stype: t.stype, slabel: t.slabel, price: t.price, count: 0, amount: 0 };
+                            map[k].count += t.count;
+                            map[k].amount += t.amount;
+                        });
+                        return Object.values(map).filter(r => r.count > 0);
+                    },
+                    get totShares() { return this.rows.reduce((s, r) => s + r.count, 0); },
+                    get totAmount() { return this.rows.reduce((s, r) => s + r.amount, 0); },
+                    fmt(n) { return Number(n).toLocaleString(); },
+                };
+            }
+        </script>
+
+        <div class="flex gap-5 min-h-[400px]">
+
+            <!-- ── Timeline LEFT ── -->
+            <div class="w-1/4 flex-shrink-0 border-r border-slate-100 pr-4">
+                <h4
+                    class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    交易時間軸
+                </h4>
+                <!-- wrapper: padding-left:20px, line at left:5px (center=6px), dot left = 6-6-20 = -20px from item -->
+                <div style="position:relative; padding-left:20px; margin-left:8px;">
+                    <!-- Vertical line -->
+                    <div style="position:absolute; left:5px; top:6px; bottom:6px; width:2px; background-color:#60a5fa;"></div>
+                    {% for date, txs, unique_reasons in timeline %}
+                    <div style="position:relative; margin-bottom:24px; cursor:pointer;" data-date="{{ date|date:'Y-m-d' }}"
+                        @click="selectedDate = $el.dataset.date">
+                        <!-- Dot: centered on line. left:-20px puts dot left-edge at 0px from wrapper = line center at 6px -->
+                        <div :style="`position:absolute; left:-20px; top:2px; width:12px; height:12px; border-radius:50%; border:2px solid #3b82f6; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:all 0.15s; ${selectedDate === $el.closest('[data-date]').dataset.date ? 'background-color:#3b82f6; transform:scale(1.1);' : 'background-color:white;'}`">
+                        </div>
+                        <p style="font-size:0.875rem; font-weight:700; line-height:1.25;"
+                            :style="selectedDate === $el.closest('[data-date]').dataset.date ? 'color:#2563eb;' : 'color:#64748b;'">{{ date|date:"Y/m/d" }}</p>
+                        <p style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ unique_reasons }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ── Right Content ── -->
+            <div class="flex-1 min-w-0">
+
+                <!-- Stats cards -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                        <div class="p-1.5 bg-blue-100 rounded-md">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-semibold text-blue-500 uppercase tracking-wider">股份總數</p>
+                            <p class="text-xl font-bold text-blue-800" x-text="fmt(totShares)">—</p>
+                        </div>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                        <div class="p-1.5 bg-emerald-100 rounded-md">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">金額總數</p>
+                            <p class="text-xl font-bold text-emerald-800" x-text="fmt(totAmount)">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date indicator -->
+                <p class="text-xs text-slate-400 mb-2" x-show="selectedDate">截至 <strong class="text-slate-600"
+                        x-text="selectedDate"></strong> 之股東名簿</p>
+
+                <!-- Shareholder table -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    姓名</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    身份證字號</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    股票種類</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    股數</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    面額</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    金額</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-100">
+                            <template x-for="row in rows" :key="row.id + '|' + row.stype + '|' + row.price">
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap"
+                                        x-text="row.name"></td>
+                                    <td class="px-4 py-3 text-slate-500 whitespace-nowrap font-mono text-xs"
+                                        x-text="row.id"></td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                            :class="row.stype === 'COMMON' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'"
+                                            x-text="row.slabel"></span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap"
+                                        x-text="fmt(row.count)"></td>
+                                    <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap"
+                                        x-text="fmt(row.price)"></td>
+                                    <td class="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap"
+                                        x-text="fmt(row.amount)"></td>
+                                </tr>
+                            </template>
+                            <tr x-show="rows.length === 0">
+                                <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400 italic">
+                                    此日期前無交易資料</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+                            <tr>
+                                <td colspan="3"
+                                    class="px-4 py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">合計</td>
+                                <td class="px-4 py-3 text-right font-bold text-slate-900" x-text="fmt(totShares)"></td>
+                                <td class="px-4 py-3"></td>
+                                <td class="px-4 py-3 text-right font-bold text-slate-900" x-text="fmt(totAmount)"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div><!-- end flex -->
+
+        {% else %}
+        <div
+            class="flex flex-col items-center justify-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+            <svg class="w-10 h-10 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-sm">尚無股權交易資料，請至「股權交易紀錄」標籤新增。</p>
+        </div>
+        {% endif %}
+    </div><!-- end x-data -->
+</div>
+
+<!-- ── Transaction Record Tab ── -->
+<div x-show="activeTab === 'transaction'" class="py-4">
+    <div class="mb-4">
+        {% if object.pk %}
+        <a href="{% url 'registration:equity_transaction_create' %}?register_id={{ object.pk }}" target="_blank"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                aria-hidden="true">
+                <path fill-rule="evenodd"
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    clip-rule="evenodd" />
+            </svg>
+            新增交易
+        </a>
+        {% else %}
+        <span class="text-sm text-gray-500">請先儲存股東名簿查詢表，再新增股權交易。</span>
+        {% endif %}
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">股東姓名
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">交易日期
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">交易事由
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">股票種類
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">股數</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">面額</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">金額</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">操作
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-200">
+                {% for transaction in equity_transactions %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ transaction.shareholder_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.transaction_date|date:"Y/m/d" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.get_transaction_reason_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.get_stock_type_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.share_count|intcomma }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.unit_price|intcomma }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ transaction.total_amount|floatformat:0|intcomma }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div class="flex items-center justify-center space-x-3">
+                            <a href="{% url 'registration:equity_transaction_update' transaction.pk %}" target="_blank"
+                                class="text-blue-600 hover:text-blue-800 transition-colors duration-200" title="編輯">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </a>
+                            <a href="{% url 'registration:equity_transaction_delete' transaction.pk %}?next={% url 'registration:shareholder_register_update' object.pk %}"
+                                class="text-red-500 hover:text-red-700 transition-colors duration-200" title="刪除">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">
+                        尚無交易紀錄
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Directors Tab ── -->
+{% if action == 'update' %}
+<div x-show="activeTab === 'directors'" class="py-2">
+    {{ director_formset.management_form }}
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-semibold text-slate-700">董監事名單</h3>
+        <button type="button" id="add-director-row"
+            class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-1.5 rounded-md transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            新增
+        </button>
+    </div>
+    <div class="overflow-x-auto rounded-lg border border-slate-200">
+        <table class="min-w-full divide-y divide-slate-200 text-sm" id="directors-table">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">職稱</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">姓名</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">身分證字號</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">國籍</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">出生年月日</th>
+                    <th class="px-3 py-3 text-right font-semibold text-slate-600">持有股份</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">所代表法人</th>
+                    <th class="px-3 py-3 text-left font-semibold text-slate-600">代表法人統編</th>
+                    <th class="px-3 py-3 text-center font-semibold text-slate-600">刪除</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-100" id="directors-tbody">
+                {% for dform in director_formset %}
+                <tr class="director-row hover:bg-slate-50">
+                    <td class="px-2 py-2">
+                        {{ dform.id }}
+                        <select name="{{ dform.title.html_name }}" class="block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            {% for val, label in dform.fields.title.choices %}
+                            <option value="{{ val }}" {% if dform.title.value == val %}selected="selected"{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td class="px-2 py-2">
+                        <div class="relative">
+                            <input type="text" name="{{ dform.name.html_name }}" value="{{ dform.name.value|default:'' }}" 
+                                class="block w-full rounded-md border border-slate-300 pl-2 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <button type="button" @click="$dispatch('open-shareholder-modal', { index: {{ forloop.counter0 }}, field: 'name' })"
+                                class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-blue-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-2 py-2"><input type="text" name="{{ dform.id_number.html_name }}" value="{{ dform.id_number.value|default:'' }}" class="block w-32 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+                    <td class="px-2 py-2"><input type="text" name="{{ dform.nationality.html_name }}" value="{{ dform.nationality.value|default:'' }}" class="block w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+                    <td class="px-2 py-2"><input type="date" name="{{ dform.birth_date.html_name }}" value="{{ dform.birth_date.value|date:'Y-m-d' }}" class="block w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+                    <td class="px-2 py-2"><input type="number" name="{{ dform.shares_held.html_name }}" value="{{ dform.shares_held.value|default:'0' }}" min="0" class="block w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"></td>
+                    <td class="px-2 py-2">
+                        <div class="relative" style="width: fit-content;">
+                            <input type="text" name="{{ dform.entity_name.html_name }}" value="{{ dform.entity_name.value|default:'' }}" 
+                                class="block w-36 rounded-md border border-slate-300 pl-2 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="button" @click="$dispatch('open-shareholder-modal', { index: {{ forloop.counter0 }}, field: 'entity' })"
+                                class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-blue-500">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-2 py-2"><input type="text" name="{{ dform.entity_no.html_name }}" value="{{ dform.entity_no.value|default:'' }}" class="block w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></td>
+                    <td class="px-2 py-2 text-center">
+                        <input type="hidden" name="{{ dform.order.html_name }}" value="{{ dform.order.value|default:'0' }}">
+                        <label class="inline-flex items-center justify-center cursor-pointer">
+                                <input type="checkbox" name="{{ dform.DELETE.html_name }}" {% if dform.DELETE.value %}checked{% endif %}
+                                class="sr-only delete-checkbox"
+                                onchange="var row = this.closest('tr'); if(this.checked) { row.style.backgroundColor = '#fee2e2'; row.style.opacity = '0.5'; row.querySelectorAll('input:not([type=hidden]):not(.delete-checkbox), select').forEach(el => el.disabled = true); } else { row.style.backgroundColor = ''; row.style.opacity = ''; row.querySelectorAll('input:not([type=hidden]):not(.delete-checkbox), select').forEach(el => el.disabled = false); }">
+                            <span class="text-red-500 hover:text-red-700 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </span>
+                        </label>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block modals %}
+{{ block.super }}
+{% endblock %}
+
+{% block overlays %}
+<!-- Removed block.super to prevent double overlay issues -->
+{% include 'shareholder_register/shareholder_search_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle customer info auto-fill
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target.id === 'modal-search-results') {
+            const rows = event.detail.target.querySelectorAll('tr[data-id]');
+            rows.forEach(row => {
+                row.addEventListener('click', function () {
+                    const companyName = this.dataset.title;
+                    const ubn = this.dataset.ubn;
+                    const lineId = this.dataset.lineId || '';
+                    const roomId = this.dataset.roomId || '';
+
+                    // Update form fields
+                    document.getElementById('{{ form.company_name.id_for_label }}').value = companyName;
+                    document.getElementById('{{ form.unified_business_no.id_for_label }}').value = ubn;
+                    if (document.getElementById('{{ form.line_id.id_for_label }}')) {
+                        document.getElementById('{{ form.line_id.id_for_label }}').value = lineId;
+                    }
+                    if (document.getElementById('{{ form.room_id.id_for_label }}')) {
+                        document.getElementById('{{ form.room_id.id_for_label }}').value = roomId;
+                    }
+
+                    // Close modal
+                    const closeButton = document.querySelector('#modal-container button[aria-label="Close"]');
+                    if (closeButton) closeButton.click();
+                    else {
+                        const modalContainer = document.getElementById('modal-container');
+                        if (modalContainer) modalContainer.innerHTML = '';
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+
+
+<script>
+(function() {
+    // ── Add director row ───────────────────────────────────────────────────
+    const addBtn = document.getElementById('add-director-row');
+    if (!addBtn) return;
+    const mgmt = document.getElementById('id_directors-TOTAL_FORMS');
+    const tbody = document.getElementById('directors-tbody');
+    const prefix = 'directors';
+    // Use JSON from context to avoid inline template tags in JS
+    const titleChoices = JSON.parse('{{ director_title_choices_json|escapejs }}');
+
+    addBtn.addEventListener('click', function() {
+        const idx = parseInt(mgmt.value);
+        const tr = document.createElement('tr');
+        tr.className = 'director-row hover:bg-slate-50';
+
+        const titleOptions = titleChoices.map(([v, l]) =>
+            `<option value="${v}">${l}</option>`
+        ).join('');
+
+        tr.innerHTML = `
+            <td class="px-2 py-2">
+                <input type="hidden" name="${prefix}-${idx}-id" value="">
+                <select name="${prefix}-${idx}-title" class="block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>${titleOptions}</select>
+            </td>
+            <td class="px-2 py-2">
+                <div class="relative">
+                    <input type="text" name="${prefix}-${idx}-name" value="" class="block w-full rounded-md border border-slate-300 pl-2 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <button type="button" @click="$dispatch('open-shareholder-modal', { index: ${idx}, field: 'name' })"
+                        class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-blue-500">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                </div>
+            </td>
+            <td class="px-2 py-2"><input type="text" name="${prefix}-${idx}-id_number" value="" class="block w-32 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+            <td class="px-2 py-2"><input type="text" name="${prefix}-${idx}-nationality" value="" class="block w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+            <td class="px-2 py-2"><input type="date" name="${prefix}-${idx}-birth_date" value="" class="block w-36 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></td>
+            <td class="px-2 py-2"><input type="number" name="${prefix}-${idx}-shares_held" value="0" min="0" class="block w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"></td>
+            <td class="px-2 py-2">
+                <div class="relative" style="width: fit-content;">
+                    <input type="text" name="${prefix}-${idx}-entity_name" value="" class="block w-36 rounded-md border border-slate-300 pl-2 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" @click="$dispatch('open-shareholder-modal', { index: ${idx}, field: 'entity' })"
+                        class="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 hover:text-blue-500">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                </div>
+            </td>
+            <td class="px-2 py-2"><input type="text" name="${prefix}-${idx}-entity_no" value="" class="block w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></td>
+            <td class="px-2 py-2 text-center">
+                <input type="hidden" name="${prefix}-${idx}-order" value="0">
+                <label class="inline-flex items-center justify-center cursor-pointer">
+                    <input type="checkbox" name="${prefix}-${idx}-DELETE" class="sr-only delete-checkbox"
+                        onchange="var row = this.closest('tr'); if(this.checked) { row.style.backgroundColor = '#fee2e2'; row.style.opacity = '0.5'; row.querySelectorAll('input:not([type=hidden]):not(.delete-checkbox), select').forEach(el => el.disabled = true); } else { row.style.backgroundColor = ''; row.style.opacity = ''; row.querySelectorAll('input:not([type=hidden]):not(.delete-checkbox), select').forEach(el => el.disabled = false); }">
+                    <span class="text-red-500 hover:text-red-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </span>
+                </label>
+            </td>`;
+
+        tbody.appendChild(tr);
+        mgmt.value = idx + 1;
+    });
+
+    // ── Handle row update from modal ───────────────────────────────────────
+    window.addEventListener('update-director-row', function(e) {
+        const index = e.detail.index;
+        const field = e.detail.field;
+        const data = e.detail.data;
+        const prefix = 'directors';
+
+        // Helper to safely set value if element exists
+        const setVal = (name, val) => {
+            const el = document.querySelector(`[name="${prefix}-${index}-${name}"]`);
+            if (el) el.value = val;
+        };
+
+        if (field === 'name') {
+            setVal('name', data.shareholder_name || '');
+            setVal('id_number', data.shareholder_id_number || '');
+            setVal('nationality', data.shareholder_nationality || '');
+            setVal('birth_date', data.shareholder_birthday || '');
+        } else if (field === 'entity') {
+             setVal('entity_name', data.shareholder_name || '');
+             setVal('entity_no', data.shareholder_id_number || '');
+        }
+    });
+}());
+</script>
+{% endblock %}

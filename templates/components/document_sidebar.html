@@ -1,0 +1,247 @@
+<!-- Document Generation Sidebar Component -->
+<div id="document-sidebar" x-data="documentSidebar()" @open-document-modal.window="openSidebar($event.detail)">
+    <div class="fixed inset-0" style="z-index: 9999; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
+        aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="isOpen">
+
+        <!-- Backdrop -->
+        <div x-show="isOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" @click="closeSidebar()"></div>
+
+        <div class="fixed inset-0 overflow-hidden"
+            style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+            <div class="absolute inset-0 overflow-hidden"
+                style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10"
+                    style="position: fixed; top: 0; bottom: 0; right: 0; display: flex; max-width: 100%; padding-left: 2.5rem;">
+
+                    <!-- Panel -->
+                    <div x-show="isOpen"
+                        x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+                        x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
+                        x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+                        class="pointer-events-auto w-screen max-w-md" style="width: 100vw; max-width: 28rem;">
+
+                        <div class="flex h-full flex-col bg-white shadow-xl">
+                            <div class="px-4 py-6 sm:px-6 bg-slate-50 border-b border-slate-200">
+                                <div class="flex items-start justify-between">
+                                    <h2 class="text-base font-semibold leading-6 text-slate-900" id="slide-over-title">
+                                        產生文件</h2>
+                                    <div class="ml-3 flex h-7 items-center">
+                                        <button type="button"
+                                            class="relative rounded-md bg-white text-slate-400 hover:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                            @click="closeSidebar()">
+                                            <span class="absolute -inset-2.5"></span>
+                                            <span class="sr-only">Close panel</span>
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-sm text-slate-500">請選擇要使用的模板</p>
+                            </div>
+
+                            <div class="relative flex-1 px-4 sm:px-6 py-6 overflow-y-auto">
+                                <!-- Content -->
+                                <form method="post" :action="generateUrl" @submit.prevent="submitForm"
+                                    id="document-form">
+                                    {% csrf_token %}
+
+                                    <!-- Loading State -->
+                                    <div x-show="loading" class="flex justify-center py-12">
+                                        <svg class="animate-spin h-8 w-8 text-indigo-600"
+                                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                                stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Template Selection -->
+                                    <div x-show="!loading">
+                                        <template x-if="templates.length > 0">
+                                            <div class="space-y-3">
+                                                <template x-for="template in templates" :key="template.id">
+                                                    <div class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        :class="selectedTemplate === template.id ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50' : ''"
+                                                        @click="selectedTemplate = template.id">
+                                                        <div class="flex h-5 items-center">
+                                                            <input type="radio" :name="'template'" :value="template.id"
+                                                                x-model="selectedTemplate"
+                                                                class="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-600">
+                                                        </div>
+                                                        <div class="ml-3 text-sm">
+                                                            <label class="font-medium text-slate-900 cursor-pointer"
+                                                                x-text="template.name"></label>
+                                                            <p class="text-slate-500" x-text="template.description">
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <!-- Format Selection -->
+                                        <div class="mt-6 border-t border-slate-200 pt-4" x-show="templates.length > 0">
+                                            <label class="text-sm font-medium text-slate-700 block mb-2">輸出格式</label>
+                                            <div class="flex gap-4">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="format" value="docx" x-model="format"
+                                                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-600 border-gray-300">
+                                                    <span class="text-sm text-slate-700">Word (.docx)</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="format" value="pdf" x-model="format"
+                                                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-600 border-gray-300">
+                                                    <span class="text-sm text-slate-700">PDF (.pdf)</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Variable Guide -->
+                                        <div class="mt-6 border-t border-slate-200 pt-4"
+                                            x-data="{ showVariables: false }">
+                                            <button type="button"
+                                                class="flex w-full items-center justify-between text-left text-sm font-medium text-slate-700 hover:text-slate-900 focus:outline-none"
+                                                @click="showVariables = !showVariables">
+                                                <span>可用變數參考</span>
+                                                <span class="ml-6 flex items-center">
+                                                    <svg class="h-5 w-5 transform transition-transform"
+                                                        :class="{ '-rotate-180': showVariables }"
+                                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                        fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </span>
+                                            </button>
+
+                                            <div x-show="showVariables" class="mt-4 space-y-2">
+                                                <p class="text-xs text-slate-500 mb-2">點擊複製變數代碼</p>
+                                                <div class="max-h-60 overflow-y-auto space-y-1 pr-2">
+                                                    <template x-for="variable in variables" :key="variable.name">
+                                                        <div class="group flex items-center justify-between rounded-md px-2 py-1 hover:bg-slate-100 cursor-pointer"
+                                                            @click="navigator.clipboard.writeText('{{ ' + variable.name + ' }}'); $dispatch('notify', { message: '已複製: ' + variable.name })">
+                                                            <span class="text-xs font-mono text-indigo-600"
+                                                                x-text="variable.name"></span>
+                                                            <span class="text-xs text-slate-500"
+                                                                x-text="variable.label"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <template x-if="templates.length === 0">
+                                            <div class="text-center py-12">
+                                                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                    <path vector-effect="non-scaling-stroke" stroke-linecap="round"
+                                                        stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                                </svg>
+                                                <h3 class="mt-2 text-sm font-semibold text-slate-900">沒有可用的模板</h3>
+                                                <p class="mt-1 text-sm text-slate-500">請先在後台新增模板。</p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="flex flex-shrink-0 justify-end px-4 py-4 bg-slate-50 border-t border-slate-200">
+                                <button type="button"
+                                    class="cursor-pointer rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+                                    @click="closeSidebar()">取消</button>
+                                <button type="submit" form="document-form"
+                                    class="cursor-pointer ml-4 inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                    :disabled="!selectedTemplate || loading">確認產生</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function documentSidebar() {
+        return {
+            isOpen: false,
+            loading: false,
+            appLabel: '',
+            modelName: '',
+            objectId: null,
+            generateUrl: '',
+            templates: [],
+            selectedTemplate: null,
+            format: 'docx',
+
+            variables: [],
+
+            openSidebar(detail) {
+                console.log('openSidebar called', detail);
+                this.appLabel = detail.appLabel;
+                this.modelName = detail.modelName;
+                this.objectId = detail.objectId;
+                this.format = detail.format || 'docx';
+                this.isOpen = true;
+                this.selectedTemplate = null;
+                this.fetchTemplates();
+                this.fetchVariables();
+            },
+
+            closeSidebar() {
+                this.isOpen = false;
+                this.templates = [];
+                this.variables = [];
+                this.selectedTemplate = null;
+            },
+
+            async fetchTemplates() {
+                this.loading = true;
+                try {
+                    const response = await fetch(`/core/documents/templates/${this.appLabel}/${this.modelName}/`);
+                    const data = await response.json();
+                    this.templates = data.templates;
+                    if (this.templates.length > 0) {
+                        this.selectedTemplate = this.templates[0].id;
+                    }
+                } catch (error) {
+                    console.error('Error fetching templates:', error);
+                    alert('無法載入模板資料');
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async fetchVariables() {
+                try {
+                    const response = await fetch(`/core/documents/variables/${this.appLabel}/${this.modelName}/`);
+                    const data = await response.json();
+                    this.variables = data.variables;
+                } catch (error) {
+                    console.error('Error fetching variables:', error);
+                }
+            },
+
+            submitForm(e) {
+                if (!this.selectedTemplate) return;
+                this.generateUrl = `/core/documents/generate/${this.selectedTemplate}/${this.appLabel}/${this.modelName}/${this.objectId}/`;
+                const form = e.target;
+                form.action = this.generateUrl;
+                form.submit();
+                this.closeSidebar();
+            }
+        }
+    }
+</script>

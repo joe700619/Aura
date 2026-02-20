@@ -1,0 +1,99 @@
+{% extends 'components/list_view.html' %}
+
+{# ============================================ #}
+{# Template Scaffold for Standard List View #}
+{# Copy this file and customize for your model #}
+{# ============================================ #}
+
+{# 1. Page Title & Header #}
+{% block page_title %}YOUR_MODEL列表{% endblock %}
+{% block header_title %}YOUR_MODEL管理{% endblock %}
+{% block header_description %}管理所有YOUR_MODEL資料{% endblock %}
+
+{# 2. List Metadata (REQUIRED for select-all functionality) #}
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for obj in CONTEXT_OBJECT_NAME %}
+    {
+        "id": {{ obj.pk }},
+        "category": "{{ obj.CATEGORY_FIELD|default:'ALL'|escapejs }}",
+        "content": "{{ obj.NAME_FIELD|escapejs }} {{ obj.ADDITIONAL_FIELD|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{# 3. Filters (OPTIONAL) #}
+{% block filters %}
+{# Example: Category filters #}
+<button @click="filter = 'CATEGORY_A'" :class="filter === 'CATEGORY_A' ? 'bg-blue-600 text-white' : 'text-slate-600'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">分類 A</button>
+<button @click="filter = 'ALL'" :class="filter === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-600'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">全部</button>
+{% endblock %}
+
+{# 4. Table Headers (REQUIRED) #}
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">欄位1</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">欄位2</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{# 5. Table Rows (REQUIRED) #}
+{% block table_rows %}
+{% for obj in CONTEXT_OBJECT_NAME %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('{{ obj.CATEGORY_FIELD|default:'ALL'|escapejs }}', '{{ obj.NAME_FIELD|escapejs }}')"
+    :class="selectedRows.includes({{ obj.pk }}) ? 'bg-blue-50/30' : ''">
+
+    {# Checkbox Column #}
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="{{ obj.pk }}" x-model.number="selectedRows">
+            <div :class="selectedRows.includes({{ obj.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes({{ obj.pk }})">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+
+    {# Data Columns #}
+    <td class="px-4 py-4">{{ obj.FIELD_1 }}</td>
+    <td class="px-4 py-4 text-slate-500">{{ obj.FIELD_2|default:"-" }}</td>
+
+    {# Actions Column #}
+    <td class="px-4 py-4 text-center">
+        <a href="{% url 'MODEL_NAME_update' obj.pk %}" class="text-blue-600 hover:text-blue-800 mr-3">編輯</a>
+        <a href="{% url 'MODEL_NAME_delete' obj.pk %}" class="text-red-600 hover:text-red-800">刪除</a>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="4" class="px-6 py-8 text-center text-slate-500">目前沒有資料</td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{# 6. Overlays (REQUIRED for Email/Line functionality) #}
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}
+
+{# ============================================ #}
+{# REPLACEMENT GUIDE: #}
+{# - YOUR_MODEL: e.g., "產品", "客戶", "聯絡人" #}
+{# - CONTEXT_OBJECT_NAME: From view, e.g., "products", "customers" #}
+{# - CATEGORY_FIELD: Field for filtering, e.g., "source", "category" #}
+{# - NAME_FIELD: Main display field, e.g., "name", "title" #}
+{# - MODEL_NAME: URL pattern name, e.g., "product", "customer" #}
+{# - FIELD_1, FIELD_2: Your model's fields #}
+{# ============================================ #}

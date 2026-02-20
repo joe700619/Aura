@@ -1,0 +1,46 @@
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+from .models import PaymentTransaction
+from django.apps import apps
+import logging
+
+logger = logging.getLogger(__name__)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ECPayCallbackView(View):
+    def post(self, request, *args, **kwargs):
+        # 1. Get Data
+        data = request.POST.dict()
+        merchant_trade_no = data.get('MerchantTradeNo')
+        rtn_code = data.get('RtnCode')
+        rtn_msg = data.get('RtnMsg')
+
+        logger.info(f"ECPay Callback: {data}")
+
+        if not merchant_trade_no:
+            return HttpResponse('0|No MerchantTradeNo')
+
+        # 2. Update Transaction
+        try:
+            transaction = PaymentTransaction.objects.get(merchant_trade_no=merchant_trade_no)
+            transaction.rtn_code = int(rtn_code)
+            transaction.rtn_msg = rtn_msg
+            transaction.save()
+
+            # 3. Business Logic: Update Related Model (Progress)
+            if transaction.rtn_code == 1: # Success
+                if transaction.related_app == 'registration' and transaction.related_model == 'Progress':
+                    try:
+                        Progress = apps.get_model('registration', 'Progress')
+                        progress = Progress.objects.get(pk=transaction.related_id)
+                        progress.payment_status = 'paid'
+                        progress.save()
+                    except Exception as e:
+                        logger.error(f"Error updating Progress: {e}")
+
+            return HttpResponse('1|OK')
+            
+        except PaymentTransaction.DoesNotExist:
+            return HttpResponse('0|Transaction Not Found')

@@ -1,0 +1,750 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura ERP</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+
+<link rel="stylesheet" type="text/css" href="/static/css/dist/styles.css?v=1771377657">
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans leading-normal tracking-normal" x-data="{ sidebarOpen: true }">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="flex flex-col border-r border-gray-200 bg-white transition-all duration-300"
+    :class="sidebarOpen ? 'w-64' : 'w-20'">
+    <div class="h-16 flex items-center justify-center border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-slate-800" x-show="sidebarOpen" x-transition>Aura ERP</h1>
+        <h1 class="text-xl font-bold text-slate-800" x-show="!sidebarOpen" x-transition>A</h1>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-4">
+        
+        <ul class="space-y-1">
+            
+
+<li class="px-3" title="Dashboard" >
+
+    
+    <!-- Leaf Item (Link) -->
+    <a href="/" class="flex items-center gap-3 font-medium p-2 rounded-lg transition-colors duration-200 
+        text-slate-600 hover:bg-slate-100">
+        
+        <span class="w-6 h-6 flex justify-center items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+        </span>
+        
+        <span x-show="sidebarOpen" class="whitespace-nowrap">Dashboard</span>
+    </a>
+    
+</li>
+
+<li class="px-3" title="基本資料" 
+    x-data="{ open: false }" >
+
+    
+    <!-- Item with Children (Dropdown) -->
+    <button @click="open = !open; sidebarOpen = true" class="flex items-center justify-between w-full font-medium p-2 rounded-lg transition-colors duration-200 focus:outline-none 
+        text-slate-600 hover:bg-slate-100">
+        <div class="flex items-center gap-3">
+            
+            <span class="w-6 h-6 flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+            </span>
+            
+            <span x-show="sidebarOpen" class="whitespace-nowrap">基本資料</span>
+        </div>
+        <svg x-show="sidebarOpen" :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Recursive Sub-menu -->
+    <ul x-show="open && sidebarOpen" x-transition class="mt-1 space-y-1">
+        
+        <li>
+            <a href="/basic-data/customers/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                基本資料
+            </a>
+        </li>
+        
+        <li>
+            <a href="/basic-data/contacts/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                聯絡人管理
+            </a>
+        </li>
+        
+        <li>
+            <a href="/basic-data/service-items/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                服務項目列表
+            </a>
+        </li>
+        
+    </ul>
+
+    
+</li>
+
+<li class="px-3" title="記帳" 
+    x-data="{ open: false }" >
+
+    
+    <!-- Item with Children (Dropdown) -->
+    <button @click="open = !open; sidebarOpen = true" class="flex items-center justify-between w-full font-medium p-2 rounded-lg transition-colors duration-200 focus:outline-none 
+        text-slate-600 hover:bg-slate-100">
+        <div class="flex items-center gap-3">
+            
+            <span class="w-6 h-6 flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            </span>
+            
+            <span x-show="sidebarOpen" class="whitespace-nowrap">記帳</span>
+        </div>
+        <svg x-show="sidebarOpen" :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Recursive Sub-menu -->
+    <ul x-show="open && sidebarOpen" x-transition class="mt-1 space-y-1">
+        
+        <li>
+            <a href="/bookkeeping/vat/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                營業稅
+            </a>
+        </li>
+        
+        <li>
+            <a href="/bookkeeping/income-tax/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                營所稅
+            </a>
+        </li>
+        
+    </ul>
+
+    
+</li>
+
+<li class="px-3" title="登記" 
+    x-data="{ open: true }" >
+
+    
+    <!-- Item with Children (Dropdown) -->
+    <button @click="open = !open; sidebarOpen = true" class="flex items-center justify-between w-full font-medium p-2 rounded-lg transition-colors duration-200 focus:outline-none 
+        bg-blue-50 text-blue-600">
+        <div class="flex items-center gap-3">
+            
+            <span class="w-6 h-6 flex justify-center items-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </span>
+            
+            <span x-show="sidebarOpen" class="whitespace-nowrap">登記</span>
+        </div>
+        <svg x-show="sidebarOpen" :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Recursive Sub-menu -->
+    <ul x-show="open && sidebarOpen" x-transition class="mt-1 space-y-1">
+        
+        <li>
+            <a href="/registration/progress/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                登記進度表
+            </a>
+        </li>
+        
+        <li>
+            <a href="/registration/client-assessments/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                客戶評估表
+            </a>
+        </li>
+        
+        <li>
+            <a href="/registration/case-assessments/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-blue-600 bg-blue-50">
+                案件評估表
+            </a>
+        </li>
+        
+    </ul>
+
+    
+</li>
+
+<li class="px-3" title="人力資源" 
+    x-data="{ open: false }" >
+
+    
+    <!-- Item with Children (Dropdown) -->
+    <button @click="open = !open; sidebarOpen = true" class="flex items-center justify-between w-full font-medium p-2 rounded-lg transition-colors duration-200 focus:outline-none 
+        text-slate-600 hover:bg-slate-100">
+        <div class="flex items-center gap-3">
+            
+            <span class="w-6 h-6 flex justify-center items-center">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+            </span>
+            
+            <span x-show="sidebarOpen" class="whitespace-nowrap">人力資源</span>
+        </div>
+        <svg x-show="sidebarOpen" :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Recursive Sub-menu -->
+    <ul x-show="open && sidebarOpen" x-transition class="mt-1 space-y-1">
+        
+        <li>
+            <a href="/hr/employees/"
+                class="block py-2 pr-4 pl-11 text-sm font-bold rounded-lg transition-colors duration-200 
+                text-slate-500 hover:text-slate-700 hover:bg-slate-50">
+                員工資料
+            </a>
+        </li>
+        
+    </ul>
+
+    
+</li>
+
+
+            <!-- System Settings Link -->
+            <li class="px-3">
+                <a href="/registration/case-assessments/"
+                    class="flex items-center gap-3 font-medium p-2 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-100">
+                    <span class="w-6 h-6 flex justify-center items-center">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </span>
+                    <span x-show="sidebarOpen" class="whitespace-nowrap">案件評估表 (CRUD)</span>
+                </a>
+            </li>
+
+            <!-- System Settings Link -->
+            <li class="px-3">
+                <a href="/admin/system_config/systemparameter/" target="_blank"
+                    class="flex items-center gap-3 font-medium p-2 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-100">
+                    <span class="w-6 h-6 flex justify-center items-center">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </span>
+                    <span x-show="sidebarOpen" class="whitespace-nowrap">系統設定</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow">
+    <div class="w-full py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded hover:bg-gray-100 focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Dashboard
+            </h2>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-sm font-medium text-gray-700">使用者: admin</span>
+            <form action="/admin/logout/" method="post" class="inline">
+                <input type="hidden" name="csrfmiddlewaretoken" value="qc7A22LGX1oAK7P2A7UBtx0MRxeJfvwOxiAAnKIFl82BBPX0RMTYBGMbHiw9RXyW">
+                <button type="submit"
+                    class="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 font-medium transition-colors cursor-pointer"
+                    title="Logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                    </svg>
+                    <span class="hidden sm:inline">登出</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</header>
+
+            <!-- Main -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                
+<div class="container mx-auto px-4 pb-8" x-data="{ 
+        selectedRows: [], 
+        selectAll: false,
+        filter: 'ALL',
+        search: '',
+        allItems: [],
+        init() {
+            const dataEl = document.getElementById('list-metadata');
+            if (dataEl) {
+                try {
+                    this.allItems = JSON.parse(dataEl.textContent);
+                } catch (e) {
+                    console.error('Failed to parse metadata:', e);
+                }
+            }
+            
+        },
+        toggleAll() {
+            if (this.selectAll) {
+                // Only select items that match the current filter and search
+                this.selectedRows = this.allItems
+                    .filter(item => this.matches(item.category, item.content))
+                    .map(item => item.id);
+            } else {
+                this.selectedRows = [];
+            }
+        },
+        matches(category, content) {
+            const matchesFilter = this.filter === 'ALL' || this.filter === category;
+            const matchesSearch = this.search === '' || 
+                                 content.toLowerCase().includes(this.search.toLowerCase());
+            return matchesFilter && matchesSearch;
+        }
+    }">
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">案件評估表 <!-- DEBUG_MARKER_CHECK --></h2>
+            <p class="text-sm text-slate-500 mt-1">列表描述</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Action Dropdown -->
+            
+            
+            
+            
+
+            <div class="relative" x-data="{ open: false }" @click.away="open = false" x-cloak>
+                <button @click="open = !open"
+                    class="bg-white border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-lg hover:bg-slate-50 transition duration-200 inline-flex items-center shadow-sm">
+                    動作按鈕
+                    <svg class="w-4 h-4 ml-2 transition-transform duration-200" :class="open ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    class="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden"
+                    style="display: none;">
+                    
+                    <!-- Excel Export (Always Available) -->
+                    <button type="button"
+                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-export-modal', { appLabel: 'registration', modelName: 'registration:case_assessment', ids: selectedRows }))"
+                        class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
+                        <svg class="w-4 h-4 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        下載 Excel
+                    </button>
+
+                    <!-- Email (If Template Exists) -->
+                    
+
+                    <!-- Line (If Template Exists) -->
+                    
+
+                    <!-- Custom Bulk Actions (Override in child templates if needed) -->
+                    
+                    
+                </div>
+            </div>
+
+            <!-- Standard Create Button (if model_name is provided) -->
+            
+            
+            
+            <a href="/registration/case-assessments/create/"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增案件評估表
+            </a>
+            
+            
+
+            <!-- Custom Actions (Override in child templates if needed) -->
+            
+        </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
+        <!-- Table Search & Filter -->
+        <div
+            class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+            <div class="flex items-center text-sm text-slate-600 order-2 md:order-1">
+                <span>每頁顯示</span>
+                <select
+                    class="mx-2 border-slate-200 rounded-md py-1 px-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm cursor-pointer">
+                    <option>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                </select>
+                <span>筆數據</span>
+            </div>
+
+            <div class="relative w-full md:w-auto flex flex-col md:flex-row items-center gap-4 order-1 md:order-2">
+                <!-- Filter Button Group -->
+                <div class="inline-flex rounded-lg shadow-sm border border-slate-200 p-1 bg-white">
+                    
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full md:w-64">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" placeholder="輸入關鍵字搜尋..."
+                        x-model="search"
+                        class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition duration-150 shadow-sm">
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-4">
+                            <label class="relative flex cursor-pointer select-none items-center">
+                                <input type="checkbox" class="sr-only" @change="toggleAll" x-model="selectAll">
+                                <div :class="selectAll ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                                    class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                                    <template x-if="selectAll">
+                                        <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </template>
+                                </div>
+                            </label>
+                        </th>
+                        
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">評估日期
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">登記案件編號
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-2/12">公司名稱
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">統一編號
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">風險層級
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">承接與否
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">完成否
+</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-2/12">說明</th>
+
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100">
+                    
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="2" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(2) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(2)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="3" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(3) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(3)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="4" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(4) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(4)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="5" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(5) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(5)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="1" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(1) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(1)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+<tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out cursor-pointer">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="6" x-model.number="selectedRows">
+            <div :class="selectedRows.includes(6) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes(6)">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{ object.date|default:"-"
+        }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.registration_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 border-b border-slate-100">{{
+        object.company_name|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100">{{
+        object.unified_business_no|default:"-" }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm border-b border-slate-100">
+        
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+            一般風險
+        </span>
+        
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_accepted_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">{{
+        object.get_is_completed_display }}</td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">{{
+        object.note|default:"-" }}</td>
+</tr>
+
+
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Info -->
+        <div
+            class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <span class="text-sm text-slate-500">
+                
+                顯示第 1 到 X 筆，共 X 筆資料
+                
+            </span>
+            <div class="flex items-center space-x-2">
+                <button class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 disabled:opacity-50"
+                    disabled>上一頁</button>
+                <button class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium">1</button>
+                <button
+                    class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+            </main>
+        </div>
+    </div>
+    
+</body>
+
+</html>

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block header %}聯絡人編輯紀錄 - {{ contact.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto pb-12">
+    <!-- Toolbar -->
+    <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+            <h3 class="text-lg font-bold text-slate-800">變更歷程</h3>
+            <p class="text-sm text-slate-500">檢視此聯絡人的所有變更紀錄。</p>
+        </div>
+        <a href="{% url 'contact_update' contact.pk %}"
+            class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors border border-slate-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                    clip-rule="evenodd" />
+            </svg>
+            返回編輯
+        </a>
+    </div>
+
+    <!-- History Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th scope="col"
+                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">時間
+                    </th>
+                    <th scope="col"
+                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">使用者
+                    </th>
+                    <th scope="col"
+                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">動作
+                    </th>
+                    <th scope="col"
+                        class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">變更內容
+                        (快照)</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-200">
+                {% for record in history %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {{ record.history_date|date:"Y-m-d H:i:s" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                        {{ record.history_user|default:"系統" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {% if record.history_type == '+' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            新增
+                        </span>
+                        {% elif record.history_type == '~' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            修改
+                        </span>
+                        {% elif record.history_type == '-' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            刪除
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-500">
+                        <!-- Simple snapshot display -->
+                        <div class="space-y-1">
+                            <div><span class="font-bold">姓名:</span> {{ record.name }}</div>
+                            <div><span class="font-bold">公司:</span> {{ record.customer }}</div>
+                            <div><span class="font-bold">電話:</span> {{ record.phone|default:"-" }} / {{
+                                record.mobile|default:"-" }}</div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">
+                        尚無變更紀錄
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}"
+                class="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">上一頁</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}"
+                class="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">下一頁</a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-slate-700">
+                    顯示 <span class="font-medium">{{ page_obj.start_index }}</span> 到 <span class="font-medium">{{
+                        page_obj.end_index }}</span> 筆，共 <span class="font-medium">{{ paginator.count }}</span> 筆
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}"
+                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50">
+                        <span class="sr-only">Previous</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                            aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+
+                    {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span
+                        class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600 z-10">{{
+                        num }}</span>
+                    {% else %}
+                    <a href="?page={{ num }}"
+                        class="bg-white border-slate-300 text-slate-500 hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">{{
+                        num }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}"
+                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50">
+                        <span class="sr-only">Next</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                            aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
