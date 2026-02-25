@@ -1,5 +1,5 @@
 from django import forms
-from .models import Progress, ClientAssessment, CaseAssessment, Shareholder, EquityTransaction, ShareholderRegister
+from .models import Progress, ClientAssessment, CaseAssessment, Shareholder, EquityTransaction, ShareholderRegister, CompanyFiling, FilingHistory
 from django.utils.translation import gettext_lazy as _
 from core.widgets import ModalSelectWidget
 
@@ -38,9 +38,10 @@ class ProgressForm(forms.ModelForm):
             'unified_business_no', 'company_name', 'line_id', 'room_id',
             'main_contact', 'mobile', 'phone', 'address',
             'progress_status', 'mandate_return', 'acceptance_date', 'case_type',
-            'note', 'quotation_data', 'cost_sharing_data'
+            'note', 'quotation_data', 'cost_sharing_data', 'is_posted'
         ]
         widgets = {
+            'is_posted': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
             'quotation_data': forms.HiddenInput(),
             'cost_sharing_data': forms.HiddenInput(),
             'unified_business_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
@@ -116,13 +117,22 @@ class ClientAssessmentForm(forms.ModelForm):
 class CaseAssessmentForm(forms.ModelForm):
     class Meta:
         model = CaseAssessment
-        fields = ['date', 'registration_no', 'risk_level', 'note']
+        fields = ['date', 'registration_no', 'risk_level', 'is_accepted', 'is_completed', 'needs_reporting', 'note']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'risk_level': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'is_accepted': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
+            'is_completed': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
+            'needs_reporting': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['is_accepted'].required = False
+        self.fields['is_completed'].required = False
+        self.fields['needs_reporting'].required = False
 
 CaseAssessmentFormSet = forms.inlineformset_factory(
     ClientAssessment,
@@ -183,9 +193,9 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
             'date': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'risk_level': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
-            'is_accepted': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
-            'is_completed': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
-            'needs_reporting': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'is_accepted': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
+            'is_completed': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
+            'needs_reporting': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
             'warning_5': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
             'warning_6': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
             'warning_7': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'}),
@@ -203,6 +213,12 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
 
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['is_accepted'].required = False
+        self.fields['is_completed'].required = False
+        self.fields['needs_reporting'].required = False
 
 class ShareholderForm(forms.ModelForm):
     class Meta:
@@ -278,6 +294,7 @@ class EquityTransactionForm(forms.ModelForm):
             'shareholder_name', 'shareholder_id_number', 'shareholder_address',
             'transaction_date', 'organization_type', 'transaction_reason',
             'stock_type', 'share_count', 'unit_price', 'total_amount',
+            'registration_no', 'is_completed',
             'note'
         ]
 
@@ -297,12 +314,15 @@ class EquityTransactionForm(forms.ModelForm):
             'unit_price': forms.NumberInput(attrs={'id': 'id_unit_price', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'step': '0.01'}),
             'total_amount': forms.NumberInput(attrs={'id': 'id_total_amount', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50', 'step': '0.01', 'readonly': 'readonly'}),
 
+            'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['shareholder_register'].required = True
+        self.fields['is_completed'].required = False
 
 EquityTransactionFormSet = forms.inlineformset_factory(
     ShareholderRegister,
@@ -332,3 +352,105 @@ class ShareholderRegisterForm(forms.ModelForm):
             'service_status': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'completion_status': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
         }
+
+class CompanyFilingForm(forms.ModelForm):
+    search_customer = forms.CharField(
+        label=_('搜尋客戶'),
+        required=False,
+        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/')
+    )
+
+    search_contact = forms.CharField(
+        label=_('搜尋聯絡人'),
+        required=False,
+        widget=ModalSelectWidget(search_url='/basic-data/api/contacts/search/progress/')
+    )
+
+    class Meta:
+        model = CompanyFiling
+        fields = [
+            'unified_business_no', 'company_name', 'line_id', 'room_id',
+            'main_contact', 'mobile', 'phone', 'address',
+            'fee', 'filing_method', 'account', 'password', 'health_insurance_card_no', 
+            'note'
+        ]
+        widgets = {
+            'unified_business_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'company_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'line_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'room_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'main_contact': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'mobile': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'phone': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'fee': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'filing_method': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'account': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'password': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'health_insurance_card_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
+        }
+
+class FilingHistoryForm(forms.ModelForm):
+    class Meta:
+        model = FilingHistory
+        fields = ['year', 'category', 'filing_date', 'registration_no', 'is_completed']
+        widgets = {
+            'year': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'category': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'filing_date': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
+        }
+
+FilingHistoryFormSet = forms.inlineformset_factory(
+    CompanyFiling,
+    FilingHistory,
+    form=FilingHistoryForm,
+    extra=0,
+    can_delete=True
+)
+
+class VATEntityChangeForm(forms.ModelForm):
+    from .models import VATEntityChange
+    
+    case_types = forms.MultipleChoiceField(
+        choices=VATEntityChange.CASE_TYPE_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500',
+        }),
+        required=False,
+        label=_('案件種類')
+    )
+
+    search_customer = forms.CharField(
+        label=_('搜尋客戶'),
+        required=False,
+        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/')
+    )
+
+    class Meta:
+        from .models import VATEntityChange
+        model = VATEntityChange
+        fields = [
+            'unified_business_no', 'company_name', 'tax_id', 'registered_address',
+            'assistant_name', 'email',
+            'case_types', 'registration_no', 'is_completed',
+            'note'
+        ]
+        widgets = {
+            'unified_business_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'company_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'tax_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'registered_address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'assistant_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'email': forms.EmailInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 text-sm', 'readonly': 'readonly'}),
+            'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
+            'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['is_completed'].required = False
+        self.fields['registration_no'].required = False

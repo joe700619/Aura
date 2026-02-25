@@ -1,0 +1,82 @@
+{% extends 'components/list_view.html' %}
+
+{% block header_title %}會計科目管理{% endblock %}
+{% block header_description %}查看並管理公司內部使用的會計科目。{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">科目代號</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">科目名稱</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">類別</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">輔助核算</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in accounts %}
+<tr class="hover:bg-slate-50 transition duration-150">
+    <td class="px-6 py-4">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="{{ item.code }}" x-model="selectedRows">
+            <div :class="selectedRows.includes('{{ item.code }}') ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                 class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes('{{ item.code }}')">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-4 py-4 font-mono text-slate-700">{{ item.code }}</td>
+    <td class="px-4 py-4 font-bold text-slate-900">{{ item.name }}</td>
+    <td class="px-4 py-4">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+            {{ item.get_category_display }}
+        </span>
+    </td>
+    <td class="px-4 py-4 text-sm text-slate-600">
+        {% if item.auxiliary_type != 'NONE' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+            {{ item.get_auxiliary_type_display }}
+        </span>
+        {% else %}
+        <span class="text-slate-400">-</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 text-center">
+        {% if item.is_active %}
+        <span class="text-green-500 text-xs font-bold">啟用中</span>
+        {% else %}
+        <span class="text-slate-400 text-xs font-bold">停用</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 text-center">
+        <div class="flex items-center justify-center space-x-3">
+            <a href="{% url 'internal_accounting:account_edit' item.code %}" class="text-blue-600 hover:text-blue-800" title="編輯">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </a>
+            <a href="{% url 'internal_accounting:account_delete' item.code %}" class="text-red-400 hover:text-red-600" title="刪除">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="6" class="px-6 py-12 text-center text-slate-500">尚無科目紀錄</td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in accounts %}
+    {"id": "{{ item.code }}", "category": "ALL", "content": "{{ item.code }} {{ item.name }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

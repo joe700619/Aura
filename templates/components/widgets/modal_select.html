@@ -40,11 +40,13 @@
     </button>
 
     <!-- Modal Backdrop -->
-    <div x-show="open" style="display: none;"
-        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-50 flex items-center justify-center p-4">
+    <template x-teleport="body">
+        <div x-show="open" style="display: none;"
+            class="fixed inset-0 bg-slate-900/60 transition-opacity z-[100] flex items-center justify-center p-4">
 
-        <!-- Modal Panel -->
+            <!-- Modal Panel -->
         <div x-show="open" @click.away="open = false"
+            @select-item.stop="selectItem($event.detail.value, $event.detail.label, $event.detail.extra)"
             class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-xl w-full max-h-[80vh] flex flex-col">
 
             <!-- Header -->
@@ -89,5 +91,5 @@
                 </button>
             </div>
         </div>
-    </div>
+    </template>
 </div>

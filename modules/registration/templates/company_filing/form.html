@@ -1,0 +1,347 @@
+{% extends 'components/form_view.html' %}
+{% load i18n %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶 (帶入基本資料)</label>
+        {{ form.search_customer }}
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">檔案編號</label>
+        <input type="text"
+            class="block w-full rounded-md border-slate-200 bg-slate-50 text-slate-500 shadow-sm sm:text-sm cursor-not-allowed"
+            value="{{ object.filing_no|default:'(自動產生)' }}" disabled>
+    </div>
+
+    <div>
+        <label for="{{ form.unified_business_no.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
+        {{ form.unified_business_no }}
+        {{ form.unified_business_no.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.company_name.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">公司名稱</label>
+        {{ form.company_name }}
+        {{ form.company_name.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label for="{{ form.line_id.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Line
+                ID</label>
+            {{ form.line_id }}
+            {{ form.line_id.errors }}
+        </div>
+
+        <div>
+            <label for="{{ form.room_id.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Room
+                ID</label>
+            {{ form.room_id }}
+            {{ form.room_id.errors }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">聯絡資料</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋聯絡人 (帶入聯絡資料)</label>
+        {{ form.search_contact }}
+    </div>
+
+    <div>
+        <label for="{{ form.main_contact.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">主要聯絡人</label>
+        {{ form.main_contact }}
+        {{ form.main_contact.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.mobile.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">手機</label>
+        {{ form.mobile }}
+        {{ form.mobile.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">電話</label>
+        {{ form.phone }}
+        {{ form.phone.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">通訊地址</label>
+        {{ form.address }}
+        {{ form.address.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">其他資料</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.fee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">費用</label>
+        {{ form.fee }}
+        {{ form.fee.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.filing_method.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">申報方式</label>
+        {{ form.filing_method }}
+        {{ form.filing_method.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.account.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">帳號</label>
+        {{ form.account }}
+        {{ form.account.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.health_insurance_card_no.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">健保卡號</label>
+        {{ form.health_insurance_card_no }}
+        {{ form.health_insurance_card_no.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'registration:company_filing_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div class="flex items-center mb-2">
+        <div class="flex items-center h-5">
+            {{ form.is_completed }}
+        </div>
+        <div class="ml-3 text-sm">
+            <label for="{{ form.is_completed.id_for_label }}" class="font-bold text-slate-700">{{ form.is_completed.label }}</label>
+        </div>
+    </div>
+    <div>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block initial_tab %}tab_history{% endblock %}
+
+{% block tabs_header %}
+<button type="button" @click="activeTab = 'tab_history'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_history'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    申報歷程
+</button>
+{% endblock %}
+
+{% block tabs_content %}
+<!-- Tab: Filing History -->
+<div x-show="activeTab === 'tab_history'" class="py-4" x-data="{
+    totalForms: {{ history_formset.total_form_count }},
+    addRow() {
+        const template = document.getElementById('history-row-template');
+        const tbody = document.getElementById('history-table-body');
+        if (!template || !tbody) return;
+
+        const rowHtml = template.innerHTML.replace(/__prefix__/g, this.totalForms);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors duration-150';
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+        
+        this.totalForms++;
+        const totalFormsInput = document.getElementById('id_histories-TOTAL_FORMS');
+        if (totalFormsInput) totalFormsInput.value = this.totalForms;
+    },
+    removeRow(button) {
+        const row = button.closest('tr');
+        const deleteInput = row.querySelector('input[name*=\'-DELETE\']');
+        if (deleteInput) {
+            deleteInput.checked = true;
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+    }
+}">
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+            <h3 class="font-bold text-slate-700 text-sm">申報歷程明細</h3>
+            <button type="button" @click="addRow()"
+                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-bold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                新增一筆
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            {{ history_formset.management_form }}
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">年度</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">類別</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">申報日期</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記單號</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">完成</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body" class="bg-white divide-y divide-slate-100">
+                    {% for form in history_formset %}
+                    <tr class="hover:bg-slate-50 transition-colors duration-150">
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                        <td class="hidden">
+                            {{ form.DELETE }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ form.year }}
+                            {{ form.year.errors }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ form.category }}
+                            {{ form.category.errors }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ form.filing_date }}
+                            {{ form.filing_date.errors }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ form.registration_no }}
+                            {{ form.registration_no.errors }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {{ form.is_completed }}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                {% if form.instance.pk %}
+                                <a href="{% url 'registration:filing_history_edit' form.instance.pk %}" class="text-blue-400 hover:text-blue-600 transition-colors p-1" title="詳細編輯">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </a>
+                                {% endif %}
+                                <button type="button" @click="removeRow($el)"
+                                    class="text-red-400 hover:text-red-600 transition-colors p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Template for New Rows -->
+            <template id="history-row-template">
+                <td class="hidden">
+                    <input type="checkbox" name="histories-__prefix__-DELETE">
+                </td>
+                <td class="px-4 py-3">
+                    <input type="number" name="histories-__prefix__-year" value="{% now 'Y' %}" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </td>
+                <td class="px-4 py-3">
+                    <select name="histories-__prefix__-category" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <option value="ANNUAL" selected>年度申報</option>
+                        <option value="CHANGE">變動申報</option>
+                    </select>
+                </td>
+                <td class="px-4 py-3">
+                    <input type="date" name="histories-__prefix__-filing_date" value="{% now 'Y-m-d' %}" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </td>
+                <td class="px-4 py-3">
+                    <input type="text" name="histories-__prefix__-registration_no" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <input type="checkbox" name="histories-__prefix__-is_completed" class="h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer">
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <button type="button" @click="removeRow($el)"
+                        class="text-red-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </td>
+            </template>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle customer/contact search result clicks
+    document.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.detail.target.id === 'modal-search-results') {
+            const rows = evt.detail.target.querySelectorAll('tr[data-id]');
+            rows.forEach(row => {
+                row.onclick = function() {
+                    const data = this.dataset;
+                    
+                    // If it's a customer search
+                    if (data.ubn !== undefined) {
+                        document.querySelector('[name="unified_business_no"]').value = data.ubn || '';
+                        document.querySelector('[name="company_name"]').value = data.title || '';
+                        if (data.lineId) document.querySelector('[name="line_id"]').value = data.lineId || '';
+                        if (data.roomId) document.querySelector('[name="room_id"]').value = data.roomId || '';
+                    } 
+                    // If it's a contact search
+                    else if (data.mobile !== undefined) {
+                        document.querySelector('[name="main_contact"]').value = data.title || '';
+                        document.querySelector('[name="mobile"]').value = data.mobile || '';
+                        document.querySelector('[name="phone"]').value = data.phone || '';
+                        document.querySelector('[name="address"]').value = data.address || '';
+                    }
+
+                    // Close modal
+                    const closeBtn = document.querySelector('#modal-container button[aria-label="Close"]');
+                    if (closeBtn) closeBtn.click();
+                };
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{% if form.instance.pk %}編輯會計科目{% else %}新增會計科目{% endif %}{% endblock %}
+{% block header_title %}{% if form.instance.pk %}編輯會計科目{% else %}新增會計科目{% endif %}{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'internal_accounting:account_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+    <div class="space-y-4">
+        {% include "components/form_field.html" with field=form.code %}
+        {% include "components/form_field.html" with field=form.name %}
+        {% include "components/form_field.html" with field=form.category %}
+        {% include "components/form_field.html" with field=form.auxiliary_type %}
+        {% include "components/form_field.html" with field=form.is_active %}
+    </div>
+</div>
+{% endblock %}

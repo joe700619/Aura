@@ -1,0 +1,52 @@
+{% extends 'components/list_view.html' %}
+{% load humanize %}
+
+{% block table_headers %}
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">收款單號</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">收款日期</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">收款方式</th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">收款合計</th>
+    <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in collections %}
+<tr class="hover:bg-slate-50 transition duration-150" :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/50' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4">
+        <div class="font-bold text-slate-900">{{ item.collection_no }}</div>
+    </td>
+    <td class="px-4 py-4 text-slate-600">{{ item.date|date:"Y/m/d" }}</td>
+    <td class="px-4 py-4">
+        <div class="font-medium text-slate-900">{{ item.receivable.company_name }}</div>
+    </td>
+    <td class="px-4 py-4 text-slate-600">{{ item.get_method_display }}</td>
+    <td class="px-4 py-4 text-right font-mono font-bold text-slate-700">${{ item.total|intcomma }}</td>
+    {% url 'internal_accounting:collection_edit' item.pk as update_url %}
+    {% url 'internal_accounting:collection_delete' item.pk as delete_url %}
+    {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="px-6 py-12 text-center text-slate-500">尚無收款管理紀錄</td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in collections %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.collection_no|escapejs }} {{ item.receivable.company_name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block extra_init %}
+this.model_app_label = 'internal_accounting';
+this.model_name = 'collection';
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    <!-- Page header -->
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">損益表 📈</h1>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="bg-white border border-slate-200 rounded-sm shadow-sm mb-8 pt-4 pb-2 px-4">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label for="id_start_date" class="block text-sm font-medium text-slate-700 mb-1">開始日期</label>
+                {{ form.start_date }}
+                {% if form.start_date.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.start_date.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_end_date" class="block text-sm font-medium text-slate-700 mb-1">結束日期</label>
+                {{ form.end_date }}
+                {% if form.end_date.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.end_date.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div class="ml-auto flex items-center">
+                <button type="submit" class="btn-submit-custom rounded-md px-5 py-2 text-sm font-bold shadow-sm transition-colors">送出查詢</button>
+                <a href="{% url 'internal_accounting:report_income_statement' %}" class="btn-reset-custom rounded-md px-4 py-2 text-sm font-bold ml-3 shadow-sm transition-colors">清除重設</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- P&L Table -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200 relative max-w-4xl mx-auto">
+        <div class="p-3">
+            <table class="table-auto w-full text-sm">
+
+                
+                <tbody class="text-sm">
+                    
+                    <!-- REVENUE -->
+                    <tr class="bg-slate-100 border-t border-b border-slate-200">
+                        <td colspan="2" class="px-4 py-3 font-bold text-slate-800 text-base">一、營業收入</td>
+                    </tr>
+                    {% for acc, bal in sections.REVENUE.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="px-8 py-2 text-slate-400">目前無營業收入紀錄</td></tr>
+                    {% endfor %}
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <td class="px-4 py-2 text-right text-slate-500 text-xs">營業收入合計</td>
+                        <td class="px-4 py-2 text-right font-medium text-slate-800">{{ sections.REVENUE.total|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- COST -->
+                    <tr class="bg-slate-100 border-t border-b border-slate-200">
+                        <td colspan="2" class="px-4 py-3 font-bold text-slate-800 text-base">二、營業成本</td>
+                    </tr>
+                    {% for acc, bal in sections.COST.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="px-8 py-2 text-slate-400">目前無營業成本紀錄</td></tr>
+                    {% endfor %}
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <td class="px-4 py-2 text-right text-slate-500 text-xs">營業成本合計</td>
+                        <td class="px-4 py-2 text-right font-medium text-slate-800">{{ sections.COST.total|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- GROSS PROFIT -->
+                    <tr class="bg-indigo-50/50 border-t border-b border-indigo-100">
+                        <td class="px-4 py-4 text-right font-bold text-slate-700">營業毛利</td>
+                        <td class="px-4 py-4 text-right font-bold text-indigo-600 text-lg">{{ gross_profit|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- EXPENSE -->
+                    <tr class="bg-slate-100 border-t border-b border-slate-200">
+                        <td colspan="2" class="px-4 py-3 font-bold text-slate-800 text-base">三、營業費用</td>
+                    </tr>
+                    {% for acc, bal in sections.EXPENSE.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="px-8 py-2 text-slate-400">目前無營業費用紀錄</td></tr>
+                    {% endfor %}
+                    <tr class="bg-slate-50 border-b border-slate-200">
+                        <td class="px-4 py-2 text-right text-slate-500 text-xs">營業費用合計</td>
+                        <td class="px-4 py-2 text-right font-medium text-slate-800">{{ sections.EXPENSE.total|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- OPERATING PROFIT -->
+                    <tr class="bg-indigo-50/50 border-t border-b border-indigo-100">
+                        <td class="px-4 py-4 text-right font-bold text-slate-700">營業淨利</td>
+                        <td class="px-4 py-4 text-right font-bold text-indigo-600 text-lg">{{ operating_profit|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- NON OP INCOME -->
+                    <tr class="bg-slate-100 border-t border-b border-slate-200">
+                        <td colspan="2" class="px-4 py-3 font-bold text-slate-800 text-base">四、營業外收入及支出</td>
+                    </tr>
+                    {% for acc, bal in sections.NON_OP_INC.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                            <span class="text-xs text-emerald-600 ml-2">(+)</span>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for acc, bal in sections.NON_OP_EXP.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                            <span class="text-xs text-red-500 ml-2">(-)</span>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+
+                    <!-- PRE TAX INCOME -->
+                    <tr class="bg-indigo-50/50 border-t border-b border-indigo-100">
+                        <td class="px-4 py-4 text-right font-bold text-slate-700">稅前淨利</td>
+                        <td class="px-4 py-4 text-right font-bold text-indigo-600 text-lg">{{ pre_tax_income|floatformat:0|intcomma }}</td>
+                    </tr>
+
+                    <!-- TAX -->
+                    <tr class="bg-slate-100 border-t border-b border-slate-200">
+                        <td colspan="2" class="px-4 py-3 font-bold text-slate-800 text-base">五、所得稅費用</td>
+                    </tr>
+                    {% for acc, bal in sections.TAX.groups.items %}
+                    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100">
+                        <td class="px-8 py-2 whitespace-nowrap text-slate-600">
+                            <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                {{ acc.code }} {{ acc.name }}
+                                <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </td>
+                        <td class="px-4 py-2 whitespace-nowrap text-right text-slate-800">{{ bal|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="px-8 py-2 text-slate-400">目前無所得稅紀錄</td></tr>
+                    {% endfor %}
+
+                </tbody>
+                <tfoot class="bg-emerald-50 border-t-2 border-slate-300 shadow-inner">
+                    <tr>
+                        <td class="px-4 py-4 text-right font-bold text-slate-800 text-xl">本期損益 (Net Income)</td>
+                        <td class="px-4 py-4 text-right font-bold text-emerald-600 text-2xl">
+                            {{ net_income|floatformat:0|intcomma }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+/* TailAdmin form compatibility */
+.btn-submit-custom {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem 1.25rem; /* px-5 py-2 */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 700; /* font-bold */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; /* transition-colors */
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+.btn-submit-custom:hover {
+    background-color: #4338ca !important;
+    color: #ffffff !important;
+}
+.btn-reset-custom {
+    background-color: #e2e8f0 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem 1rem; /* px-4 py-2 */
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 700; /* font-bold */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; /* transition-colors */
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+.btn-reset-custom:hover {
+    background-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+</style>
+{% endblock %}

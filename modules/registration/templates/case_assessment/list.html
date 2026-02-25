@@ -148,10 +148,18 @@ this.filter = 'UNCOMPLETED';
         {% endwith %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">
-        {{ object.get_is_accepted_display }}
+        {% if object.is_accepted %}
+        <span class="text-green-600 font-bold">承接</span>
+        {% else %}
+        <span class="text-red-600 font-bold">不承接</span>
+        {% endif %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">
-        {{ object.get_is_completed_display }}
+        {% if object.is_completed %}
+        <span class="text-green-600 font-bold">完成</span>
+        {% else %}
+        <span class="text-amber-600 font-bold">未完成</span>
+        {% endif %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 border-b border-slate-100 truncate max-w-xs">
         {{ object.note|default:"-" }}

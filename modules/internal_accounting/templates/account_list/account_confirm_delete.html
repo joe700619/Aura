@@ -1,0 +1,7 @@
+{% extends 'components/delete_view.html' %}
+
+{% block page_title %}刪除會計科目{% endblock %}
+{% block header_title %}刪除會計科目{% endblock %}
+{% block header_description %}您確定要刪除會計科目「{{ object.name }} ({{ object.code }})」嗎？此操作無法還原。{% endblock %}
+
+{% block cancel_url %}{% url 'internal_accounting:account_list' %}{% endblock %}

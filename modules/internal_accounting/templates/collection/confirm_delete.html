@@ -1,0 +1,22 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}刪除收款紀錄{% endblock %}
+{% block header_title %}確定要刪除收款紀錄嗎？{% endblock %}
+
+{% block form_content %}
+<div class="bg-white shadow-sm rounded-xl p-8 border border-slate-200 text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+    </div>
+    <h3 class="text-xl font-bold text-slate-800 mb-2">確認刪除</h3>
+    <p class="text-slate-500 mb-6 font-medium">您確定要刪除收款單號 <span class="text-red-600 font-bold">{{ object.collection_no }}</span> 嗎？此操作無法復原。</p>
+    
+    <form method="post" class="flex items-center justify-center gap-4">
+        {% csrf_token %}
+        <a href="{% url 'internal_accounting:collection_list' %}" class="px-6 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition duration-200">取消</a>
+        <button type="submit" class="px-6 py-2.5 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition duration-200 shadow-md">確定刪除</button>
+    </form>
+</div>
+{% endblock %}

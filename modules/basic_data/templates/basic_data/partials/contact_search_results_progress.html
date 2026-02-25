@@ -1,6 +1,18 @@
 {% for contact in contacts %}
 <tr class="hover:bg-blue-50 cursor-pointer transition-colors"
-    @click="selectItem('{{ contact.name|escapejs }}', '{{ contact.name|escapejs }}', { 'main_contact': '{{ contact.name|escapejs }}', 'phone': '{{ contact.phone|default:''|escapejs }}', 'mobile': '{{ contact.mobile|default:''|escapejs }}', 'address': '{{ contact.address|default:''|escapejs }}' })">
+    onclick="this.dispatchEvent(new CustomEvent('select-item', {
+        bubbles: true,
+        detail: {
+            value: '{{ contact.id }}',
+            label: '{{ contact.name|escapejs }}',
+            extra: {
+                'mobile': '{{ contact.mobile|escapejs }}',
+                'phone': '{{ contact.phone|escapejs }}',
+                'email': '{{ contact.email|escapejs }}',
+                'address': '{{ contact.address|escapejs }}'
+            }
+        }
+    }))">
     <td class="px-6 py-3 whitespace-nowrap">
         <div class="text-sm font-medium text-gray-900">{{ contact.name }}</div>
     </td>

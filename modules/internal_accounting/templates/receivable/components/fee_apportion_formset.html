@@ -1,0 +1,151 @@
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-orange-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">公費分攤明細</h4>
+    </div>
+
+    {{ fee_apportion_formset.management_form }}
+    <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm w-full">
+        <table class="w-full text-sm text-center" id="fee-apportion-table">
+            <thead class="bg-indigo-50 border-b border-indigo-100">
+                <tr>
+                    <th class="px-3 py-2 font-semibold text-indigo-800 text-left w-2/6">員工</th>
+                    <th class="px-3 py-2 font-semibold text-indigo-800 text-left w-2/6">執行項目(或帳款內容)</th>
+                    <th class="px-3 py-2 font-semibold text-indigo-800 text-right w-1/6">分攤金額</th>
+                    <th class="px-3 py-2 font-semibold text-indigo-800 text-right w-1/6">比例(%)</th>
+                    <th class="px-3 py-2 font-semibold text-indigo-800 text-center w-12">刪除</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white" id="fee-apportion-tbody">
+                {% for detail_form in fee_apportion_formset %}
+                <tr class="fee-apportion-row hover:bg-slate-50 transition-colors">
+                    {% for hidden in detail_form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+                    <td class="px-2 py-2 text-left">{{ detail_form.employee }}</td>
+                    <td class="px-2 py-2 text-left">{{ detail_form.task_description }}</td>
+                    <td class="px-2 py-2 text-right">
+                        {{ detail_form.amount }}
+                    </td>
+                    <td class="px-2 py-2 text-right">
+                        {{ detail_form.ratio }}
+                    </td>
+                    <td class="px-2 py-2 text-center align-middle relative">
+                        <div class="hidden">{{ detail_form.DELETE }}</div>
+                        <button type="button" onclick="deleteFeeApportionRow(this)" title="刪除此列" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded transition-colors group mx-auto block">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-indigo-50/50 font-medium">
+                <tr>
+                    <td colspan="2" class="px-3 py-2 text-right text-indigo-800">總計金額:</td>
+                    <td class="px-2 py-2 text-right text-indigo-800" id="fee-apportion-total-amount">0</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <div class="mt-2 flex justify-start">
+        <button type="button" onclick="addFeeApportionRow()" class="inline-flex items-center px-3 py-1.5 border border-indigo-200 text-sm font-medium rounded-md shadow-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            增加分攤人員
+        </button>
+    </div>
+    
+    <!-- Hidden Empty Form Template -->
+    <div id="fee-apportion-empty-form" style="display:none;">
+        <table>
+            <tr class="fee-apportion-row hover:bg-slate-50 transition-colors">
+                {% for hidden in fee_apportion_formset.empty_form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                <td class="px-2 py-2 text-left">{{ fee_apportion_formset.empty_form.employee }}</td>
+                <td class="px-2 py-2 text-left">{{ fee_apportion_formset.empty_form.task_description }}</td>
+                <td class="px-2 py-2 text-right">{{ fee_apportion_formset.empty_form.amount }}</td>
+                <td class="px-2 py-2 text-right">{{ fee_apportion_formset.empty_form.ratio }}</td>
+                <td class="px-2 py-2 text-center align-middle relative">
+                    <div class="hidden">{{ fee_apportion_formset.empty_form.DELETE }}</div>
+                    <button type="button" onclick="deleteFeeApportionRow(this)" title="刪除此列" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded transition-colors group mx-auto block">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+    function updateFeeApportionTotals() {
+        let total = 0;
+        const rows = document.querySelectorAll('#fee-apportion-tbody tr.fee-apportion-row');
+        
+        rows.forEach(row => {
+            if (row.style.display !== 'none') { // Skip deleted rows
+                const amountInput = row.querySelector('input[name$="-amount"]');
+                if (amountInput) {
+                    const val = parseFloat(amountInput.value) || 0;
+                    total += val;
+                }
+            }
+        });
+        
+        const totalSpan = document.getElementById('fee-apportion-total-amount');
+        if(totalSpan){
+            totalSpan.textContent = total.toLocaleString();
+        }
+    }
+
+    function addFeeApportionRow() {
+        const table = document.getElementById('fee-apportion-tbody');
+        const totalFormsInput = document.getElementById('id_fee_apportions-TOTAL_FORMS');
+        const formCount = parseInt(totalFormsInput.value);
+        
+        const emptyFormTemplate = document.getElementById('fee-apportion-empty-form').querySelector('tr').outerHTML;
+        const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        
+        table.insertAdjacentHTML('beforeend', newFormHtml);
+        totalFormsInput.value = formCount + 1;
+        
+        // Add event listeners securely
+        const newRows = table.querySelectorAll('tr');
+        if(newRows.length > 0) {
+           const lastRow = newRows[newRows.length-1];
+           const amtInput = lastRow.querySelector('input[name$="-amount"]');
+           if(amtInput) amtInput.addEventListener('input', updateFeeApportionTotals);
+        }
+    }
+
+    function deleteFeeApportionRow(btn) {
+        const row = btn.closest('tr');
+        const deleteCheckbox = row.querySelector('.delete-checkbox');
+        
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = true;
+            row.style.display = 'none';
+            // Also zero out inputs for safety
+            const numberFields = row.querySelectorAll('input[type="number"]');
+            numberFields.forEach(field => field.value = 0);
+        } else {
+            row.remove();
+        }
+        updateFeeApportionTotals();
+    }
+    
+    // Mount event listeners on load
+    document.addEventListener("DOMContentLoaded", function() {
+        updateFeeApportionTotals();
+        document.querySelector('#fee-apportion-tbody').addEventListener('input', function(e) {
+            if(e.target.name && e.target.name.includes('-amount')) {
+                updateFeeApportionTotals();
+            }
+        });
+    });
+</script>

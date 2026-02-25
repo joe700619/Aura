@@ -1,0 +1,197 @@
+{% extends 'components/form_view.html' %}
+{% load i18n %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶 (帶入基本資料)</label>
+        {{ form.search_customer }}
+    </div>
+
+    <div>
+        <label for="{{ form.unified_business_no.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
+        {{ form.unified_business_no }}
+        {{ form.unified_business_no.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.company_name.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">公司名稱</label>
+        {{ form.company_name }}
+        {{ form.company_name.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.tax_id.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">稅籍編號</label>
+        {{ form.tax_id }}
+        {{ form.tax_id.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.registered_address.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">登記地址</label>
+        {{ form.registered_address }}
+        {{ form.registered_address.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">聯絡人資料</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.assistant_name.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">助理人員</label>
+        {{ form.assistant_name }}
+        {{ form.assistant_name.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.email.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">其他</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">案件種類</label>
+        <div x-data="{ 
+                open: false,
+                selected: [],
+                options: [
+                    {% for checkbox in form.case_types %}
+                    { value: '{{ checkbox.data.value|escapejs }}', label: '{{ checkbox.choice_label|escapejs }}', checked: {% if checkbox.data.selected %}true{% else %}false{% endif %} },
+                    {% endfor %}
+                ],
+                init() {
+                    this.selected = this.options.filter(o => o.checked).map(o => o.value);
+                },
+                toggle(value) {
+                    if (this.selected.includes(value)) {
+                        this.selected = this.selected.filter(v => v !== value);
+                    } else {
+                        this.selected.push(value);
+                    }
+                },
+                displaySelected() {
+                    if (this.selected.length === 0) return '請選擇案件種類';
+                    return this.options.filter(o => this.selected.includes(o.value)).map(o => o.label).join(', ');
+                }
+             }" class="relative">
+
+            <button type="button" @click="open = !open" @click.away="open = false"
+                class="relative w-full bg-white border border-slate-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <span class="block truncate"
+                    :class="{'text-slate-500': selected.length === 0, 'text-slate-900': selected.length > 0}"
+                    x-text="displaySelected()"></span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+            </button>
+
+            <ul x-show="open" x-cloak
+                class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                <template x-for="option in options" :key="option.value">
+                    <li class="text-slate-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-slate-50"
+                        @click="toggle(option.value)">
+                        <div class="flex items-center">
+                            <span class="flex-shrink-0 h-4 w-4 border border-slate-300 rounded flex items-center justify-center transition-colors"
+                                :class="{'bg-blue-600 border-blue-600': selected.includes(option.value), 'bg-white': !selected.includes(option.value)}">
+                                <svg x-show="selected.includes(option.value)" class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                            <span class="ml-3 block truncate font-normal" x-text="option.label"></span>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+
+            {% for checkbox in form.case_types %}
+            <input type="checkbox" name="{{ form.case_types.name }}" value="{{ checkbox.data.value }}"
+                x-bind:checked="selected.includes('{{ checkbox.data.value }}')" class="hidden">
+            {% endfor %}
+        </div>
+    </div>
+
+    <div>
+        <label for="{{ form.registration_no.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">登記單號</label>
+        {{ form.registration_no }}
+        {{ form.registration_no.errors }}
+    </div>
+
+    <div class="flex items-center gap-2 py-2">
+        {{ form.is_completed }}
+        <label for="{{ form.is_completed.id_for_label }}" class="text-sm font-semibold text-slate-700 cursor-pointer">
+            {{ form.is_completed.label }}
+        </label>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block initial_tab %}tab_requirements{% endblock %}
+
+{% block tabs_header %}
+<button type="button" @click="activeTab = 'tab_requirements'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_requirements'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    登記需要資料
+</button>
+{% endblock %}
+
+{% block tabs_content %}
+<div x-show="activeTab === 'tab_requirements'" x-cloak class="py-12 text-center text-slate-400 italic">
+    尚未新增內容
+</div>
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'registration:vat_entity_change_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}
+
+{% block overlays %}
+{% include "components/document_sidebar.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'modules.system_config',
     'modules.registration',
     'modules.payment',
+    'modules.internal_accounting',
     'import_export',
     'django.contrib.humanize',
     'simple_history',

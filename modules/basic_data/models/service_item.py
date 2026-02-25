@@ -19,6 +19,7 @@ class ServiceItem(models.Model):
     is_company_law_22_1 = models.BooleanField(_('是否需申報公司法22-1'), default=False)
     is_money_laundering_check = models.BooleanField(_('是否執行洗錢防制法檢查'), default=False)
     is_business_entity_change = models.BooleanField(_('是否需營業人變更'), default=False)
+    is_shareholder_list_change = models.BooleanField(_('是否變更股東名簿'), default=False)
 
     class Meta:
         verbose_name = _('服務項目')

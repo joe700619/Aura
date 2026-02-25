@@ -50,7 +50,7 @@ class ShareholderRegisterListView(LoginRequiredMixin, ListActionMixin, ListView)
 class ShareholderRegisterCreateView(LoginRequiredMixin, CreateView):
     model = ShareholderRegister
     form_class = ShareholderRegisterForm
-    template_name = 'shareholder_register/form_v3.html'
+    template_name = 'shareholder_register/form.html'
     success_url = reverse_lazy('registration:shareholder_register_list')
 
     def get_context_data(self, **kwargs):
@@ -62,7 +62,7 @@ class ShareholderRegisterCreateView(LoginRequiredMixin, CreateView):
 class ShareholderRegisterUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView):
     model = ShareholderRegister
     form_class = ShareholderRegisterForm
-    template_name = 'shareholder_register/form_v3.html'
+    template_name = 'shareholder_register/form.html'
     success_url = reverse_lazy('registration:shareholder_register_list')
 
     def get_context_data(self, **kwargs):

@@ -1,6 +1,17 @@
 {% for item in service_items %}
 <div class="cursor-pointer hover:bg-slate-50 p-2 border-b border-gray-100 last:border-0"
-    @click="selectItem({ name: '{{ item.name|escapejs }}', reference_fee: '{{ item.reference_fee|default:0 }}', remark: '{{ item.remark|default:''|escapejs }}' })">
+    onclick="this.dispatchEvent(new CustomEvent('service-item-selected', { 
+        bubbles: true, 
+        detail: { 
+            name: '{{ item.name|escapejs }}', 
+            reference_fee: '{{ item.reference_fee|default:0 }}', 
+            remark: '{{ item.remark|escapejs }}',
+            is_company_law_22_1: (`{{ item.is_company_law_22_1|yesno:'true,false' }}` === 'true'),
+            is_money_laundering_check: (`{{ item.is_money_laundering_check|yesno:'true,false' }}` === 'true'),
+            is_business_entity_change: (`{{ item.is_business_entity_change|yesno:'true,false' }}` === 'true'),
+            is_shareholder_list_change: (`{{ item.is_shareholder_list_change|yesno:'true,false' }}` === 'true')
+        } 
+    }))">
     <div class="flex justify-between">
         <span class="font-medium text-slate-800">{{ item.name }}</span>
         <span class="text-slate-500 text-sm">$ {{ item.reference_fee|default:0 }}</span>

@@ -1,7 +1,7 @@
 from django.db import models
-from simple_history.models import HistoricalRecords
+from core.models import BaseModel
 
-class Customer(models.Model):
+class Customer(BaseModel):
     """Customer / Client Basic Data"""
     
     class SourceChoices(models.TextChoices):
@@ -38,12 +38,6 @@ class Customer(models.Model):
 
     # 三、聯絡人資訊 (預留)
     contact_person = models.CharField(max_length=50, blank=True, null=True, verbose_name="聯絡人 (預留)")
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    is_deleted = models.BooleanField(default=False, verbose_name="是否刪除")
-    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "客戶資料"

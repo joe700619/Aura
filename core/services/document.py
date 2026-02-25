@@ -105,6 +105,23 @@ class DocumentService:
             context['total_shares'] = sum(tx['share_count'] for tx in tx_list)
             context['total_amount'] = sum(tx['total_amount'] for tx in tx_list)
 
+        # ShareholderRegister: directors
+        if hasattr(obj, 'directors'):
+            director_list = []
+            for d in obj.directors.order_by('order', 'id'):
+                director_list.append({
+                    'title': d.title,
+                    'title_display': d.get_title_display(),
+                    'name': d.name,
+                    'id_number': d.id_number,
+                    'nationality': d.nationality,
+                    'birth_date': d.birth_date,
+                    'shares_held': d.shares_held,
+                    'entity_name': d.entity_name,
+                    'entity_no': d.entity_no,
+                })
+            context['directors'] = director_list
+
         return context
 
     @staticmethod

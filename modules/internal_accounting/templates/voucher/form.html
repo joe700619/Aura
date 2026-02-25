@@ -1,0 +1,469 @@
+﻿{% extends 'components/form_view.html' %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_attributes %}enctype="multipart/form-data"{% endblock %}
+
+{% block form_top_block %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+    <!-- Left Side: 60% (Voucher Details & Entries) -->
+    <div class="lg:col-span-7 xl:col-span-7 flex flex-col gap-6 min-w-0 w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded border border-slate-200 p-4 shadow-sm">
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">日期</label>
+            {{ form.date }}
+            {{ form.date.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">傳票號碼</label>
+            {{ form.voucher_no }}
+            {{ form.voucher_no.errors }}
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">資料來源</label>
+            {{ form.source }}
+            {{ form.source.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">建立者</label>
+            {{ form.creator_name }}
+            {{ form.creator_name.errors }}
+        </div>
+    </div>
+</div>
+            </div>
+            <div class="bg-white rounded border border-slate-200 p-4 shadow-sm">
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">摘要與狀態</h4>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">摘要</label>
+        {{ form.description }}
+        {{ form.description.errors }}
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">狀態</label>
+        {{ form.status }}
+        {{ form.status.errors }}
+    </div>
+</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded border border-slate-200 p-4 shadow-sm h-full">
+<div class="h-full flex flex-col">
+    <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">
+        <div class="flex items-center gap-2">
+            <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">分錄</h4>
+        </div>
+        <button type="button" onclick="addVoucherRow()" class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"> 增加一列 </button>
+    </div>
+    
+    {{ details.management_form }}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200" id="voucher-details-table">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/4">科目</th>
+                    <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">往來對象</th>
+                    <th class="px-2 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">借方</th>
+                    <th class="px-2 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">貸方</th>
+                    <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">摘要</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">刪除</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-100">
+                {% for detail_form in details %}
+                <tr class="voucher-detail-row">
+                    {% for hidden in detail_form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+                    <td class="px-2 py-2">{{ detail_form.account }}</td>
+                    <td class="px-2 py-2 aux-container align-top">
+                        <div class="aux-input aux-PARTNER" style="display:none;">
+                            {{ detail_form.company_id }}
+                        </div>
+                        <div class="aux-input aux-DEPT" style="display:none;">
+                            {{ detail_form.department }}
+                        </div>
+                        <div class="aux-input aux-PROJECT" style="display:none;">
+                            {{ detail_form.project }}
+                        </div>
+                        <div class="aux-input aux-NONE text-center text-slate-300 text-xs py-2" style="display:none;">
+                            無
+                        </div>
+                    </td>
+                    <td class="px-2 py-2">{{ detail_form.debit }}</td>
+                    <td class="px-2 py-2">{{ detail_form.credit }}</td>
+                    <td class="px-2 py-2">{{ detail_form.remark }}</td>
+                    <td class="px-2 py-2 text-center align-middle">
+                        <div class="hidden delete-wrapper">{{ detail_form.DELETE }}</div>
+                        <button type="button" class="text-red-500 hover:text-red-700 transition" onclick="deleteRow(this)" title="?芷甇文?">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-slate-100 font-bold">
+                <tr>
+                    <td colspan="2" class="px-2 py-3 text-right text-sm">總計</td>
+                    <td class="px-2 py-3 text-right text-sm text-blue-700" id="total-debit">0.00</td>
+                    <td class="px-2 py-3 text-right text-sm text-red-700" id="total-credit">0.00</td>
+                    <td colspan="2" class="px-2 py-3 text-center text-xs">
+                        <span id="balance-status" class="px-2 py-1 rounded">平衡</span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+    function updateTotals() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+        
+        document.querySelectorAll('.debit-input').forEach(input => {
+            if (input.closest('tr').style.display !== 'none') {
+                totalDebit += parseFloat(input.value || 0);
+            }
+        });
+        
+        document.querySelectorAll('.credit-input').forEach(input => {
+            if (input.closest('tr').style.display !== 'none') {
+                totalCredit += parseFloat(input.value || 0);
+            }
+        });
+        
+        document.getElementById('total-debit').innerText = totalDebit.toLocaleString('en-US');
+        document.getElementById('total-credit').innerText = totalCredit.toLocaleString('en-US');
+        
+        const status = document.getElementById('balance-status');
+        if (Math.round(totalDebit) === Math.round(totalCredit)) {
+            status.innerText = '平衡';
+            status.className = 'px-2 py-1 rounded bg-green-100 text-green-800';
+        } else {
+            status.innerText = '不平衡';
+            status.className = 'px-2 py-1 rounded bg-red-100 text-red-800';
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('debit-input') || e.target.classList.contains('credit-input')) {
+            updateTotals();
+        }
+    });
+
+    function addVoucherRow() {
+        const totalForms = document.getElementById('id_details-TOTAL_FORMS');
+        const formIdx = parseInt(totalForms.value);
+        const tableBody = document.querySelector('#voucher-details-table tbody');
+        
+        // Clone the first row as a template
+        const firstRow = tableBody.querySelector('tr:first-child');
+        const newRow = firstRow.cloneNode(true);
+        
+        // Update IDs and Names
+        const regex = new RegExp(`details-0-`, 'g');
+        newRow.innerHTML = newRow.innerHTML.replace(regex, `details-${formIdx}-`);
+        
+        // Reset values
+        newRow.querySelectorAll('input, select').forEach(input => {
+            if (input.type === 'checkbox') input.checked = false;
+            else if (input.name.includes('-DELETE')) input.checked = false;
+            else input.value = '';
+        });
+        
+        tableBody.appendChild(newRow);
+        
+        // Ensure new row is visible (in case we cloned a deleted row)
+        newRow.style.display = '';
+        
+        // Re-initialize select2 for the new row if needed
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            const newSelect = $(newRow).find('.select2');
+            newSelect.removeClass('select2-hidden-accessible');
+            $(newRow).find('.select2-container').remove();
+            newSelect.select2();
+        }
+
+        totalForms.value = formIdx + 1;
+        updateTotals();
+        toggleAuxFields(newRow);
+    }
+
+    function toggleAuxFields(row) {
+        let accountSelect = row.querySelector('.select2');
+        if (!accountSelect) return;
+        
+        const accountCode = accountSelect.value;
+        const auxTypesDoc = document.getElementById('account-aux-types');
+        const auxTypes = auxTypesDoc ? JSON.parse(auxTypesDoc.textContent) : {};
+        const auxType = auxTypes[accountCode] || 'NONE';
+
+        const auxContainer = row.querySelector('.aux-container');
+        if (!auxContainer) return;
+
+        // Hide all
+        auxContainer.querySelectorAll('.aux-input').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Show the active one
+        if (auxType) {
+            const activeGroup = auxContainer.querySelector(`.aux-${auxType}`);
+            if (activeGroup) {
+                activeGroup.style.display = 'block';
+                const input = activeGroup.querySelector('input');
+                if (input && input.placeholder === '') {
+                    if (auxType === 'PARTNER') input.placeholder = '請選擇對象...';
+                    if (auxType === 'DEPT') input.placeholder = '請選擇部門...';
+                    if (auxType === 'PROJECT') input.placeholder = '請選擇專案...';
+                }
+            }
+        }
+    }
+
+    function deleteRow(btn) {
+        const row = btn.closest('tr');
+        const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = true;
+            row.style.display = 'none'; // Hide instead of remove so Django can delete it on save
+        } else {
+            row.remove(); // Unlikely in Django formsets unless dynamically added without a DELETE field
+        }
+        updateTotals();
+    }
+
+    // Call total updates and initialize toggle on load
+    window.onload = function() {
+        updateTotals();
+        document.querySelectorAll('.voucher-detail-row').forEach(row => {
+            toggleAuxFields(row);
+        });
+        
+        // Listen to select change events (using jQuery if select2 is used)
+        if (typeof $ !== 'undefined') {
+            $(document).on('change select2:select', '.account-select', function() {
+                const row = this.closest('.voucher-detail-row');
+                toggleAuxFields(row);
+            });
+        } else {
+            document.querySelectorAll('.account-select').forEach(sel => {
+                sel.addEventListener('change', function() {
+                    toggleAuxFields(this.closest('.voucher-detail-row'));
+                });
+            });
+        }
+
+        // Add form submit validation to prevent unbalanced entries
+        const form = document.getElementById('main-form');
+        if (form) {
+            form.onsubmit = function(e) {
+                const totalDebitText = document.getElementById('total-debit').innerText.replace(/,/g, '');
+                const totalCreditText = document.getElementById('total-credit').innerText.replace(/,/g, '');
+                const totalDebit = parseFloat(totalDebitText) || 0;
+                const totalCredit = parseFloat(totalCreditText) || 0;
+                
+                if (totalDebit !== totalCredit) {
+                    e.preventDefault(); // Prevent form from submitting
+                    alert('無法儲存！\n\n目前借方總計 (' + totalDebit + ') 與貸方總計 (' + totalCredit + ') 不平衡，請修正分錄金額後再試。');
+                    // Reset globalSubmitting used by Alpine in the parent template
+                    if (window.Alpine) {
+                        const alpineData = Alpine.$data(document.querySelector('[x-data]'));
+                        if (alpineData && 'globalSubmitting' in alpineData) {
+                            alpineData.globalSubmitting = false;
+                        }
+                    }
+                    return false;
+                } else if (totalDebit === 0) {
+                    e.preventDefault();
+                    alert('無法儲存！\n\n分錄金額不能為 0。');
+                    if (window.Alpine) {
+                        const alpineData = Alpine.$data(document.querySelector('[x-data]'));
+                        if (alpineData && 'globalSubmitting' in alpineData) {
+                            alpineData.globalSubmitting = false;
+                        }
+                    }
+                    return false;
+                }
+                return true;
+            };
+        }
+        // Enforce integers on blur
+        document.addEventListener('blur', function(e) {
+            if (e.target.classList.contains('debit-input') || e.target.classList.contains('credit-input')) {
+                if (e.target.value) {
+                    e.target.value = Math.round(parseFloat(e.target.value) || 0);
+                }
+                updateTotals();
+            }
+        }, true);
+    };
+</script>
+<script id="account-aux-types" type="application/json">
+    {{ account_aux_types|safe }}
+</script>
+<style>
+    /* Utility classes moved to forms.py widgets */
+</style>
+        </div>
+    </div>
+
+    <!-- Right Side: 40% (Image Viewer & Uploader) -->
+    <script id="voucher-image-data" type="application/json">
+        [
+            {% for img in images %}
+            { "id": "{{ img.id }}", "url": "{{ img.image.url|escapejs }}", "time": "{{ img.uploaded_at|date:'Y-m-d H:i'|escapejs }}", "isTemp": false }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    </script>
+    <script>
+        function imageViewer() {
+            return {
+                activeIndex: 0,
+                imageList: [],
+                deletedImageIds: [],
+                init() {
+                    try {
+                        const dataEl = document.getElementById('voucher-image-data');
+                        if (dataEl) {
+                            this.imageList = JSON.parse(dataEl.textContent);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse image data:', e);
+                        this.imageList = [];
+                    }
+                },
+                handleFileSelect(event) {
+                    const files = event.target.files;
+                    if (!files || files.length === 0) return;
+                    const startIndex = this.imageList.length;
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const url = URL.createObjectURL(file);
+                        const now = new Date();
+                        const timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+                        this.imageList.push({
+                            id: 'temp_' + Date.now() + '_' + i,
+                            url: url,
+                            time: timeStr + ' (暫存)',
+                            isTemp: true
+                        });
+                    }
+                    this.activeIndex = startIndex;
+                },
+                deleteActiveImage() {
+                    const img = this.imageList[this.activeIndex];
+                    if (!img) return;
+                    
+                    if (!img.isTemp) {
+                        this.deletedImageIds.push(img.id);
+                    }
+                    
+                    this.imageList.splice(this.activeIndex, 1);
+                    
+                    if (this.activeIndex >= this.imageList.length) {
+                        this.activeIndex = Math.max(0, this.imageList.length - 1);
+                    }
+                }
+            };
+        }
+    </script>
+    <div class="lg:col-span-5 xl:col-span-5 bg-slate-50 border border-slate-200 rounded-lg p-5 flex flex-col min-h-[500px] min-w-0 w-full h-full lg:sticky lg:top-24"
+         x-data="imageViewer()"
+         x-init="init()">
+        
+        <input type="hidden" name="deleted_image_ids" :value="deletedImageIds.join(',')">
+        
+        <div class="flex items-center gap-2 border-b border-slate-200 pb-2 mb-4">
+            <div class="w-1 h-4 bg-orange-500 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">原始憑證圖片</h4>
+        </div>
+        
+        <!-- Image Upload Input -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 mb-2">上傳新檔案 (可多選)</label>
+            <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 font-semibold text-sm rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                選擇檔案...
+                <input type="file" name="images" multiple accept="image/*" class="hidden" @change="handleFileSelect($event)">
+            </label>
+        </div>
+        
+        <!-- Image Carousel -->
+        <div class="flex-1 flex flex-col items-center justify-start mt-2 w-full">
+            <template x-if="imageList.length > 0">
+                <div class="w-full flex-1 flex flex-col">
+                    <div class="relative w-full aspect-auto min-h-[400px] bg-slate-200 rounded overflow-hidden flex items-center justify-center border border-slate-300 shadow-inner group">
+                        <template x-for="(img, index) in imageList" :key="img.id">
+                            <img :src="img.url" x-show="activeIndex === index" class="max-w-full max-h-[600px] object-contain" alt="Voucher Image" x-transition.opacity.duration.300ms>
+                        </template>
+                        
+                        <!-- Navigation Arrows -->
+                        <button type="button" x-show="imageList.length > 1" @click="activeIndex = activeIndex === 0 ? imageList.length - 1 : activeIndex - 1" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button type="button" x-show="imageList.length > 1" @click="activeIndex = activeIndex === imageList.length - 1 ? 0 : activeIndex + 1" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+
+                        <!-- Delete Button (Top Left to avoid conflict) -->
+                        <button type="button" @click="if(confirm('確定要移除這張照片嗎？')) deleteActiveImage()" class="absolute top-4 left-4 bg-red-500 hover:bg-red-600 text-white p-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all z-30 shadow-xl border-2 border-white/20 scale-90 hover:scale-100 active:scale-95" title="移除照片">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Info Overlay -->
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex justify-between items-end z-10">
+                            <span class="text-white text-xs" x-text="imageList[activeIndex] ? imageList[activeIndex].time : ''"></span>
+                            <span class="text-white text-sm font-semibold tracking-widest"><span x-text="activeIndex + 1"></span> / <span x-text="imageList.length"></span></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Thumbnails -->
+                    <div class="flex gap-2 mt-4 overflow-x-auto w-full pb-2 snap-x">
+                        <template x-for="(img, index) in imageList" :key="img.id">
+                            <button type="button" @click="activeIndex = index" :class="{'ring-2 ring-indigo-500 border-transparent scale-105': activeIndex === index, 'opacity-60 hover:opacity-100 border-slate-300': activeIndex !== index}" class="relative w-16 h-16 shrink-0 rounded overflow-hidden border transition-all snap-start">
+                                <img :src="img.url" class="object-cover w-full h-full" alt="Thumbnail">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="imageList.length === 0">
+                <div class="w-full h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded bg-slate-100/50 py-12 px-4 mt-2">
+                    <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <p class="text-slate-500 font-medium text-sm">目前沒有夾檔圖片</p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'internal_accounting:voucher_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}

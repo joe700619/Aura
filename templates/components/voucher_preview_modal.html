@@ -1,0 +1,441 @@
+<!-- Voucher Preview Modal Component -->
+<div x-data="{
+    isOpen: false,
+    entries: [],
+    hasOutstandingBalance: false,
+    errorMessage: '',
+    
+    openModal() {
+        this.generateEntries();
+        this.isOpen = true;
+    },
+    
+    generateEntries() {
+        this.entries = [];
+        this.hasOutstandingBalance = false;
+        this.errorMessage = '';
+        
+        let mode = 'receivable'; // default
+        const modeScript = document.getElementById('voucher_generation_mode');
+        if (modeScript) {
+            try {
+                mode = JSON.parse(modeScript.textContent);
+            } catch(e){}
+        }
+
+        /* Get VAT Number */
+        let companyVat = '';
+        const vatInput = document.getElementById('receivable_unified_business_no');
+        if (vatInput) {
+            try {
+                companyVat = JSON.parse(vatInput.textContent).toString().trim();
+            } catch (e) {}
+        }
+        
+        if (mode === 'receivable') {
+            this.generateReceivableEntries(companyVat);
+        } else if (mode === 'progress') {
+            this.generateProgressEntries(companyVat);
+        }
+    },
+    
+    generateProgressEntries(companyVat) {
+        const quotationInput = document.getElementById('id_quotation_data');
+        if (!quotationInput) {
+            this.errorMessage = '找不到報價單資料，無法產生分錄。';
+            return;
+        }
+        
+        try {
+            const quotationData = JSON.parse(quotationInput.value || '[]');
+            if (quotationData.length === 0) {
+                this.errorMessage = '報價單無項目，不可產生傳票分錄。';
+                return;
+            }
+            
+            quotationData.forEach(item => {
+                const serviceName = (item.service_name || '').trim();
+                let amount = parseFloat(item.amount) || 0;
+                const remark = (item.remark || '').trim();
+                
+                if (serviceName.startsWith('8')) {
+                    amount = Math.abs(amount);
+                }
+                
+                if (!serviceName || amount <= 0) return;
+                
+                if (serviceName.startsWith('1')) {
+                    this.addGeneratedEntry('credit', '400001', '簽證收入', amount, remark, companyVat);
+                } else if (serviceName.startsWith('2')) {
+                    this.addGeneratedEntry('credit', '400002', '記帳收入', amount, remark, companyVat);
+                } else if (serviceName.startsWith('3')) {
+                    this.addGeneratedEntry('credit', '400003', '登記收入', amount, remark, companyVat);
+                } else if (serviceName.startsWith('9')) {
+                    this.addGeneratedEntry('credit', '1140', '預付款項', amount, remark, companyVat);
+                } else if (serviceName.startsWith('8')) {
+                    this.addGeneratedEntry('debit', '2190', '預收款項', amount, remark, companyVat);
+                }
+            });
+            
+            /* Calculate Uncollected */
+            const totalDebits = this.entries.reduce((sum, e) => sum + (e.debit_amount || 0), 0);
+            const totalCredits = this.entries.reduce((sum, e) => sum + (e.credit_amount || 0), 0);
+            const diff = totalCredits - totalDebits;
+            
+            if (diff > 0) {
+                this.addGeneratedEntry('debit', '1123', '應收帳款', diff, '未收款合計', companyVat);
+            } else if (diff < 0) {
+                this.addGeneratedEntry('credit', '1123', '應收帳款', Math.abs(diff), '未收款合計 (溢收)', companyVat);
+            }
+            
+            if (this.entries.length === 0) {
+                this.addEntry();
+            }
+        } catch (e) {
+            console.error('Failed to parse quotation data', e);
+            this.errorMessage = '解析報價單資料發生錯誤。';
+        }
+    },
+    
+    generateReceivableEntries(companyVat) {
+        /* Step 1: Check outstanding balance */
+        const balanceInput = document.getElementById('receivable_outstanding_balance');
+        if (balanceInput) {
+            try {
+                /* Parse balance and remove any potential formatting commas */
+                const balStr = JSON.parse(balanceInput.textContent).toString().replace(/,/g, '');
+                const balance = parseFloat(balStr) || 0;
+                if (balance > 0) {
+                    this.hasOutstandingBalance = true;
+                    this.errorMessage = '尚有未收款項，無法過帳';
+                    return; /* Stop generating entries */
+                }
+            } catch (e) {
+                console.error('Failed to parse outstanding balance', e);
+            }
+        }
+
+        /* Step 2: Generate Collection entries */
+        const collectionsInput = document.getElementById('receivable_collections_data');
+        if (collectionsInput) {
+            try {
+                const collections = JSON.parse(collectionsInput.textContent);
+                collections.forEach(col => {
+                    const amount = parseFloat(col.amount) || 0;
+                    const tax = parseFloat(col.tax) || 0;
+                    const fee = parseFloat(col.fee) || 0;
+                    const allowance = parseFloat(col.allowance) || 0;
+                    const total = parseFloat(col.total) || 0;
+                    
+                    if (col.is_posted) {
+                        /* 1. 已過帳: 借 2190 預收款項 (金額為合計) */
+                        if (total > 0) {
+                            this.addGeneratedEntry('debit', '2190', '預收款項', total, '預收款沖轉', companyVat);
+                        }
+                    } else {
+                        /* 2. 未過帳: 依據方式 */
+                        let methodCode = '111401';
+                        let methodName = '銀行存款';
+                        if (col.method === 'bank') {
+                            methodCode = '111401';
+                            methodName = '國泰世華';
+                        } else if (col.method === 'ecpay') {
+                            methodCode = '111403';
+                            methodName = '綠界';
+                        } else if (col.method === 'cash') {
+                            methodCode = '1110';
+                            methodName = '現金';
+                        } else if (col.method === 'notes') {
+                            methodCode = '1124';
+                            methodName = '應收票據';
+                        }
+                        
+                        if (amount > 0) {
+                            this.addGeneratedEntry('debit', methodCode, methodName, amount, '收款', companyVat);
+                        }
+                        
+                        /* 3. 填入其他費用部分 */
+                        if (tax > 0) {
+                            this.addGeneratedEntry('debit', '1149', '扣繳稅款', tax, '扣繳稅款', companyVat);
+                        }
+                        if (fee > 0) {
+                            this.addGeneratedEntry('debit', '613201', '手續費', fee, '手續費', companyVat);
+                        }
+                        if (allowance > 0) {
+                            this.addGeneratedEntry('debit', '6123', '呆帳損失', allowance, '折讓', companyVat);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to parse collections data', e);
+            }
+        }
+        
+        /* Step 3: 計算貸方科目 1123 應收帳款 */
+        /* 貸方金額為借方總和 (確保過帳前天生平衡) */
+        const totalDebits = this.entries.reduce((sum, e) => sum + (parseFloat(e.debit_amount) || 0), 0);
+        if (totalDebits > 0) {
+            this.addGeneratedEntry('credit', '1123', '應收帳款', totalDebits, '應收帳款沖帳', companyVat);
+        }
+        
+        /* Ensure at least one empty row if no data generated and no outstanding balance error */
+        if (this.entries.length === 0 && !this.hasOutstandingBalance) {
+            this.addEntry();
+        }
+    },
+    
+    addGeneratedEntry(type, code, name, amount, remark, company_id = '') {
+        this.entries.push({
+            account_code: code,
+            account: name,
+            debit_amount: type === 'debit' ? amount : '',
+            credit_amount: type === 'credit' ? amount : '',
+            company_id: company_id,
+            remark: remark
+        });
+    },
+    
+    addEntry() {
+        this.entries.push({
+            account_code: '',
+            account: '',
+            debit_amount: '',
+            credit_amount: '',
+            company_id: '',
+            remark: ''
+        });
+    },
+    
+    removeEntry(index) {
+        this.entries.splice(index, 1);
+        if (this.entries.length === 0) {
+            this.addEntry();
+        }
+    },
+    
+    get totalDebits() {
+        return this.entries.reduce((sum, e) => sum + (parseFloat(e.debit_amount) || 0), 0);
+    },
+    
+    get totalCredits() {
+        return this.entries.reduce((sum, e) => sum + (parseFloat(e.credit_amount) || 0), 0);
+    },
+    
+    get isBalanced() {
+        const debits = this.totalDebits;
+        const credits = this.totalCredits;
+        return debits === credits && debits > 0;
+    },
+    
+    get balanceDiff() {
+        return Math.abs(this.totalDebits - this.totalCredits);
+    },
+    
+    confirmPost() {
+        if (!this.isBalanced) {
+            alert('借貸金額不平，請修正後再過帳！');
+            return;
+        }
+
+        const postedCheckbox = document.querySelector('input[name=\'is_posted\'][type=\'checkbox\']');
+        if (postedCheckbox) {
+            postedCheckbox.checked = true;
+            console.log('Voucher Modal: Checked is_posted checkbox');
+        } else {
+            console.error('Voucher Modal: Could not find is_posted checkbox!');
+            alert('找不到過帳勾選框，可能遭到隱藏或移除，請聯絡系統管理員。');
+            return;
+        }
+        
+        this.isOpen = false;
+        
+        /* Auto submit the form */
+        /* Using explicit ID and fallback to ensure we don't grab the logout form in topbar */
+        let form = document.getElementById('main-form');
+        if (!form) {
+             const anyField = document.querySelector('input[name=\'receivable_no\']');
+             if (anyField && anyField.form) form = anyField.form;
+        }
+
+        if (form) {
+            console.log('Voucher Modal: Submitting form', form.id);
+            /* Trigger Alpine loading state if possible */
+            if (typeof window.Alpine !== 'undefined') {
+                const root = document.querySelector('[x-data]');
+                if (root && root.__x) {
+                    const data = Alpine.$data(root);
+                    if (data && 'globalSubmitting' in data) {
+                        data.globalSubmitting = true;
+                    }
+                }
+            }
+            /* Delay slightly to ensure UI updates and checkbox state is propagated */
+            setTimeout(() => {
+                HTMLFormElement.prototype.submit.call(form);
+            }, 100);
+        } else {
+            console.error('Voucher Modal: Main form not found!');
+            alert('已勾選「已核對過帳」，但找不到主表單自動送出，請手動按「儲存」送出表單。');
+        }
+    }
+}"
+@open-voucher-modal.window="openModal()"
+x-show="isOpen" style="display: none; position: fixed; inset: 0px; z-index: 50; overflow-y: auto;"
+x-cloak
+class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding-top: 1rem; padding-bottom: 5rem; text-align: center; padding-left: 1rem; padding-right: 1rem;" class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            style="position: fixed; inset: 0px; background-color: rgba(107, 114, 128, 0.75); transition-property: opacity;"
+            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+            @click="isOpen = false"></div>
+
+        <span style="display: none;" class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <!-- Modal panel -->
+        <div x-show="isOpen" x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            style="display: inline-block; vertical-align: bottom; background-color: white; border-radius: 0.5rem; text-align: left; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translate(0, 0); transition-property: all; margin-top: 2rem; margin-bottom: 2rem; max-width: 64rem; width: 100%; position: relative; z-index: 51;"
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
+            
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            預覽過帳傳票分錄
+                        </h3>
+                        <div class="mt-2 text-left">
+                            <p class="text-sm text-gray-500 mb-4">
+                                以下為系統根據表單狀態與收款紀錄產生的初步會計分錄。您可以在確認過帳前進行修改編排。
+                            </p>
+                            
+                            <!-- Error Message Banner -->
+                            <template x-if="errorMessage">
+                                <div class="rounded-md bg-red-50 p-4 mb-4 border border-red-200 shadow-sm">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-bold text-red-800" x-text="errorMessage"></h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Balance Warning Banner -->
+                            <template x-if="!errorMessage && !isBalanced">
+                                <div class="rounded-md bg-amber-50 p-4 mb-4 border border-amber-200 shadow-sm">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-bold text-amber-800">
+                                                借貸金額不平 (相差 <span class="font-bold font-mono inline-block text-amber-900" x-text="balanceDiff"></span>)，請修正後再過帳。
+                                            </h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div class="mt-3 mb-4 flex justify-end">
+                                <button type="button" @click="addEntry()" class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    增加一列
+                                </button>
+                            </div>
+                            
+                            <!-- Voucher Table -->
+                            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                                <table class="min-w-full divide-y divide-slate-200">
+                                    <thead class="bg-slate-50">
+                                        <tr>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/12">操作</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">會計代碼</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">會計科目</th>
+                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">借方金額</th>
+                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">貸方金額</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">對象(統編)</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">備註/摘要</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-slate-200">
+                                        <template x-for="(entry, index) in entries" :key="index">
+                                            <tr>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-500 text-center">
+                                                    <button type="button" @click="removeEntry(index)" class="text-red-500 hover:text-red-700">
+                                                        <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="text" x-model="entry.account_code" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="代碼">
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="text" x-model="entry.account" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="科目名稱">
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="number" x-model.number="entry.debit_amount" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-right" placeholder="0">
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="number" x-model.number="entry.credit_amount" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-right" placeholder="0">
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="text" x-model="entry.company_id" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="統一編號">
+                                                </td>
+                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
+                                                    <input type="text" x-model="entry.remark" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="備註/摘要">
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                    <tfoot class="bg-blue-50/50 border-t border-slate-200">
+                                        <tr class="font-bold text-slate-700">
+                                            <td colspan="3" class="px-4 py-3 text-right text-sm">合計：</td>
+                                            <td class="px-4 py-3 text-right text-sm font-mono text-blue-700" x-text="totalDebits.toLocaleString()"></td>
+                                            <td class="px-4 py-3 text-right text-sm font-mono text-blue-700" x-text="totalCredits.toLocaleString()"></td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse border-t border-gray-200">
+                <button type="button" @click="confirmPost()"
+                    :disabled="hasOutstandingBalance || !isBalanced"
+                    :class="(hasOutstandingBalance || !isBalanced) ? 'bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 border-transparent'"
+                    class="ml-3 inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm transition-colors duration-200">
+                    確定並過帳
+                </button>
+                <button type="button" @click="isOpen = false"
+                    class="ml-3 inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm transition-colors duration-200">
+                    取消
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>

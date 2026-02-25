@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
+from django.conf import settings
 
 class Employee(models.Model):
     """
@@ -68,6 +68,17 @@ class Employee(models.Model):
     created_at = models.DateTimeField(_("建立時間"), auto_now_add=True)
     updated_at = models.DateTimeField(_("更新時間"), auto_now=True)
     is_active = models.BooleanField(_("啟用狀態"), default=True)
+    
+    # ========== 帳號關聯 ==========
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='employee_profile',
+        verbose_name=_("系統登入帳號"),
+        help_text=_("綁定此員工對應的系統登入帳號")
+    )
     
     class Meta:
         verbose_name = _("員工")

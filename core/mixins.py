@@ -115,3 +115,69 @@ class ListActionMixin:
             context['create_button_label'] = self.create_button_label
         
         return context
+
+
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db.models import Q
+
+
+class ManagerRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin to require that a user is either a superuser or in the '經理' group.
+    """
+    def test_func(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return False
+        return user.is_superuser or user.groups.filter(name='經理').exists()
+
+
+class EmployeeDataIsolationMixin:
+    """
+    Mixin to filter list querysets based on the user's role and assigned Employee profile.
+    
+    Rules:
+    - Superusers and '經理' group see all data.
+    - '外部使用者' group see no data (customizable by overriding).
+    - Regular users see data filtered by the foreign keys specified in `employee_filter_fields`
+      matching their bound Employee profile.
+    - Users without an Employee profile see no data.
+    
+    Usage:
+        class MyModelListView(EmployeeDataIsolationMixin, ListView):
+            employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
+    """
+    employee_filter_fields = []
+
+    def get_employee_filter_fields(self):
+        return self.employee_filter_fields
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+
+        # 1. Superuser or Manager: see everything
+        if user.is_superuser or user.groups.filter(name='經理').exists():
+            return qs
+            
+        # 2. External user: see nothing by default
+        if user.groups.filter(name='外部使用者').exists():
+            return qs.none()
+            
+        # 3. Regular employee: filter by assigned fields
+        if hasattr(user, 'employee_profile') and user.employee_profile:
+            emp = user.employee_profile
+            filter_fields = self.get_employee_filter_fields()
+            
+            if not filter_fields:
+                return qs.none() # If no fields defined, safe default is none
+                
+            # Build OR condition for all specified fields
+            q_objects = Q()
+            for field in filter_fields:
+                q_objects |= Q(**{field: emp})
+                
+            return qs.filter(q_objects)
+            
+        # 4. No employee profile: see nothing
+        return qs.none()

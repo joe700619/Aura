@@ -10,7 +10,7 @@
         search: '',
         allItems: [],
         init() {
-            const dataEl = document.getElementById('{% block metadata_id %}list-metadata{% endblock %}');
+            const dataEl = document.getElementById('list-metadata');
             if (dataEl) {
                 try {
                     this.allItems = JSON.parse(dataEl.textContent);
@@ -25,7 +25,7 @@
                 // Only select items that match the current filter and search
                 this.selectedRows = this.allItems
                     .filter(item => this.matches(item.category, item.content))
-                    .map(item => item.id);
+                    .map(item => Number(item.id));
             } else {
                 this.selectedRows = [];
             }
@@ -35,6 +35,9 @@
             const matchesSearch = this.search === '' || 
                                  content.toLowerCase().includes(this.search.toLowerCase());
             return matchesFilter && matchesSearch;
+        },
+        get visibleCount() {
+            return this.allItems.filter(item => this.matches(item.category, item.content)).length;
         }
     }">
 
@@ -219,6 +222,9 @@
             </div>
         </div>
     </div>
+    <script id="list-metadata" type="application/json">
+        {% block metadata_json %}[]{% endblock %}
+    </script>
 </div>
 {% endblock %}
 

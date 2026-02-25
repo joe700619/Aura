@@ -11,7 +11,7 @@
     {
         "id": {{ item.pk }},
         "category": "{{ item.organization_type }}",
-        "content": "{{ item.shareholder_register.company_name|escapejs }} {{ item.shareholder_register.unified_business_no|escapejs }} {{ item.shareholder_name|escapejs }} {{ item.get_transaction_reason_display|escapejs }}"
+        "content": "{{ item.shareholder_register.company_name|escapejs }} {{ item.shareholder_register.unified_business_no|escapejs }} {{ item.registration_no|default:''|escapejs }} {{ item.shareholder_name|escapejs }} {{ item.get_transaction_reason_display|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
@@ -49,6 +49,8 @@
 {% endblock %}
 
 {% block table_headers %}
+<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-4">完成</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">登記單號</th>
 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">公司名稱</th>
 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">統一編號</th>
 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">姓名</th>
@@ -77,6 +79,22 @@
                 </template>
             </div>
         </label>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        {% if item.is_completed %}
+        <span class="flex items-center text-green-600" title="已完成">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+        {% else %}
+        <span class="flex items-center text-slate-300" title="待處理">
+            <div class="h-5 w-5 border-2 border-slate-200 rounded"></div>
+        </span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+        {{ item.registration_no|default:"-" }}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
         {{ item.shareholder_register.company_name }}
@@ -126,7 +144,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="10" class="px-6 py-10 text-center text-slate-500">
+    <td colspan="13" class="px-6 py-10 text-center text-slate-500">
         <div class="flex flex-col items-center justify-center">
             <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

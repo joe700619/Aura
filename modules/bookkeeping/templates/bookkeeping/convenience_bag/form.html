@@ -1,0 +1,411 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}帳冊及便利袋管理 - {{ object.name }}{% endblock %}
+
+{% block form_attributes %}enctype="multipart/form-data"{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'bookkeeping:convenience_bag_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block toolbar_actions %}
+<!-- Cancel Button -->
+<button type="button" onclick="history.back()"
+    class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+    取消
+</button>
+
+<!-- Save Button -->
+<button type="button" 
+    @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('main-form').requestSubmit() }, 300) }"
+    :disabled="globalSubmitting"
+    class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
+>
+    <template x-if="!globalSubmitting">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </template>
+    <template x-if="globalSubmitting">
+        <svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </template>
+    <span x-text="globalSubmitting ? '儲存中...' : '儲存'"></span>
+</button>
+{% endblock %}
+
+{% block form_card_1 %}
+<!-- Card 1: Client Read-only Info -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-400 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">客戶基本資料 (唯讀)</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">公司名稱</label>
+        <div class="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-md text-sm">
+            {{ object.name }}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
+            <div class="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-md text-sm">
+                {{ object.tax_id|default:"-" }}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">記帳助理</label>
+            <div class="w-full px-3 py-2 border border-slate-200 bg-slate-50 text-slate-600 rounded-md text-sm">
+                {% if object.bookkeeping_assistant %}{{ object.bookkeeping_assistant.name }}{% else %}-{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<!-- Card 2: Bag Info -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-teal-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">7-11 便利袋寄送追蹤</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">{{ form.last_convenience_bag_date.label }}</label>
+        {{ form.last_convenience_bag_date }}
+        {% if form.last_convenience_bag_date.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.last_convenience_bag_date.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">{{ form.last_convenience_bag_qty.label }}</label>
+        {{ form.last_convenience_bag_qty }}
+        {% if form.last_convenience_bag_qty.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.last_convenience_bag_qty.errors.0 }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<!-- Card 3: Notes -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    
+    <div>
+        {{ form.notes }}
+    </div>
+</div>
+{% endblock %}
+
+{% block initial_tab %}tab_convenience_bag{% endblock %}
+
+{% block tabs_header %}
+<button type="button" @click="activeTab = 'tab_convenience_bag'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_convenience_bag'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    便利袋管理
+</button>
+<button type="button" @click="activeTab = 'tab_accounting_book'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_accounting_book'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    帳冊管理
+</button>
+{% endblock %}
+
+{% block tabs_content %}
+<!-- Tab: Convenience Bag Management -->
+<div x-show="activeTab === 'tab_convenience_bag'" x-cloak class="py-4" x-data="{
+    formCount: {{ convenience_bag_formset.total_form_count }},
+    addRow() {
+        const totalInput = document.getElementById('id_convenience_bag_logs-TOTAL_FORMS');
+        const idx = parseInt(totalInput.value);
+        const tbody = this.$refs.bagBody;
+        const template = this.$refs.emptyRow.innerHTML.replace(/__prefix__/g, idx);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+        tr.innerHTML = template;
+        tbody.appendChild(tr);
+        totalInput.value = idx + 1;
+    },
+    removeRow(el) {
+        const row = el.closest('tr');
+        const delCheckbox = row.querySelector('input[type=checkbox][id$=-DELETE]');
+        if (delCheckbox) {
+            delCheckbox.checked = true;
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+    }
+}">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+        <div class="w-1 h-4 bg-teal-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">便利袋發送紀錄</h4>
+    </div>
+
+    {{ convenience_bag_formset.management_form }}
+
+    <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-teal-50 border-b border-teal-100 text-teal-800">
+                <tr>
+                    <th class="px-4 py-3 font-semibold w-1/3">日期</th>
+                    <th class="px-4 py-3 font-semibold text-center w-1/3">數量</th>
+                    <th class="px-4 py-3 font-semibold text-center w-32">操作</th>
+                </tr>
+            </thead>
+            <tbody x-ref="bagBody" class="divide-y divide-slate-100 bg-white">
+                {% for bag_form in convenience_bag_formset %}
+                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0" {% if bag_form.DELETE.value %}style="display:none"{% endif %}>
+                    <td class="px-4 py-3">
+                        {{ bag_form.id }}
+                        <input type="date" name="{{ bag_form.date.name }}" id="{{ bag_form.date.auto_id }}"
+                            value="{{ bag_form.date.value|date:'Y-m-d'|default:'' }}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm">
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <input type="number" name="{{ bag_form.quantity.name }}" id="{{ bag_form.quantity.auto_id }}"
+                            value="{{ bag_form.quantity.value|default:'' }}"
+                            class="w-full max-w-[120px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm text-center" min="0">
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div style="display:none">{{ bag_form.DELETE }}</div>
+                        <button type="button" @click="removeRow($el)" class="inline-flex justify-center items-center w-8 h-8 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="刪除此筆">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Empty Row Template (Hidden) -->
+        <template x-ref="emptyRow">
+            <td class="px-4 py-3">
+                <input type="date" name="convenience_bag_logs-__prefix__-date" id="id_convenience_bag_logs-__prefix__-date"
+                    class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm">
+            </td>
+            <td class="px-4 py-3 text-center">
+                <input type="number" name="convenience_bag_logs-__prefix__-quantity" id="id_convenience_bag_logs-__prefix__-quantity"
+                    class="w-full max-w-[120px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm text-center" min="0">
+            </td>
+            <td class="px-4 py-3 text-center">
+                <div style="display:none">
+                    <input type="checkbox" name="convenience_bag_logs-__prefix__-DELETE" id="id_convenience_bag_logs-__prefix__-DELETE">
+                </div>
+                <button type="button" @click="removeRow($el)" class="inline-flex justify-center items-center w-8 h-8 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="刪除此筆">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </td>
+        </template>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="mt-4 flex justify-between items-center bg-slate-50 p-3 rounded-md border border-slate-200">
+        <span class="text-sm text-slate-500">
+            <svg class="inline-block w-4 h-4 mr-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            儲存後，系統將自動更新為最新的一筆紀錄。
+        </span>
+        <button type="button" @click="addRow"
+            class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            新增一筆
+        </button>
+    </div>
+</div>
+
+<!-- Tab: Accounting Book Management -->
+<div x-show="activeTab === 'tab_accounting_book'" x-cloak class="py-4" x-data="{
+    formCount: {{ accounting_book_formset.total_form_count }},
+    addRow() {
+        const totalInput = document.getElementById('id_accounting_book_logs-TOTAL_FORMS');
+        const idx = parseInt(totalInput.value);
+        const tbody = this.$refs.bookBody;
+        const template = this.$refs.emptyBookRow.innerHTML.replace(/__prefix__/g, idx);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+        tr.innerHTML = template;
+        tbody.appendChild(tr);
+        totalInput.value = idx + 1;
+    },
+    removeRow(el) {
+        const row = el.closest('tr');
+        const delCheckbox = row.querySelector('input[type=checkbox][id$=-DELETE]');
+        if (delCheckbox) {
+            delCheckbox.checked = true;
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+    }
+}">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+        <div class="w-1 h-4 bg-sky-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">帳冊紀錄</h4>
+    </div>
+
+    {{ accounting_book_formset.management_form }}
+
+    <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+        <table class="w-full text-sm text-left">
+            <thead class="bg-sky-50 border-b border-sky-100 text-sky-800">
+                <tr>
+                    <th class="px-4 py-3 font-semibold whitespace-nowrap">日期</th>
+                    <th class="px-4 py-3 font-semibold whitespace-nowrap">年度</th>
+                    <th class="px-4 py-3 font-semibold whitespace-nowrap">光碟</th>
+                    <th class="px-4 py-3 font-semibold text-center whitespace-nowrap">銷項發票</th>
+                    <th class="px-4 py-3 font-semibold">簽收單</th>
+                    <th class="px-4 py-3 font-semibold text-center w-24">操作</th>
+                </tr>
+            </thead>
+            <tbody x-ref="bookBody" class="divide-y divide-slate-100 bg-white">
+                {% for book_form in accounting_book_formset %}
+                <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0" {% if book_form.DELETE.value %}style="display:none"{% endif %}>
+                    <td class="px-4 py-3 min-w-[140px]">
+                        {{ book_form.id }}
+                        <input type="date" name="{{ book_form.date.name }}" id="{{ book_form.date.auto_id }}"
+                            value="{{ book_form.date.value|date:'Y-m-d'|default:'' }}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm">
+                    </td>
+                    <td class="px-4 py-3 min-w-[100px]">
+                        <input type="text" name="{{ book_form.year.name }}" id="{{ book_form.year.auto_id }}"
+                            value="{{ book_form.year.value|default:'' }}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
+                            placeholder="如: 112">
+                    </td>
+                    <td class="px-4 py-3 min-w-[120px]">
+                        <input type="text" name="{{ book_form.cd_rom.name }}" id="{{ book_form.cd_rom.auto_id }}"
+                            value="{{ book_form.cd_rom.value|default:'' }}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
+                            placeholder="光碟備註">
+                    </td>
+                    <td class="px-4 py-3 text-center min-w-[100px]">
+                        <input type="number" name="{{ book_form.sales_invoice_qty.name }}" id="{{ book_form.sales_invoice_qty.auto_id }}"
+                            value="{{ book_form.sales_invoice_qty.value|default:'0' }}"
+                            class="w-full max-w-[80px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm text-center" min="0">
+                    </td>
+                    <td class="px-4 py-3 min-w-[200px]">
+                        <div class="flex items-center space-x-2">
+                            {% if book_form.instance.pk and book_form.instance.receipt_form %}
+                            <a href="{{ book_form.instance.receipt_form.url }}" target="_blank" class="text-blue-600 hover:underline inline-flex items-center" title="查看已上傳檔案">
+                                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                                查看
+                            </a>
+                            {% endif %}
+                            <div class="relative overflow-hidden inline-block" x-data="{ fileName: '' }">
+                                <label for="{{ book_form.receipt_form.auto_id }}" 
+                                    class="cursor-pointer bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1.5 border-dashed rounded-md text-xs font-medium flex items-center transition-colors break-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    <span class="max-w-[120px] truncate" x-text="fileName ? fileName : '上傳簽收單'"></span>
+                                </label>
+                                <input type="file" name="{{ book_form.receipt_form.name }}" id="{{ book_form.receipt_form.auto_id }}"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    @change="fileName = $event.target.files[0] ? $event.target.files[0].name.split('\\').pop() : ''">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div style="display:none">{{ book_form.DELETE }}</div>
+                        <button type="button" @click="removeRow($el)" class="inline-flex justify-center items-center w-8 h-8 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="刪除此筆">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Empty Row Template (Hidden) -->
+        <template x-ref="emptyBookRow">
+            <td class="px-4 py-3 min-w-[140px]">
+                <input type="date" name="accounting_book_logs-__prefix__-date" id="id_accounting_book_logs-__prefix__-date"
+                    class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm">
+            </td>
+            <td class="px-4 py-3 min-w-[100px]">
+                <input type="text" name="accounting_book_logs-__prefix__-year" id="id_accounting_book_logs-__prefix__-year"
+                    class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
+                    placeholder="如: 2026">
+            </td>
+            <td class="px-4 py-3 min-w-[120px]">
+                <input type="text" name="accounting_book_logs-__prefix__-cd_rom" id="id_accounting_book_logs-__prefix__-cd_rom"
+                    class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
+                    placeholder="光碟備註">
+            </td>
+            <td class="px-4 py-3 text-center min-w-[100px]">
+                <input type="number" name="accounting_book_logs-__prefix__-sales_invoice_qty" id="id_accounting_book_logs-__prefix__-sales_invoice_qty"
+                    value="0" class="w-full max-w-[80px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm text-center" min="0">
+            </td>
+            <td class="px-4 py-3 min-w-[200px]">
+                <div class="flex items-center space-x-2">
+                    <div class="relative overflow-hidden inline-block" x-data="{ fileName: '' }">
+                        <label for="id_accounting_book_logs-__prefix__-receipt_form" 
+                            class="cursor-pointer bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1.5 border-dashed rounded-md text-xs font-medium flex items-center transition-colors break-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span class="max-w-[120px] truncate" x-text="fileName ? fileName : '上傳簽收單'"></span>
+                        </label>
+                        <input type="file" name="accounting_book_logs-__prefix__-receipt_form" id="id_accounting_book_logs-__prefix__-receipt_form"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            @change="fileName = $event.target.files[0] ? $event.target.files[0].name.split('\\').pop() : ''">
+                    </div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-center">
+                <div style="display:none">
+                    <input type="checkbox" name="accounting_book_logs-__prefix__-DELETE" id="id_accounting_book_logs-__prefix__-DELETE">
+                </div>
+                <button type="button" @click="removeRow($el)" class="inline-flex justify-center items-center w-8 h-8 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="刪除此筆">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </td>
+        </template>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="mt-4 flex justify-end items-center bg-slate-50 p-3 rounded-md border border-slate-200">
+        <button type="button" @click="addRow"
+            class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            新增一筆年度帳冊
+        </button>
+    </div>
+</div>
+{% endblock %}

@@ -31,7 +31,7 @@ class ServiceItemForm(forms.ModelForm):
     class Meta:
         model = ServiceItem
         fields = ['department', 'name', 'reference_fee', 'remark', 
-                  'is_company_law_22_1', 'is_money_laundering_check', 'is_business_entity_change']
+                  'is_company_law_22_1', 'is_money_laundering_check', 'is_business_entity_change', 'is_shareholder_list_change']
         widgets = {
             'department': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
@@ -56,6 +56,9 @@ class ServiceItemForm(forms.ModelForm):
                 'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500',
             }),
             'is_business_entity_change': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500',
+            }),
+            'is_shareholder_list_change': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500',
             }),
         }

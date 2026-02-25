@@ -5,7 +5,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12 relative" x-data="{ historyOpen: false }">
+<div x-data="{ historyOpen: false }">
+<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12 relative">
+
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-slate-800">{% block header_title %}{{ page_title }}{% endblock %}</h2>
+    </div>
 
     <!-- Sticky Toolbar -->
     <div
@@ -74,13 +80,23 @@
             {% endif %}
 
             <!-- Save Button -->
-            <button type="button" onclick="document.getElementById('main-form').requestSubmit()"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-bold flex items-center transition-colors shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                儲存
+            <button type="button" 
+                @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('main-form').requestSubmit() }, 300) }"
+                :disabled="globalSubmitting"
+                class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
+            >
+                <template x-if="!globalSubmitting">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+                <template x-if="globalSubmitting">
+                    <svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </template>
+                <span x-text="globalSubmitting ? '儲存中...' : '儲存'"></span>
             </button>
 
             <!-- Action Dropdown -->
@@ -227,14 +243,13 @@
         </div>
     </div>
 
-    <!-- Main Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Main Form Layout (Full Width) -->
+    <div class="w-full relative">
 
         <!-- Form Area -->
-        <div class="space-y-6 transition-all duration-300 ease-in-out"
-            :class="historyOpen ? 'lg:col-span-9 xl:col-span-10' : 'lg:col-span-12'">
+        <div class="space-y-6 w-full">
 
-            <form id="main-form" method="post" class="space-y-6" {% block form_attributes %}{% endblock %}>
+            <form id="main-form" method="post" class="space-y-6" @submit="globalSubmitting = true" {% block form_attributes %}{% endblock %}>
                 {% csrf_token %}
 
                 {% if form.errors %}
@@ -259,10 +274,18 @@
                         <!-- Top Block -->
                         {% block form_top_block %}
                         <!-- Default 3-col grid, override if needed -->
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            {% block form_card_1 %}{% endblock %}
-                            {% block form_card_2 %}{% endblock %}
-                            {% block form_card_3 %}{% endblock %}
+                        <style>
+                            @media (min-width: 640px) {
+                                .force-3col-grid {
+                                    display: grid !important;
+                                    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                                }
+                            }
+                        </style>
+                        <div class="grid grid-cols-1 force-3col-grid gap-8 w-full">
+                            <div class="min-w-0 h-full">{% block form_card_1 %}{% endblock %}</div>
+                            <div class="min-w-0 h-full">{% block form_card_2 %}{% endblock %}</div>
+                            <div class="min-w-0 h-full">{% block form_card_3 %}{% endblock %}</div>
                         </div>
                         {% endblock %}
 
@@ -292,7 +315,7 @@
                             </div>
 
                             <!-- Tabs Content -->
-                            <div class="mt-4">
+                            <div class="mt-4 w-full">
                                 {% block tabs_content %}
                                 <!-- Define content divs with x-show="activeTab === 'tab_name'" -->
                                 {% endblock %}
@@ -305,57 +328,92 @@
             </form>
         </div>
 
-        <!-- Sidebar (History) -->
-        <div x-show="historyOpen" x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0"
-            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-x-0"
-            x-transition:leave-end="opacity-0 translate-x-4" class="lg:col-span-3 xl:col-span-2">
-
-            {% block history_sidebar %}
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
-                <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-slate-800 uppercase">變更紀錄</h3>
-                    <button @click="historyOpen = false" class="text-slate-400 hover:text-slate-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
-                <!-- History Logic -->
-                <div class="divide-y divide-slate-100 max-h-[calc(100vh-200px)] overflow-y-auto">
-                    {% if history %}
-                    {% for record in history %}
-                    <div class="p-3 hover:bg-slate-50 transition-colors">
-                        <div class="flex justify-between text-[10px] mb-1">
-                            <span class="font-bold text-slate-700">{{ record.history_user|default:"系統" }}</span>
-                            <span class="text-slate-400">{{ record.history_date|date:"m/d H:i" }}</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            {% if record.history_type == '+' %}
-                            <span class="px-1 bg-green-100 text-green-700 text-[10px] rounded">新</span>
-                            {% elif record.history_type == '~' %}
-                            <span class="px-1 bg-yellow-100 text-yellow-700 text-[10px] rounded">改</span>
-                            {% elif record.history_type == '-' %}
-                            <span class="px-1 bg-red-100 text-red-700 text-[10px] rounded">刪</span>
-                            {% endif %}
-                            <span class="text-xs text-slate-500 truncate">{{ record.history_change_reason }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <div class="p-6 text-center text-slate-400 text-xs italic">尚無紀錄</div>
-                    {% endif %}
-
-                    {% block history_more_link %}{% endblock %}
-                </div>
-            </div>
-            {% endblock %}
-        </div>
-
         {% block modals %}{% endblock %}
     </div>
+</div>
+
+<!-- Offcanvas Sidebar (History) -->
+<template x-teleport="body">
+    <div class="fixed inset-0" style="z-index: 9000; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
+        x-show="historyOpen" aria-labelledby="history-title" role="dialog" aria-modal="true" x-cloak>
+        
+        <!-- Backdrop -->
+        <div x-show="historyOpen" 
+            x-transition:enter="transition-opacity ease-linear duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition-opacity ease-linear duration-300"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            style="position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); transition: opacity 0.3s ease-in-out;"
+            @click="historyOpen = false"></div>
+
+        <div class="fixed inset-0 overflow-hidden" style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden; pointer-events: none;">
+            <div class="absolute inset-0 overflow-hidden" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10" style="position: fixed; top: 0; bottom: 0; right: 0; display: flex; max-width: 100%; padding-left: 2.5rem;">
+                    
+                    <!-- Panel -->
+                    <div x-show="historyOpen"
+                        x-transition:enter="transform transition ease-in-out duration-300"
+                        x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+                        x-transition:leave="transform transition ease-in-out duration-300"
+                        x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+                        class="pointer-events-auto w-screen max-w-sm" style="width: 100vw; max-width: 24rem; pointer-events: auto;">
+                        
+                        <div class="flex h-full flex-col bg-slate-50 shadow-2xl border-l border-slate-200">
+                            <!-- Sidebar Header -->
+                            <div class="px-5 py-4 flex items-center justify-between border-b border-slate-200 bg-white sticky top-0 z-10">
+                                <h2 class="text-lg font-bold text-slate-800" id="history-title">變更紀錄</h2>
+                                <button @click="historyOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100">
+                                    <span class="sr-only">Close panel</span>
+                                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Sidebar Content -->
+                            <div class="p-4 flex-1 overflow-y-auto">
+                                {% block history_sidebar %}
+                                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div class="divide-y divide-slate-100">
+                                        {% if history %}
+                                        {% for record in history %}
+                                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="font-bold text-slate-700 text-sm">{{ record.history_user|default:"系統" }}</span>
+                                                <span class="text-xs text-slate-500 font-mono">{{ record.history_date|date:"Y/m/d H:i" }}</span>
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                {% if record.history_type == '+' %}
+                                                <span class="px-1.5 py-0.5 mt-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded shrink-0">新增</span>
+                                                {% elif record.history_type == '~' %}
+                                                <span class="px-1.5 py-0.5 mt-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded shrink-0">修改</span>
+                                                {% elif record.history_type == '-' %}
+                                                <span class="px-1.5 py-0.5 mt-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded shrink-0">刪除</span>
+                                                {% endif %}
+                                                <span class="text-sm text-slate-600 leading-snug">{{ record.history_change_reason|default:"編輯紀錄" }}</span>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <div class="p-8 flex flex-col items-center justify-center text-slate-400">
+                                            <svg class="w-10 h-10 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span class="text-sm italic">尚無變更紀錄</span>
+                                        </div>
+                                        {% endif %}
+
+                                        {% block history_more_link %}{% endblock %}
+                                    </div>
+                                </div>
+                                {% endblock %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+</div>
 </div>
 
 {% endblock %}

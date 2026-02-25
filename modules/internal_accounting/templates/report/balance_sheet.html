@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    <!-- Page header -->
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">資產負債表 🏛️</h1>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="bg-white border border-slate-200 rounded-sm shadow-sm mb-8 pt-4 pb-2 px-4">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label for="id_end_date" class="block text-sm font-medium text-slate-700 mb-1">結算日期 (為止)</label>
+                {{ form.end_date }}
+                {% if form.end_date.errors %}
+                <p class="text-red-500 text-xs mt-1">{{ form.end_date.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div class="ml-auto flex items-center">
+                <button type="submit" class="btn-submit-custom rounded-md px-5 py-2 text-sm font-bold shadow-sm transition-colors">送出查詢</button>
+                <a href="{% url 'internal_accounting:report_balance_sheet' %}" class="btn-reset-custom rounded-md px-4 py-2 text-sm font-bold ml-3 shadow-sm transition-colors">清除重設</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Left Side: Assets -->
+        <div>
+            <div class="bg-white shadow-lg rounded-sm border border-slate-200">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                    <h2 class="font-semibold text-slate-800 text-lg">資產 (Assets)</h2>
+                </div>
+                <div class="p-3">
+                    <table class="table-auto w-full text-sm">
+                        <tbody class="text-sm divide-y divide-slate-100">
+                            {% for acc, bal in sections.ASSET.groups.items %}
+                            <tr class="hover:bg-slate-50 transition-colors group">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-800">
+                                    <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                        {{ acc.code }} {{ acc.name }}
+                                        <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right font-medium text-slate-800">
+                                    {{ bal|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="px-4 py-3 text-center text-slate-400">目前無資產紀錄</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-indigo-50/50 border-t border-slate-200">
+                            <tr>
+                                <td class="px-4 py-3 font-bold text-slate-700">資產總計</td>
+                                <td class="px-4 py-3 text-right font-bold text-indigo-600 text-base">
+                                    {{ sections.ASSET.total|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Liabilities & Equity -->
+        <div class="space-y-8">
+            <!-- Liabilities -->
+            <div class="bg-white shadow-lg rounded-sm border border-slate-200">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                    <h2 class="font-semibold text-slate-800 text-lg">負債 (Liabilities)</h2>
+                </div>
+                <div class="p-3">
+                    <table class="table-auto w-full text-sm">
+                        <tbody class="text-sm divide-y divide-slate-100">
+                            {% for acc, bal in sections.LIABILITY.groups.items %}
+                            <tr class="hover:bg-slate-50 transition-colors group">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-800">
+                                    <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                        {{ acc.code }} {{ acc.name }}
+                                        <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right font-medium text-slate-800">
+                                    {{ bal|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="px-4 py-3 text-center text-slate-400">目前無負債紀錄</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-indigo-50/50 border-t border-slate-200">
+                            <tr>
+                                <td class="px-4 py-3 font-bold text-slate-700">負債總計</td>
+                                <td class="px-4 py-3 text-right font-bold text-indigo-600 text-base">
+                                    {{ sections.LIABILITY.total|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Equity -->
+            <div class="bg-white shadow-lg rounded-sm border border-slate-200">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                    <h2 class="font-semibold text-slate-800 text-lg">權益 (Equity)</h2>
+                </div>
+                <div class="p-3">
+                    <table class="table-auto w-full text-sm">
+                        <tbody class="text-sm divide-y divide-slate-100">
+                            {% for acc, bal in sections.EQUITY.groups.items %}
+                            <tr class="hover:bg-slate-50 transition-colors group">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-800">
+                                    {% if acc.code != '3999' %}
+                                        <a href="{% url 'internal_accounting:report_general_ledger' %}?account_code_start={{ acc.code }}&account_code_end={{ acc.code }}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-indigo-500 hover:underline inline-flex items-center">
+                                            {{ acc.code }} {{ acc.name }}
+                                            <svg class="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'internal_accounting:report_income_statement' %}{% if end_date %}?end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="text-emerald-600 hover:underline inline-flex items-center" title="查看損益表">
+                                            {{ acc.name }} (自動結算)
+                                            <svg class="w-3 h-3 ml-1 opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-right font-medium {% if acc.code == '3999' %}text-emerald-600{% else %}text-slate-800{% endif %}">
+                                    {{ bal|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="px-4 py-3 text-center text-slate-400">目前無權益紀錄</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-indigo-50/50 border-t border-slate-200">
+                            <tr>
+                                <td class="px-4 py-3 font-bold text-slate-700">負債與權益總計</td>
+                                <td class="px-4 py-3 text-right font-bold {% if is_balanced %}text-indigo-600{% else %}text-red-600{% endif %} text-base">
+                                    {{ total_liab_and_equity|floatformat:0|intcomma }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if not is_balanced %}
+    <div class="mt-8 bg-red-50 border border-red-200 rounded-sm p-4 flex items-start">
+        <svg class="w-6 h-6 text-red-500 mr-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div>
+            <h3 class="text-red-800 font-bold mb-1">資產負債表不平衡</h3>
+            <p class="text-red-700 text-sm">目前資產總計 ({{ total_assets|floatformat:0|intcomma }}) 與負債加上權益總計 ({{ total_liab_and_equity|floatformat:0|intcomma }}) 不相等。這可能代表系統尚有錯誤的傳票，或是未結轉的特定項目。</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* TailAdmin form compatibility */
+.btn-submit-custom {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+.btn-submit-custom:hover {
+    background-color: #4338ca !important;
+    color: #ffffff !important;
+}
+.btn-reset-custom {
+    background-color: #e2e8f0 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+.btn-reset-custom:hover {
+    background-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+</style>
+{% endblock %}

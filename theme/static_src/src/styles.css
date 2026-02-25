@@ -7,4 +7,6 @@
   * If your final CSS file is not being updated after code changes, you may want to broaden or narrow
   * the scope of this path.
   */
-@source "../../../../**/*.{html,py,js}";
+@source "../../../templates/**/*.{html,js}";
+@source "../../../modules/**/*.{html,py,js}";
+@source "../../../**/forms.py";

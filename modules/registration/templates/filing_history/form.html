@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-8">
+    <!-- Header -->
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">編輯申報明細</h1>
+            <p class="text-slate-500 mt-1">對應單號：{{ object.registration_no|default:"無" }}</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+                {% if prev_obj %}
+                <a href="{% url 'registration:filing_history_edit' prev_obj.pk %}" class="px-3 py-1.5 text-slate-600 hover:bg-slate-50 border-r border-slate-200 flex items-center text-sm transition-colors" title="上一筆">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="ml-1">上一筆</span>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 text-slate-300 bg-slate-50 border-r border-slate-200 flex items-center text-sm cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="ml-1">上一筆</span>
+                </span>
+                {% endif %}
+
+                {% if next_obj %}
+                <a href="{% url 'registration:filing_history_edit' next_obj.pk %}" class="px-3 py-1.5 text-slate-600 hover:bg-slate-50 flex items-center text-sm transition-colors" title="下一筆">
+                    <span class="mr-1">下一筆</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+                {% else %}
+                <span class="px-3 py-1.5 text-slate-300 bg-slate-50 flex items-center text-sm cursor-not-allowed">
+                    <span class="mr-1">下一筆</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </span>
+                {% endif %}
+            </div>
+
+            <a href="{% url 'registration:company_filing_edit' parent.pk %}" class="text-slate-600 hover:text-slate-800 flex items-center text-sm font-medium">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                返回公司總覽
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Form -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="font-bold text-slate-700">申報內容</h3>
+                </div>
+                <div class="p-6">
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">年度</label>
+                                <input type="number" name="year" value="{{ form.year.value }}" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">類別</label>
+                                <select name="category" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    {% for value, label in form.fields.category.choices %}
+                                        <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">申報日期</label>
+                                <input type="date" name="filing_date" value="{{ form.filing_date.value|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1">登記單號 (關聯連結)</label>
+                                <input type="text" name="registration_no" value="{{ form.registration_no.value|default:'' }}" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+
+
+                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-bold shadow-sm">
+                                儲存變更
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="space-y-6">
+            <div class="bg-slate-800 rounded-xl shadow-lg overflow-hidden text-white">
+                <div class="px-6 py-4 border-b border-white/10 bg-white/5">
+                    <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">公司基本資料 (唯讀)</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <div class="text-xs text-slate-400 mb-1">公司名稱</div>
+                        <div class="text-sm font-medium">{{ parent.company_name }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 mb-1">統一編號</div>
+                        <div class="text-sm font-medium">{{ parent.unified_business_no }}</div>
+                    </div>
+                    <div class="pt-4 border-t border-white/10">
+                        <div class="text-xs text-slate-400 mb-1">申報帳號</div>
+                        <div class="text-sm font-mono text-blue-300">{{ parent.account|default:"未填寫" }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 mb-1">申報密碼</div>
+                        <div class="text-sm font-mono text-blue-300">{{ parent.password|default:"未填寫" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

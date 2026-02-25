@@ -33,9 +33,9 @@ class CaseAssessment(models.Model):
     risk_level = models.IntegerField(_('風險層級'), choices=RiskLevel.choices, default=RiskLevel.NORMAL)
     
     # Status
-    is_accepted = models.BooleanField(_('案件承接與否'), default=True, choices=[(True, '承接'), (False, '不承接')])
-    is_completed = models.BooleanField(_('案件完成否'), default=True, choices=[(True, '完成'), (False, '未完成')])
-    needs_reporting = models.BooleanField(_('案件是否符合通報義務'), default=False, choices=[(True, '需通報'), (False, '不需通報')])
+    is_accepted = models.BooleanField(_('案件承接與否'), default=True)
+    is_completed = models.BooleanField(_('案件完成否'), default=False)
+    needs_reporting = models.BooleanField(_('案件是否符合通報義務'), default=False)
 
     # Transaction Types
     transaction_50 = models.BooleanField(_('50 買賣不動產'), default=False)

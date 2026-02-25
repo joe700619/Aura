@@ -108,6 +108,13 @@
                 {{ form.is_business_entity_change.label }}
             </label>
         </div>
+
+        <div class="flex items-center">
+            {{ form.is_shareholder_list_change }}
+            <label for="{{ form.is_shareholder_list_change.id_for_label }}" class="ml-2 block text-sm text-slate-700">
+                {{ form.is_shareholder_list_change.label }}
+            </label>
+        </div>
     </div>
 </div>
 {% endblock %}

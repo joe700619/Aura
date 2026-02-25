@@ -1,6 +1,19 @@
 {% for customer in customers %}
 <tr class="hover:bg-blue-50 cursor-pointer transition-colors"
-    @click="selectItem('{{ customer.name|escapejs }}', '{{ customer.name|escapejs }}', { 'unified_business_no': '{{ customer.tax_id|default:''|escapejs }}', 'company_name': '{{ customer.name|escapejs }}', 'line_id': '{{ customer.line_id|default:''|escapejs }}', 'room_id': '{{ customer.room_id|default:''|escapejs }}' })">
+    onclick="this.dispatchEvent(new CustomEvent('select-item', { 
+        bubbles: true, 
+        detail: { 
+            value: '{{ customer.id }}', 
+            label: '{{ customer.name|escapejs }}', 
+            extra: { 
+                'tax_id': '{{ customer.tax_id|escapejs }}',
+                'main_contact': '{{ customer.main_contact|escapejs }}',
+                'mobile': '{{ customer.mobile|escapejs }}',
+                'phone': '{{ customer.phone|escapejs }}',
+                'address': '{{ customer.address|escapejs }}'
+            } 
+        } 
+    }))">
     <td class="px-6 py-3 whitespace-nowrap">
         <div class="text-sm font-medium text-gray-900">{{ customer.name }}</div>
     </td>

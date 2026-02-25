@@ -1,6 +1,9 @@
 from django.views.generic import ListView
 from django.db.models import Q
-from ..models import ClientAssessment, Progress, Shareholder, ShareholderRegister
+from ..models import ClientAssessment, Progress, Shareholder, ShareholderRegister, CompanyFiling
+from django.views import View
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
 
 class ClientAssessmentSearchApiView(ListView):
     model = ClientAssessment
@@ -62,4 +65,12 @@ class ShareholderRegisterSearchApiView(ListView):
                 Q(company_name__icontains=query) |
                 Q(unified_business_no__icontains=query)
             ).order_by('company_name')
-        return ShareholderRegister.objects.none()
+
+class ToggleFilingHistoryStatusApiView(View):
+    def post(self, request, pk):
+        history = get_object_or_404(FilingHistory, pk=pk)
+        is_completed = request.POST.get('is_completed') == 'true'
+        history.is_completed = is_completed
+        history.save()
+        
+        return JsonResponse({'status': 'success', 'is_completed': history.is_completed})

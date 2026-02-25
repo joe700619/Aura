@@ -31,7 +31,11 @@
             service_code: '',
             service_name: '',
             amount: 0,
-            remark: ''
+            remark: '',
+            is_company_law_22_1: false,
+            is_money_laundering_check: false,
+            is_business_entity_change: false,
+            is_shareholder_list_change: false
         });
     },
     removeRow(index) {
@@ -79,9 +83,24 @@
         this.rows[index].service_name = data.name;
         this.rows[index].amount = data.reference_fee || 0;
         this.rows[index].remark = data.remark || '';
+        this.rows[index].is_company_law_22_1 = data.is_company_law_22_1 || false;
+        this.rows[index].is_money_laundering_check = data.is_money_laundering_check || false;
+        this.rows[index].is_business_entity_change = data.is_business_entity_change || false;
+        this.rows[index].is_shareholder_list_change = data.is_shareholder_list_change || false;
     }
 }" class="space-y-4">
-
+    <!-- Actions -->
+    <div>
+        <button type="button" @click="addRow()"
+            class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clip-rule="evenodd" />
+            </svg>
+            新增細項
+        </button>
+    </div>
     <!-- Table -->
     <div class="overflow-x-auto border border-slate-200 rounded-lg">
         <table class="min-w-full divide-y divide-slate-200">
@@ -179,66 +198,49 @@
         </table>
     </div>
 
-    <!-- Actions -->
-    <div>
-        <button type="button" @click="addRow()"
-            class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                    clip-rule="evenodd" />
-            </svg>
-            新增細項
-        </button>
-    </div>
+
 
     <!-- Service Item Search Modal (Global for this component) -->
-    <div x-data="{ 
-            isOpen: false, 
-            searchQuery: '', 
-            targetRowIndex: null,
-            searchResults: [],
-            isSearching: false,
-            
-            openModal(event) {
-                this.targetRowIndex = event.detail.index;
-                this.isOpen = true;
-                this.$nextTick(() => $refs.searchInput.focus());
-                this.search(); // Load initial data
-            },
-            
-            async search() {
-                this.isSearching = true;
-                // Fetch from API
-                const response = await fetch(`/basic-data/api/service-items/search/?q=${this.searchQuery}`, {
-                   headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                // Note: This assumes we have an API or a view that returns partial HTML or JSON.
-                // For now, let's assume we need to create a simple API endpoint for Service Items similar to Customer/Contact.
-                // But for the sake of this component, I'll mock the row update logic or use a specific search endpoint.
-                // Let's rely on a specialized search result template.
+    <template x-teleport="body">
+        <div x-data="{ 
+                isOpen: false, 
+                searchQuery: '', 
+                targetRowIndex: null,
+                searchResults: [],
+                isSearching: false,
                 
-                const html = await response.text();
-                this.searchResults = html; 
-                this.isSearching = false;
-            },
-            
-            selectItem(data) {
-                // data object needs to be constructed in the search result template onclick
-                this.$dispatch('update-row', { index: this.targetRowIndex, data: data });
-                this.isOpen = false;
-            }
-        }" @open-service-modal.window="openModal($event)" x-show="isOpen" style="display: none;"
-        class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                openModal(event) {
+                    this.targetRowIndex = event.detail.index;
+                    this.isOpen = true;
+                    this.$nextTick(() => $refs.searchInput.focus());
+                    this.search(); // Load initial data
+                },
+                
+                async search() {
+                    this.isSearching = true;
+                    const response = await fetch(`/basic-data/api/service-items/search/?q=${this.searchQuery}`, {
+                       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const html = await response.text();
+                    this.searchResults = html; 
+                    this.isSearching = false;
+                },
+                
+                selectItem(data) {
+                    this.$dispatch('update-row', { index: this.targetRowIndex, data: data });
+                    this.isOpen = false;
+                }
+            }" @open-service-modal.window="openModal($event)" 
+               @service-item-selected.stop="selectItem($event.detail)"
+               x-show="isOpen" style="display: none;"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Backdrop -->
             <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
                 x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+                class="fixed inset-0 bg-slate-900/60 transition-opacity" aria-hidden="true"
                 @click="isOpen = false"></div>
-
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div x-show="isOpen" x-transition:enter="ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -246,31 +248,48 @@
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-xl w-full max-h-[80vh] flex flex-col relative z-[101]">
+                
+                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">搜尋服務項目</h3>
-                    <div class="mt-4">
+                    <button @click="isOpen = false" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-4 flex-1 flex flex-col overflow-hidden">
+                    <div class="relative mb-4">
                         <input type="text" x-model="searchQuery" @input.debounce.500ms="search()" x-ref="searchInput"
-                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm pl-10"
                             placeholder="輸入名稱搜尋...">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
                     </div>
-                    <div class="mt-4 max-h-60 overflow-y-auto">
-                        <!-- Search Results populated via HTMX or Alpine fetch -->
-                        <!-- Since we are inside x-data, using hx-get might be tricky with Alpine's fetch logic mixed.
-                             Let's use a standard hx-get input above if possible, OR stick to the existing modal pattern.
-                             Given I am writing a reusable component, I should probably stick to the pattern used in modal_select.html
-                             but adapted for rows.
-                        -->
-                        <div id="service_item_search_results" x-html="searchResults"></div>
+
+                    <div class="flex-1 overflow-y-auto pr-1">
+                        <div x-show="isSearching" class="py-10 text-center">
+                            <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-500">搜尋中...</p>
+                        </div>
+                        <div id="service_item_search_results" x-show="!isSearching" x-html="searchResults"></div>
                     </div>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
                     <button type="button" @click="isOpen = false"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">取消</button>
+                        class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">關閉</button>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
     <!-- Listener to update specific row from modal selection -->
     <div @update-row.window="updateRow($event.detail.index, $event.detail.data)"></div>

@@ -58,19 +58,7 @@
 {% for contact in contacts %}
 <tr class="hover:bg-slate-50 transition duration-150"
     :class="selectedRows.includes({{ contact.pk }}) ? 'bg-blue-50/30' : ''">
-    <td class="px-6 py-4 whitespace-nowrap">
-        <label class="relative flex cursor-pointer select-none items-center">
-            <input type="checkbox" class="sr-only" value="{{ contact.pk }}" x-model.number="selectedRows">
-            <div :class="selectedRows.includes({{ contact.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
-                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
-                <template x-if="selectedRows.includes({{ contact.pk }})">
-                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                    </svg>
-                </template>
-            </div>
-        </label>
-    </td>
+    {% include "components/row_checkbox.html" with value=contact.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm font-bold text-slate-700">{{ contact.name }}</span>
     </td>

@@ -1,8 +1,8 @@
 from django.db import models
-from simple_history.models import HistoricalRecords
+from core.models import BaseModel
 from .customer import Customer
 
-class Contact(models.Model):
+class Contact(BaseModel):
     """Contact Person Data"""
     
     name = models.CharField(max_length=100, verbose_name="姓名")
@@ -22,13 +22,6 @@ class Contact(models.Model):
     
     tax_id = models.CharField(max_length=20, verbose_name="統一編號", blank=True, null=True)
     notes = models.TextField(verbose_name="備註", blank=True, null=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    is_deleted = models.BooleanField(default=False, verbose_name="是否刪除")
-    
-    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "聯絡人"

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    <!-- Page header -->
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">公費分攤報表</h1>
+        </div>
+        <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
+            <a href="{% url 'internal_accounting:report_fee_apportion_export' %}?date_from={{ date_from }}&date_to={{ date_to }}&employee={{ employee_id }}&q={{ q }}&is_posted={{ is_posted }}"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-md px-4 py-2 font-medium flex items-center shadow-sm transition-colors text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                下載 Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="bg-white border border-slate-200 rounded-lg shadow-sm mb-8 p-4">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label for="date_from" class="block text-sm font-medium text-slate-700 mb-1">起始日期</label>
+                <input type="date" name="date_from" id="date_from" value="{{ date_from }}"
+                    class="rounded border border-slate-200 bg-transparent py-2 px-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm">
+            </div>
+            <div>
+                <label for="date_to" class="block text-sm font-medium text-slate-700 mb-1">結束日期</label>
+                <input type="date" name="date_to" id="date_to" value="{{ date_to }}"
+                    class="rounded border border-slate-200 bg-transparent py-2 px-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm">
+            </div>
+            <div>
+                <label for="employee" class="block text-sm font-medium text-slate-700 mb-1">篩選員工</label>
+                <select name="employee" id="employee"
+                    class="rounded border border-slate-200 bg-transparent py-2 px-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    <option value="">全部員工</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}" {% if emp.id|stringformat:"s" == employee_id %}selected{% endif %}>
+                        {{ emp.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="q" class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶/單號</label>
+                <input type="text" name="q" id="q" value="{{ q }}" placeholder="輸入關鍵字..."
+                    class="rounded border border-slate-200 bg-transparent py-2 px-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm">
+            </div>
+            <div>
+                <label for="is_posted" class="block text-sm font-medium text-slate-700 mb-1">過帳狀態</label>
+                <select name="is_posted" id="is_posted"
+                    class="rounded border border-slate-200 bg-transparent py-2 px-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm">
+                    <option value="all" {% if is_posted == 'all' %}selected{% endif %}>全部</option>
+                    <option value="yes" {% if is_posted == 'yes' %}selected{% endif %}>已過帳</option>
+                    <option value="no" {% if is_posted == 'no' %}selected{% endif %}>未過帳</option>
+                </select>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+                {% if q or employee_id or is_posted != 'all' %}
+                <a href="{% url 'internal_accounting:report_fee_apportion' %}?date_from={{ date_from }}&date_to={{ date_to }}"
+                    class="text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors">
+                    清除篩選
+                </a>
+                {% endif %}
+                <button type="submit"
+                    class="btn-submit-custom rounded-md px-5 py-2 text-sm font-bold shadow-sm transition-colors">送出查詢</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">分攤總金額</p>
+                    <p class="text-2xl font-bold text-slate-800">
+                        ${{ grand_total.total_amount|default:0|intcomma }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500">分攤筆數</p>
+                    <p class="text-2xl font-bold text-slate-800">{{ grand_total.total_count|default:0 }} 筆</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Table -->
+    <div class="bg-white shadow-lg rounded-lg border border-slate-200 relative">
+        <div class="overflow-x-auto p-3">
+            <table class="table-auto w-full text-sm">
+                <thead class="text-xs font-semibold uppercase text-slate-400 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 whitespace-nowrap text-left">員工編號</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-left">員工姓名</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-right">分攤筆數</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-right text-indigo-500">分攤總金額</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-100" x-data="{ expandedRow: null }">
+                    {% for item in summary_data %}
+                    <!-- Main Row -->
+                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer group"
+                        @click="expandedRow = expandedRow === {{ item.employee__id|default:0 }} ? null : {{ item.employee__id|default:0 }}">
+                        <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-800 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-slate-400 transform transition-transform duration-200"
+                                :class="{'rotate-90 text-indigo-500': expandedRow === {{ item.employee__id|default:0 }}}"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                            {{ item.employee__employee_number|default:"-" }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ item.employee__name|default:"未指定" }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-slate-600">{{ item.total_count }} 筆</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right font-semibold text-indigo-600">
+                            ${{ item.total_amount|intcomma }}
+                        </td>
+                    </tr>
+                    <!-- Detail Rows -->
+                    <tr x-show="expandedRow === {{ item.employee__id|default:0 }}" x-cloak
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                        <td colspan="4" class="px-0 py-0">
+                            <div class="bg-slate-50 border-t border-b border-slate-200">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-xs text-slate-500">
+                                            <th class="px-6 py-2 text-left">應收單號</th>
+                                            <th class="px-4 py-2 text-left">客戶名稱</th>
+                                            <th class="px-4 py-2 text-left">執行項目</th>
+                                            <th class="px-4 py-2 text-right">應收總額</th>
+                                            <th class="px-4 py-2 text-right text-emerald-600">已收總額</th>
+                                            <th class="px-4 py-2 text-right text-red-500">未收餘額</th>
+                                            <th class="px-4 py-2 text-right">分攤比例(%)</th>
+                                            <th class="px-4 py-2 text-right">分攤金額</th>
+                                            <th class="px-4 py-2 text-center">日期</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        {% for detail in item.details %}
+                                        <tr class="hover:bg-white transition-colors">
+                                            <td class="px-6 py-2 text-slate-700">
+                                                <a href="{% url 'internal_accounting:receivable_edit' detail.receivable.pk %}"
+                                                    class="text-indigo-600 hover:text-indigo-800 hover:underline">
+                                                    {{ detail.receivable.receivable_no|default:"-" }}
+                                                </a>
+                                            </td>
+                                            <td class="px-4 py-2 text-slate-600">{{ detail.receivable.company_name }}</td>
+                                            <td class="px-4 py-2 text-slate-600">{{ detail.task_description|default:"-" }}</td>
+                                            <td class="px-4 py-2 text-right text-slate-700">${{ detail.receivable.total_amount|intcomma }}</td>
+                                            <td class="px-4 py-2 text-right text-emerald-600">${{ detail.receivable.paid_amount|intcomma }}</td>
+                                            <td class="px-4 py-2 text-right font-medium text-red-600">${{ detail.receivable.outstanding_balance|intcomma }}</td>
+                                            <td class="px-4 py-2 text-right text-slate-600">{{ detail.ratio }}%</td>
+                                            <td class="px-4 py-2 text-right font-medium text-slate-800">${{ detail.amount|intcomma }}</td>
+                                            <td class="px-4 py-2 text-center text-slate-500 text-xs">{{ detail.receivable.created_at|date:"Y/m/d" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-slate-400">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p class="text-sm">尚無分攤資料，請調整篩選條件</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    {% if summary_data %}
+                    <!-- Grand Total Row -->
+                    <tr class="bg-indigo-50/50 font-semibold border-t-2 border-indigo-200">
+                        <td colspan="2" class="px-4 py-3 text-right text-indigo-800">合計</td>
+                        <td class="px-4 py-3 text-right text-indigo-700">{{ grand_total.total_count|default:0 }} 筆</td>
+                        <td class="px-4 py-3 text-right text-indigo-800 text-base">
+                            ${{ grand_total.total_amount|default:0|intcomma }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

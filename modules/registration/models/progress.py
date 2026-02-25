@@ -60,6 +60,9 @@ class Progress(models.Model):
     recipient_phone = models.CharField(_('收件人電話'), max_length=50, blank=True)
     recipient_addr = models.CharField(_('收件地址'), max_length=255, blank=True)
     pickup_method = models.CharField(_('取件方式'), max_length=20, default='mail', choices=[('mail', '郵寄'), ('self', '自取')])
+    
+    is_ar_transferred = models.BooleanField(_('已拋轉應收帳款'), default=False)
+    is_posted = models.BooleanField(_('已拋轉傳票過帳'), default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -71,6 +74,22 @@ class Progress(models.Model):
 
     def __str__(self):
         return f"{self.registration_no} - {self.company_name}"
+
+    def to_ar_data(self):
+        """Standardized format for AR transfer service."""
+        return {
+            'company_name': self.company_name,
+            'unified_business_no': self.unified_business_no,
+            'main_contact': self.main_contact,
+            'mobile': self.mobile,
+            'phone': self.phone,
+            'address': self.address,
+            'line_id': self.line_id,
+            'room_id': self.room_id,
+            'quotation_data': self.quotation_data,
+            'cost_sharing_data': self.cost_sharing_data,
+            'remarks': self.note
+        }
 
     def save(self, *args, **kwargs):
         if not self.registration_no:

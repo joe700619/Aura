@@ -1,0 +1,311 @@
+{% extends 'components/form_view.html' %}
+{% load humanize %}
+
+{% block page_title %}{% if form.instance.pk %}編輯{% else %}新增{% endif %}應收帳款{% endblock %}
+{% block header_title %}{% if form.instance.pk %}編輯{% else %}新增{% endif %}應收帳款{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'internal_accounting:receivable_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<div x-data="{
+    fillData(data) {
+        if (!data) return;
+        this.$refs.company_name.value = data.name || '';
+        this.$refs.unified_business_no.value = data.unified_business_no || '';
+    }
+}" class="space-y-4 h-full flex flex-col">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+    </div>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">搜尋客戶 (帶入基本資料)</label>
+            {{ form.search_customer }}
+        </div>
+        {% include "components/form_field.html" with field=form.receivable_no %}
+        {% include "components/form_field.html" with field=form.company_name ref="company_name" %}
+        {% include "components/form_field.html" with field=form.unified_business_no ref="unified_business_no" %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.line_id %}
+            {% include "components/form_field.html" with field=form.room_id %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div x-data="{
+    fillData(data) {
+        if (!data) return;
+        this.$refs.main_contact.value = data.main_contact || '';
+        this.$refs.mobile.value = data.mobile || '';
+        this.$refs.phone.value = data.phone || '';
+        this.$refs.address.value = data.address || '';
+    }
+}" class="space-y-4 h-full flex flex-col">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">聯絡人資料</h4>
+    </div>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">搜尋聯絡人 (帶入聯絡資料)</label>
+            {{ form.search_contact }}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.main_contact ref="main_contact" %}
+            {% include "components/form_field.html" with field=form.mobile ref="mobile" %}
+        </div>
+        {% include "components/form_field.html" with field=form.phone ref="phone" %}
+        {% include "components/form_field.html" with field=form.address ref="address" %}
+        {% include "components/form_field.html" with field=form.email %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4 h-full flex flex-col">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">帳務資料</h4>
+    </div>
+    <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            {% include "components/form_field.html" with field=form.assistant %}
+            {% include "components/form_field.html" with field=form.assistant_email %}
+        </div>        
+        <div class="grid grid-cols-2 gap-4 pt-2  border-t border-gray-200">
+            <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 text-center">
+                <label class="block text-xs font-semibold text-blue-500 uppercase mb-1">應收總額</label>
+                <div class="text-lg font-black text-slate-800">${{ receivable.total_amount|intcomma }}</div>
+            </div>
+            <div class="bg-green-50 p-3 rounded-lg border border-green-100 text-center">
+                <label class="block text-xs font-semibold text-green-600 uppercase mb-1">已收總額</label>
+                <div class="text-lg font-black text-green-700">${{ receivable.paid_amount|intcomma }}</div>
+            </div>
+        </div>
+        <div class="bg-red-50 p-3 rounded-lg border border-red-100 text-center">
+            <label class="block text-xs font-semibold text-red-600 uppercase mb-1">未收餘額</label>
+            <div class="text-lg font-black text-red-700">${{ receivable.outstanding_balance|intcomma }}</div>
+        </div>
+        
+        {% if receivable.is_posted %}
+        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                此筆應收帳款已拋轉傳票過帳
+            </span>
+        </div>
+        <div class="pt-2">
+            <label class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+                <input type="checkbox" checked disabled class="h-4 w-4 border-gray-300 text-blue-600 rounded form-checkbox">
+                <span>已過帳 (鎖定)</span>
+            </label>
+            <input type="hidden" name="is_posted" value="on">
+        </div>
+        {% else %}
+        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div class="flex flex-col">
+                <label class="text-xs font-semibold text-slate-500 uppercase">目前帳齡</label>
+                <div class="text-lg font-bold text-slate-700">{{ receivable.aging|default:0|intcomma }} <span class="text-sm font-normal text-slate-500">天</span></div>
+            </div>
+            {% if form.instance.pk %}
+            <button type="button" 
+                onclick="window.dispatchEvent(new CustomEvent('open-voucher-modal'))"
+                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition duration-200">
+                確定過帳?
+            </button>
+            {% else %}
+            <span class="text-xs text-slate-400 italic">請先儲存以預覽傳票</span>
+            {% endif %}
+        </div>
+        <div class="pt-2">
+            {% include "components/form_field.html" with field=form.is_posted %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    {% include "components/form_field.html" with field=form.remarks %}
+</div>
+{% endblock %}
+
+{% block form_tabs %}
+<div x-data="{ activeTab: 'quotation' }" class="mt-8">
+    <!-- Tabs Header -->
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button type="button" @click="activeTab = 'quotation'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'quotation' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                報價單明細
+            </button>
+            <button type="button" @click="activeTab = 'cost_sharing'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'cost_sharing' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                公費分攤
+            </button>
+            <button type="button" @click="activeTab = 'payment'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'payment' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                收款紀錄
+            </button>
+        </nav>
+    </div>
+
+    <!-- Tabs Content -->
+    <div class="mt-4">
+        <!-- Quotation Tab -->
+        <div x-show="activeTab === 'quotation'" class="py-4">
+            {{ form.quotation_data }}
+            {% include "components/quotation_table.html" %}
+        </div>
+
+        <!-- Cost Sharing Tab -->
+        <div x-show="activeTab === 'cost_sharing'" class="py-4">
+            {% include "receivable/components/fee_apportion_formset.html" %}
+        </div>
+
+        <!-- Payment Tab -->
+        <div x-show="activeTab === 'payment'" class="py-4">
+            {% if receivable.pk %}
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                    <h4 class="font-bold text-slate-800 text-lg">收款管理紀錄</h4>
+                </div>
+                <a href="{% url 'internal_accounting:collection_create' %}?receivable_id={{ receivable.pk }}&amount={{ receivable.outstanding_balance }}&tax=0&fee=0&allowance=0" 
+                   target="_blank"
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all duration-200 transform hover:scale-105">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    新增收款紀錄
+                </a>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">單號</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">日期</th>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">方式</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">收款金額</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">扣繳稅款</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">手續費</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">折讓</th>
+                            <th class="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">合計</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">已過帳</th>
+                            <th class="px-4 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        {% for collection in collections %}
+                        <tr class="hover:bg-blue-50/30 transition-colors">
+                            <td class="px-4 py-4 text-sm font-bold text-blue-600 font-mono">
+                                <a href="{% url 'internal_accounting:collection_edit' collection.pk %}" target="_blank" class="hover:underline">{{ collection.collection_no }}</a>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-slate-600">{{ collection.date|date:"Y/m/d" }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-600">
+                                <span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-bold uppercase">{{ collection.get_method_display }}</span>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-right font-mono text-slate-600">${{ collection.amount|intcomma }}</td>
+                            <td class="px-4 py-4 text-sm text-right font-mono text-slate-500">${{ collection.tax|intcomma }}</td>
+                            <td class="px-4 py-4 text-sm text-right font-mono text-slate-500">${{ collection.fee|intcomma }}</td>
+                            <td class="px-4 py-4 text-sm text-right font-mono text-slate-500">${{ collection.allowance|intcomma }}</td>
+                            <td class="px-4 py-4 text-sm text-right font-mono font-bold text-slate-800">${{ collection.total|intcomma }}</td>
+                            <td class="px-4 py-4 text-center">
+                                {% if collection.is_posted %}
+                                <span class="inline-flex items-center justify-center bg-green-100 text-green-700 rounded-full w-6 h-6" title="已過帳">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center justify-center bg-slate-100 text-slate-400 rounded-full w-6 h-6" title="未過帳">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <a href="{% url 'internal_accounting:collection_edit' collection.pk %}" target="_blank" class="text-slate-400 hover:text-blue-600 transition-colors inline-block p-1">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="px-4 py-16 text-center">
+                                <div class="flex flex-col items-center justify-center text-slate-400">
+                                    <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                    <span class="italic text-sm">目前尚無收款管理紀錄</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-blue-50/30 border-t border-slate-200">
+                        <tr class="font-black text-blue-800">
+                            <td colspan="7" class="px-4 py-4 text-right text-sm">已收總額小計 (管理模組)：</td>
+                            <td class="px-4 py-4 text-right font-mono text-lg">${{ receivable.paid_amount|intcomma }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <div class="text-slate-400 font-medium italic">需先儲存應收帳款後，才能管理收款紀錄。</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Integration with Modal Select (Customer/Contact)
+    document.addEventListener('alpine:init', () => {
+        // Find widgets with data-search-type and setup listeners
+        // This relies on the global modal select listeners if they are present in base.html
+    });
+</script>
+{% endblock %}
+
+{% block overlays %}
+{{ block.super }}
+<script id="receivable_outstanding_balance" type="application/json">
+    "{{ receivable.outstanding_balance|default:0 }}"
+</script>
+<script id="receivable_unified_business_no" type="application/json">
+    "{{ receivable.unified_business_no|default:'' }}"
+</script>
+<script id="receivable_collections_data" type="application/json">
+    [
+        {% for c in collections %}
+        {
+            "method": "{{ c.method }}",
+            "amount": {{ c.amount|default:0 }},
+            "tax": {{ c.tax|default:0 }},
+            "fee": {{ c.fee|default:0 }},
+            "allowance": {{ c.allowance|default:0 }},
+            "total": {{ c.total|default:0 }},
+            "is_posted": {% if c.is_posted %}true{% else %}false{% endif %}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+</script>
+{% include "components/voucher_preview_modal.html" %}
+{% endblock %}

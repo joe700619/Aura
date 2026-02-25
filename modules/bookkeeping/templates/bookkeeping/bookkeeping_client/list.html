@@ -1,0 +1,142 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}記帳客戶基本資料{% endblock %}
+
+{% block header_title %}記帳客戶列表{% endblock %}
+{% block header_description %}管理與查看記帳客戶詳細資訊{% endblock %}
+
+{% block actions %}
+<a href="{% url 'bookkeeping:client_create' %}"
+    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    新增記帳客戶
+</a>
+{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for client in clients %}
+    {
+        "id": {{ client.pk }},
+        "category": "{{ client.acceptance_status|escapejs }}",
+        "content": "{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block filters %}
+<button @click="filter = 'active'"
+    :class="filter === 'active' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
+    承接中
+</button>
+<button @click="filter = 'suspended'"
+    :class="filter === 'suspended' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
+    停業中
+</button>
+<button @click="filter = 'transferred'"
+    :class="filter === 'transferred' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
+    轉出/解散
+</button>
+<button @click="filter = 'ALL'"
+    :class="filter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
+    全部
+</button>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    公司名稱
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    統一編號
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    承接狀態
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    計費狀態
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    提供服務
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    集團助理
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    記帳助理
+</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    操作
+</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for client in clients %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('{{ client.acceptance_status|escapejs }}', '{{ client.name|escapejs }}')"
+    :class="selectedRows.includes({{ client.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=client.pk %}
+    <td class="px-4 py-4 whitespace-nowrap">
+        <div class="flex items-center">
+            <div
+                class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
+                {{ client.name|slice:":1" }}
+            </div>
+            <span class="text-sm font-bold text-slate-700">{{ client.name }}</span>
+        </div>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm text-slate-600 font-mono">{{ client.tax_id|default:"-" }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        {% if client.acceptance_status == 'active' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">承接中</span>
+        {% elif client.acceptance_status == 'suspended' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">停業中</span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">轉出/解散</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        {% if client.billing_status == 'billing' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">收費中</span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">停止收費</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm text-slate-600">{{ client.get_service_type_display }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm text-slate-600">{{ client.group_assistant.name|default:"-" }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm text-slate-600">{{ client.bookkeeping_assistant.name|default:"-" }}</span>
+    </td>
+    {% url 'bookkeeping:client_update' client.pk as update_url %}
+    {% url 'bookkeeping:client_delete' client.pk as delete_url %}
+    {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="px-6 py-12 text-center text-slate-400 italic">
+        目前尚無記帳客戶資料
+    </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block pagination_info %}
+顯示第 1 到 {{ clients|length }} 筆，共 {{ clients|length }} 筆資料
+{% endblock %}

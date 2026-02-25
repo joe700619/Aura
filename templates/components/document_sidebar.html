@@ -1,13 +1,15 @@
 <!-- Document Generation Sidebar Component -->
 <div id="document-sidebar" x-data="documentSidebar()" @open-document-modal.window="openSidebar($event.detail)">
-    <div class="fixed inset-0" style="z-index: 9999; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
-        aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="isOpen">
+    <template x-teleport="body">
+        <div class="fixed inset-0" style="z-index: 9999; position: fixed; top: 0; bottom: 0; left: 0; right: 0;"
+            aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-show="isOpen">
 
         <!-- Backdrop -->
         <div x-show="isOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" @click="closeSidebar()"></div>
+            style="position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); transition: opacity 0.5s ease-in-out;"
+            @click="closeSidebar()"></div>
 
         <div class="fixed inset-0 overflow-hidden"
             style="position: fixed; top: 0; bottom: 0; left: 0; right: 0; overflow: hidden;">
@@ -170,7 +172,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 </div>
 
 <script>

@@ -4,3 +4,6 @@ class RegistrationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'modules.registration'
     verbose_name = 'Registration'
+
+    def ready(self):
+        import modules.registration.signals

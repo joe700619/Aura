@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     @staticmethod
-    def send_email(template_code: str, recipients: list, context: dict, schedule_time=None) -> bool:
+    def send_email(template_code: str, recipients: list, context: dict, schedule_time=None, attachments=None) -> bool:
         """
         Sends, or schedules, an email using a database template.
         """
@@ -49,16 +49,16 @@ class EmailService:
             return True
 
         # Send Immediately
-        return EmailService._send_from_log(log)
+        return EmailService._send_from_log(log, attachments=attachments)
 
     @staticmethod
-    def _send_from_log(log) -> bool:
+    def _send_from_log(log, attachments=None) -> bool:
         """
         Internal method to send an email based on an existing EmailLog.
         """
         try:
             from modules.system_config.helpers import get_system_param
-            from django.core.mail import get_connection
+            from django.core.mail import get_connection, EmailMultiAlternatives
             from django.core.mail.backends.smtp import EmailBackend
             
             # Fetch settings
@@ -91,15 +91,20 @@ class EmailService:
             
             # Send
             recipients = log.recipient.split(",")
-            send_mail(
+            msg = EmailMultiAlternatives(
                 subject=log.subject,
-                message="", # Plain text
-                html_message=log.body,
+                body="", # Plain text fallback
                 from_email=from_email,
-                recipient_list=recipients,
+                to=recipients,
                 connection=connection,
-                fail_silently=False,
             )
+            msg.attach_alternative(log.body, "text/html")
+            
+            if attachments:
+                for filename, content, mimetype in attachments:
+                    msg.attach(filename, content, mimetype)
+            
+            msg.send(fail_silently=False)
             
             log.status = 'sent'
             log.sent_at = timezone.now()

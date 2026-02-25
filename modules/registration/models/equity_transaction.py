@@ -44,6 +44,10 @@ class EquityTransaction(models.Model):
     unit_price = models.DecimalField(_('單價'), max_digits=10, decimal_places=2)
     total_amount = models.DecimalField(_('合計'), max_digits=12, decimal_places=2)
 
+    # Tracking & Status
+    registration_no = models.CharField(_('登記案件編號'), max_length=50, blank=True, null=True)
+    is_completed = models.BooleanField(_('是否完成'), default=False)
+
     note = models.TextField(_('備註'), blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
