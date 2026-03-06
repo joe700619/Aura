@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block header %}繳稅確認{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
+        {% if already_confirmed %}
+        <!-- Already Confirmed -->
+        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <svg class="h-9 w-9 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <h1 class="text-xl font-bold text-slate-800 mb-2">已完成確認</h1>
+        <p class="text-sm text-slate-500">此期別已記錄為繳納完成。</p>
+        {% else %}
+        <!-- Confirmation Form -->
+        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+            <svg class="h-9 w-9 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <h1 class="text-xl font-bold text-slate-800 mb-1">繳稅確認</h1>
+        <p class="text-sm text-slate-500 mb-6">{{ client.name }}</p>
+
+        <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-6 text-left space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-slate-500">申報年度</span>
+                <span class="font-semibold text-slate-800">{{ period.year_record.year }} 年</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">期別</span>
+                <span class="font-semibold text-slate-800">{{ period.period_label }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">應納稅額</span>
+                <span class="font-semibold text-slate-800">NT$ {{ period.payable_tax|floatformat:"0" }}</span>
+            </div>
+            {% if period.tax_deadline %}
+            <div class="flex justify-between">
+                <span class="text-slate-500">繳稅截止日</span>
+                <span class="font-semibold text-slate-800">{{ period.tax_deadline }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="text-sm text-slate-600 mb-5">請確認您已完成本期繳稅，點擊下方按鈕後系統將自動記錄。</p>
+
+        <form method="POST" action="">
+            {% csrf_token %}
+            <button type="submit"
+                class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm">
+                ✅ 確認已繳稅
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

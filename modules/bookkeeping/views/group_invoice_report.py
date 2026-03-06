@@ -60,7 +60,7 @@ class GroupInvoiceReportView(EmployeeDataIsolationMixin, LoginRequiredMixin, Lis
                 })
 
         context['report_rows'] = report_rows
-        context['q'] = q
+        context['q'] = self.request.GET.get('q', '')
         return context
 
 

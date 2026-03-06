@@ -1,0 +1,154 @@
+{% extends 'components/form_view.html' %}
+{% load action_tags %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'hr:leave_request_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+
+{# Approval Action Buttons #}
+{% if object %}
+{% include "components/approval/actions.html" %}
+{% endif %}
+{% endblock %}
+
+{# Approval Status Display #}
+{% block form_top_block %}
+{% if object %}
+{% include "components/approval/status.html" %}
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">請假資料</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.employee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+        {{ form.employee }}
+        {{ form.employee.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.leave_type.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">假別</label>
+        {{ form.leave_type }}
+        {{ form.leave_type.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label for="{{ form.start_datetime.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">開始時間</label>
+            {{ form.start_datetime }}
+            {{ form.start_datetime.errors }}
+        </div>
+        <div>
+            <label for="{{ form.end_datetime.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">結束時間</label>
+            {{ form.end_datetime }}
+            {{ form.end_datetime.errors }}
+        </div>
+    </div>
+
+    <div>
+        <label for="{{ form.total_hours.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">請假時數</label>
+        {{ form.total_hours }}
+        {{ form.total_hours.errors }}
+        <p id="auto-calc-hint" class="mt-1 text-xs text-slate-500">以 0.5 小時為單位，由系統自動計算</p>
+    </div>
+
+    <div>
+        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">請假事由</label>
+        {{ form.reason }}
+        {{ form.reason.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-amber-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">附件與備註</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.attachment.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">附件</label>
+        {{ form.attachment }}
+        {{ form.attachment.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.note.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">備註</label>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_tabs %}
+{# Approval History Tab #}
+{% if object and approval_request %}
+<div x-data="{ activeTab: 'tab_approval' }" class="mt-8">
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button @click="activeTab = 'tab_approval'" type="button"
+                :class="activeTab === 'tab_approval' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                核准狀態
+            </button>
+        </nav>
+    </div>
+    <div class="mt-4">
+        <div x-show="activeTab === 'tab_approval'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+            {% include "components/approval/history.html" %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block overlays %}
+{{ block.super }}
+<script>
+(function() {
+    var startField = document.getElementById('{{ form.start_datetime.id_for_label }}');
+    var endField = document.getElementById('{{ form.end_datetime.id_for_label }}');
+    var hoursField = document.getElementById('{{ form.total_hours.id_for_label }}');
+
+    if (!startField || !endField || !hoursField) return;
+
+    function calcHours() {
+        var startVal = startField.value;
+        var endVal = endField.value;
+
+        if (!startVal || !endVal) return;
+
+        var startDate = new Date(startVal);
+        var endDate = new Date(endVal);
+
+        if (isNaN(startDate) || isNaN(endDate)) return;
+
+        var diffMs = endDate - startDate;
+        if (diffMs < 0) {
+            hoursField.value = '0';
+            return;
+        }
+
+        var diffHours = diffMs / (1000 * 60 * 60);
+        diffHours = Math.round(diffHours * 2) / 2;
+        if (diffHours < 0) diffHours = 0;
+
+        hoursField.value = diffHours.toFixed(1);
+    }
+
+    startField.addEventListener('change', calcHours);
+    endField.addEventListener('change', calcHours);
+})();
+</script>
+{% endblock %}

@@ -11,10 +11,12 @@ urlpatterns = [
     path('core/', include('core.urls')),
     path('bookkeeping/', include('modules.bookkeeping.urls')),
     path('basic-data/', include('modules.basic_data.urls')),
+    path('administrative/', include('modules.administrative.urls')),
     path('hr/', include('modules.hr.urls')),
     path('registration/', include('modules.registration.urls')),
     path('payment/', include('modules.payment.urls')),
     path('accounting/', include('modules.internal_accounting.urls')),
+    path('portal/', include('modules.client_portal.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,58 @@
+{% extends 'components/list_view.html' %}
+{% block page_title %}代墊款申請{% endblock %}
+{% block header_title %}代墊款申請{% endblock %}
+{% block header_description %}管理員工代墊款申請。核准後的代墊款會在產生次期薪資單時自動扣除發放。{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[{% for item in items %}{"id":{{ item.pk }},"category":"ALL","content":"{{ item.employee.name|escapejs }} {{ item.reason|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block custom_bulk_actions %}{% endblock %}
+
+{% block filters %}
+<form method="get" class="flex items-center gap-3">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜尋申請人或事由..." class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-64">
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
+    {% if q %}<a href="{% url 'hr:advance_payment_list' %}" class="text-sm text-slate-500 hover:text-slate-700">清除</a>{% endif %}
+</form>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">申請人</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">申請日期</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">代墊事由</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">金額</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in items %}
+<tr class="hover:bg-slate-50 transition duration-150" x-show="matches('ALL','{{ item.employee.name|escapejs }} {{ item.reason|escapejs }}')" :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.employee.name }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-600">{{ item.date_applied|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 whitespace-normal text-sm text-slate-700 max-w-xs truncate" title="{{ item.reason }}">{{ item.reason }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-mono text-blue-600 font-bold">${{ item.amount|floatformat:0 }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.status == 'pending' %}
+            <span class="px-2 py-1 text-xs rounded-full font-semibold bg-slate-100 text-slate-700">待處理</span>
+        {% elif item.status == 'approved' %}
+            <span class="px-2 py-1 text-xs rounded-full font-semibold bg-blue-100 text-blue-700">已核准 (待發放)</span>
+        {% elif item.status == 'deducted' %}
+            <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">已發放 (依附薪資單)</span>
+        {% elif item.status == 'rejected' %}
+            <span class="px-2 py-1 text-xs rounded-full font-semibold bg-red-100 text-red-700">已駁回</span>
+        {% endif %}
+    </td>
+    {% include "components/row_actions.html" with update_url='hr:advance_payment_update' delete_url='hr:advance_payment_delete' pk=item.pk %}
+</tr>
+{% empty %}
+<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">目前沒有代墊款紀錄</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}{% include "components/export_modal.html" %}{% include "components/email_sidebar.html" %}{% include "components/line_sidebar.html" %}{% endblock %}

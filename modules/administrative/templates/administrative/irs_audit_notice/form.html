@@ -1,0 +1,371 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{% if object %}編輯國稅局查帳通知{% else %}新增國稅局查帳通知{% endif %}{% endblock %}
+{% block header_title %}{% if object %}編輯國稅局查帳通知{% else %}新增國稅局查帳通知{% endif %}{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'administrative:irs_audit_notice_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+
+{# Approval Action Buttons #}
+{% if object %}
+{% include "components/approval/actions.html" with approval_request=approval_request model_app_label='administrative' model_name='irs_audit_notice' %}
+{% endif %}
+{% endblock %}
+
+{# Approval Status Display #}
+{% block form_top_block %}
+{% if object %}
+{% include "components/approval/status.html" %}
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">主要資訊</h4>
+    </div>
+    
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">客戶 <span class="text-red-500">*</span></label>
+        {{ form.customer }}
+        {{ form.customer.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
+            {{ form.tax_id }}
+            {{ form.tax_id.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">歸屬年度</label>
+            {{ form.attributable_year }}
+            {{ form.attributable_year.errors }}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">收文日期</label>
+            {{ form.receipt_date }}
+            {{ form.receipt_date.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">稅種分類</label>
+            {{ form.tax_category }}
+            {{ form.tax_category.errors }}
+        </div>
+    </div>
+    
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">信件主旨 <span class="text-red-500">*</span></label>
+        {{ form.subject }}
+        {{ form.subject.errors }}
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">指派助理</label>
+            {{ form.assigned_assistant }}
+            {{ form.assigned_assistant.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">助理Email</label>
+            {{ form.assistant_email }}
+            {{ form.assistant_email.errors }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">狀態與附件</h4>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">回復截止日</label>
+            {{ form.reply_deadline }}
+            {{ form.reply_deadline.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">處理狀態</label>
+            {{ form.status }}
+            {{ form.status.errors }}
+        </div>
+    </div>
+    
+    <div class="flex items-center mt-2">
+        {{ form.merge_annual_income_tax }}
+        <label class="ml-2 block text-sm font-medium text-slate-700">併入年度所得稅處理事項</label>
+        {{ form.merge_annual_income_tax.errors }}
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1 mt-4">附件上傳 (選填)</label>
+        {{ form.attachment }}
+        {{ form.attachment.errors }}
+        {% if object.attachment %}
+        <div class="mt-2 text-sm text-slate-600">
+            目前檔案：<a href="{{ object.attachment.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">查看附件</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">國稅局資料</h4>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">聯絡人</label>
+            {{ form.irs_contact }}
+            {{ form.irs_contact.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">電話</label>
+            {{ form.irs_phone }}
+            {{ form.irs_phone.errors }}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            {{ form.irs_email }}
+            {{ form.irs_email.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">國稅局轄區</label>
+            {{ form.irs_district }}
+            {{ form.irs_district.errors }}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_tabs %}
+<div x-data="{ activeTab: 'communication' }" class="mt-8">
+    <!-- Tabs Header -->
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button type="button" @click="activeTab = 'communication'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'communication' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                溝通紀錄
+            </button>
+            <button type="button" @click="activeTab = 'approval'"
+                class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+                :class="activeTab === 'approval' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+                核准狀態
+            </button>
+        </nav>
+    </div>
+
+    <!-- Tabs Content -->
+    <div class="mt-4">
+        <!-- Communication Tab -->
+        <div x-show="activeTab === 'communication'" class="py-4">
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    {{ communications.management_form }}
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-48">時間</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">溝通內容</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase w-48">回復狀態</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase w-16">刪除</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            {% for record in communications %}
+                            <tr class="hover:bg-slate-50 item-row">
+                                <td class="px-6 py-4">
+                                    {{ record.id }}
+                                    {{ record.comm_time }}
+                                    {{ record.comm_time.errors }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ record.comm_content }}
+                                    {{ record.comm_content.errors }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ record.reply_status }}
+                                    {{ record.reply_status.errors }}
+                                </td>
+                                <td class="px-3 py-4 text-center align-middle">
+                                    {% if communications.can_delete %}
+                                    <label class="cursor-pointer inline-flex items-center justify-center text-red-400 hover:text-red-600 transition-colors tooltip group" data-tip="標為刪除">
+                                        <div class="hidden">
+                                            {{ record.DELETE }}
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1 mt-1 trash-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </label>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- Empty Form Template -->
+                            <tr id="empty-form-row" class="hidden">
+                                <td class="px-6 py-4">
+                                    {{ communications.empty_form.id }}
+                                    {{ communications.empty_form.comm_time }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ communications.empty_form.comm_content }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ communications.empty_form.reply_status }}
+                                </td>
+                                <td class="px-3 py-4 text-center align-middle">
+                                    {% if communications.can_delete %}
+                                    <label class="cursor-pointer inline-flex items-center justify-center text-red-400 hover:text-red-600 transition-colors tooltip group" data-tip="標為刪除">
+                                        <div class="hidden">
+                                            {{ communications.empty_form.DELETE }}
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1 mt-1 trash-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </label>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex justify-end">
+                <button type="button" id="add-comm-row" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors duration-150 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    新增一筆
+                </button>
+            </div>
+        </div>
+
+        <!-- Approval Status Tab -->
+        <div x-show="activeTab === 'approval'" class="py-4">
+            {% include "components/approval/history.html" %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        {{ form.remarks }}
+        {{ form.remarks.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerSelect = document.getElementById('id_customer');
+        const taxIdInput = document.getElementById('id_tax_id');
+        
+        if (customerSelect) {
+            customerSelect.addEventListener('change', function(e) {
+                const customerId = e.target.value;
+                if (customerId) {
+                    fetch(`/administrative/api/get-customer-tax-id/?customer_id=${customerId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.tax_id) {
+                                taxIdInput.value = data.tax_id;
+                            } else {
+                                taxIdInput.value = '';
+                            }
+                        })
+                        .catch(error => console.error('Error fetching tax id:', error));
+                } else {
+                    taxIdInput.value = '';
+                }
+            });
+        }
+        
+        // Formset Dynamic Add Row logic
+        const addRowBtn = document.getElementById('add-comm-row');
+        if (addRowBtn) {
+            addRowBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const totalFormsInput = document.getElementById('id_communications-TOTAL_FORMS');
+                const formCount = parseInt(totalFormsInput.value);
+                
+                const emptyFormHtml = document.getElementById('empty-form-row').innerHTML.replace(/__prefix__/g, formCount);
+                
+                const newRow = document.createElement('tr');
+                newRow.className = 'hover:bg-slate-50 item-row';
+                newRow.innerHTML = emptyFormHtml;
+                
+                const tbody = document.querySelector('tbody');
+                const emptyFormRow = document.getElementById('empty-form-row');
+                tbody.insertBefore(newRow, emptyFormRow);
+                
+                totalFormsInput.value = formCount + 1;
+                
+                // Re-bind delete listeners for new rows
+                bindDeleteListeners();
+            });
+        }
+        
+        function bindDeleteListeners() {
+            document.querySelectorAll('.trash-icon').forEach(icon => {
+                const label = icon.closest('label');
+                if (!label) return;
+                
+                const cb = label.querySelector('input[type="checkbox"][name$="-DELETE"]');
+                if (!cb) return;
+                
+                // If it already has listener attached, skip.
+                if (cb.dataset.listenerAttached) return;
+                cb.dataset.listenerAttached = 'true';
+                
+                // Sync initial state
+                if (cb.checked) {
+                    cb.closest('tr').style.display = 'none';
+                }
+                
+                cb.addEventListener('change', function() {
+                    if (this.checked) {
+                        this.closest('tr').style.display = 'none';
+                    } else {
+                        // In case users undo it programmatically
+                        this.closest('tr').style.display = '';
+                    }
+                });
+            });
+        }
+        
+        // Initial binding
+        bindDeleteListeners();
+    });
+</script>
+{% endblock %}

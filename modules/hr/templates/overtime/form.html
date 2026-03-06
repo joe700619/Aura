@@ -1,0 +1,166 @@
+{% extends 'components/form_view.html' %}
+{% load action_tags %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'hr:overtime_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+
+{# Approval Action Buttons #}
+{% if object %}
+{% include "components/approval/actions.html" %}
+{% endif %}
+{% endblock %}
+
+{# Approval Status Display #}
+{% block form_top_block %}
+{% if object %}
+{% include "components/approval/status.html" %}
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">加班資料</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+        {{ form.employee }}{{ form.employee.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">加班日期</label>
+            {{ form.date }}{{ form.date.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">加班時數</label>
+            {{ form.hours }}{{ form.hours.errors }}
+        </div>
+    </div>
+
+    {# 日期類型提示 #}
+    <div id="date-type-hint" class="hidden px-4 py-3 rounded-lg text-sm font-medium border" style="margin-top: -0.5rem;">
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">加班倍率</label>
+        {{ form.rate }}{{ form.rate.errors }}
+        <p class="mt-1 text-xs text-slate-500">系統會依加班日期自動判斷建議倍率</p>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">加班事由</label>
+        {{ form.reason }}{{ form.reason.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_tabs %}
+{# Approval History Tab #}
+{% if object and approval_request %}
+<div x-data="{ activeTab: 'tab_approval' }" class="mt-8">
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button @click="activeTab = 'tab_approval'" type="button"
+                :class="activeTab === 'tab_approval' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                核准紀錄
+            </button>
+        </nav>
+    </div>
+    <div class="mt-4">
+        <div x-show="activeTab === 'tab_approval'" x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+            {% include "components/approval/history.html" %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block overlays %}
+{{ block.super }}
+<script>
+(function() {
+    var dateField = document.getElementById('{{ form.date.id_for_label }}');
+    var rateField = document.getElementById('{{ form.rate.id_for_label }}');
+    var hoursField = document.getElementById('{{ form.hours.id_for_label }}');
+    var hintDiv = document.getElementById('date-type-hint');
+
+    if (!dateField || !rateField || !hintDiv) return;
+
+    function detectDayType() {
+        var val = dateField.value;
+        if (!val) {
+            hintDiv.classList.add('hidden');
+            return;
+        }
+
+        var d = new Date(val);
+        if (isNaN(d)) {
+            hintDiv.classList.add('hidden');
+            return;
+        }
+
+        var dayOfWeek = d.getDay(); // 0=Sun, 6=Sat
+        hintDiv.classList.remove('hidden');
+
+        if (dayOfWeek === 0) {
+            // 週日 = 例假日，不得加班
+            hintDiv.innerHTML = '⛔ <strong>例假日（週日）</strong>：依勞基法規定，例假日不得加班。';
+            hintDiv.style.backgroundColor = '#fef2f2';
+            hintDiv.style.borderColor = '#fca5a5';
+            hintDiv.style.color = '#dc2626';
+        } else if (dayOfWeek === 6) {
+            // 週六 = 休息日
+            hintDiv.innerHTML = '🟠 <strong>休息日（週六）</strong>：適用休息日加班倍率 2.00 倍';
+            hintDiv.style.backgroundColor = '#fff7ed';
+            hintDiv.style.borderColor = '#fdba74';
+            hintDiv.style.color = '#ea580c';
+            rateField.value = '2.00';
+        } else {
+            // 平日
+            hintDiv.innerHTML = '🟢 <strong>平日加班</strong>：前 2 小時 1.34 倍，超過 2 小時 1.67 倍';
+            hintDiv.style.backgroundColor = '#f0fdf4';
+            hintDiv.style.borderColor = '#86efac';
+            hintDiv.style.color = '#16a34a';
+            // 自動推薦：依時數判斷
+            autoSetWeekdayRate();
+        }
+    }
+
+    function autoSetWeekdayRate() {
+        if (!hoursField) return;
+        var hours = parseFloat(hoursField.value) || 0;
+        var d = new Date(dateField.value);
+        if (isNaN(d) || d.getDay() === 0 || d.getDay() === 6) return;
+
+        if (hours <= 2) {
+            rateField.value = '1.34';
+        } else {
+            rateField.value = '1.67';
+        }
+    }
+
+    dateField.addEventListener('change', detectDayType);
+    hoursField.addEventListener('change', function() {
+        var d = new Date(dateField.value);
+        if (!isNaN(d) && d.getDay() !== 0 && d.getDay() !== 6) {
+            autoSetWeekdayRate();
+        }
+    });
+
+    // 初始化（編輯模式）
+    if (dateField.value) {
+        detectDayType();
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% if status == 'not_notified' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">尚未通知</span>
+{% elif status == 'waiting' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">等待回覆</span>
+{% elif status == 'paid' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">繳納完成</span>
+{% elif status == 'no_payment_needed' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">無須繳納</span>
+{% else %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">{{ status|default:'-' }}</span>
+{% endif %}

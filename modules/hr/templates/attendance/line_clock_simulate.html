@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-2xl mx-auto">
+
+    <!-- Page header -->
+    <div class="text-center mb-8">
+        <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">📱 Line 打卡模擬</h1>
+        <p class="text-slate-500 mt-2">在 IDE 環境中模擬 Line 送出「打卡」訊息</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg border text-sm whitespace-pre-line
+            {% if message.tags == 'success' %}bg-green-50 border-green-200 text-green-800
+            {% elif message.tags == 'warning' %}bg-amber-50 border-amber-200 text-amber-800
+            {% else %}bg-red-50 border-red-200 text-red-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Simulate Form -->
+    <div class="bg-white shadow-sm rounded-xl border border-slate-200 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">選擇員工</label>
+                <p class="text-xs text-slate-500 mb-3">選擇有設定 Line ID 的員工來模擬打卡</p>
+                {% if employees %}
+                <div class="space-y-2">
+                    {% for emp in employees %}
+                    <label class="flex items-center p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                        <input type="radio" name="line_id" value="{{ emp.line_id }}" class="mr-3 text-blue-600">
+                        <div>
+                            <span class="font-semibold text-slate-800">{{ emp.name }}</span>
+                            <span class="text-xs text-slate-500 ml-2">Line ID: {{ emp.line_id }}</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-slate-400">
+                    <p class="text-lg mb-1">沒有員工設定 Line ID</p>
+                    <p class="text-sm">請先在員工資料中設定 Line ID</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">或手動輸入 Line ID</label>
+                <input type="text" name="line_id_manual" placeholder="例如：U1234567890abcdef"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                <p class="text-xs text-slate-500 mt-1">如果員工的 Line ID 尚未設定在系統中，可以在此手動輸入測試</p>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 text-lg flex items-center justify-center gap-2 shadow-md">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                模擬打卡
+            </button>
+        </form>
+    </div>
+
+    <!-- 說明 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <h3 class="font-bold text-blue-800 text-sm mb-2">📋 邏輯說明</h3>
+        <ul class="text-sm text-blue-700 space-y-1.5">
+            <li>• 系統自動判斷：今天還沒打卡 → <strong>上班打卡</strong></li>
+            <li>• 已有上班紀錄但沒有下班 → <strong>下班打卡</strong></li>
+            <li>• 上下班都打過了 → <strong>提示已完成打卡</strong></li>
+            <li>• 員工的 Line ID 需與系統中綁定的一致</li>
+        </ul>
+    </div>
+
+    <div class="mt-4 text-center">
+        <a href="{% url 'hr:attendance_list' %}" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">← 返回出勤紀錄</a>
+    </div>
+</div>
+{% endblock %}

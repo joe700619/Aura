@@ -1,0 +1,91 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}發文系統{% endblock %}
+
+{% block header_title %}發文紀錄列表{% endblock %}
+{% block header_description %}管理與查看所有發文紀錄{% endblock %}
+
+{% block actions %}
+<a href="{% url 'administrative:document_dispatch_item_list' %}"
+    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md mr-3">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+    查詢紀錄
+</a>
+<a href="{% url 'administrative:document_dispatch_create' %}"
+    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    新增發文
+</a>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">發文日期</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">發信方式</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">收件客戶數量</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for dispatch in dispatches %}
+<tr class="hover:bg-slate-50 transition duration-150 border-b border-slate-100 last:border-0"
+    x-show="matches('ALL', '{{ dispatch.dispatch_method|escapejs }} {{ dispatch.date|date:"Y-m-d" }}')"
+    :class="selectedRows.includes({{ dispatch.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=dispatch.pk %}
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm font-mono text-slate-700">{{ dispatch.date|date:"Y-m-d" }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="text-sm font-medium text-slate-800">{{ dispatch.dispatch_method }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            {{ dispatch.items.count }} 筆
+        </span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
+        <div class="flex justify-center items-center space-x-4">
+            <a href="{% url 'administrative:document_dispatch_update' dispatch.pk %}"
+               class="text-blue-600 hover:text-blue-800 transition duration-200" title="編輯">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </a>
+            <a href="{% url 'administrative:document_dispatch_delete' dispatch.pk %}"
+               class="text-red-400 hover:text-red-600 transition duration-200" title="刪除">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
+        目前尚無發文資料
+    </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block pagination_info %}
+顯示第 1 到 {{ dispatches|length }} 筆，共 {{ dispatches|length }} 筆資料
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for dispatch in dispatches %}
+    {
+        "id": {{ dispatch.pk }},
+        "category": "ALL",
+        "content": "{{ dispatch.dispatch_method|escapejs }} {{ dispatch.date|date:'Y-m-d' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

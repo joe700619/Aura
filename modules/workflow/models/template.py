@@ -107,9 +107,12 @@ class WorkflowStep(models.Model):
             return self.approver_role
         
         if self.approver_field and obj:
-            # 從申請物件動態取得核准者
+            # 支持鏈式欄位，如 employee.supervisor
             try:
-                return getattr(obj, self.approver_field)
+                result = obj
+                for attr in self.approver_field.split('.'):
+                    result = getattr(result, attr)
+                return result
             except AttributeError:
                 return None
         

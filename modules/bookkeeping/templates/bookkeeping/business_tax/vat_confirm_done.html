@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block header %}確認完成{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <svg class="h-9 w-9 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">感謝您的確認！</h1>
+        <p class="text-slate-500 text-sm mb-6">
+            {{ client.name }}<br>
+            {{ period.year_record.year }} 年 {{ period.period_label }} 已記錄為<strong class="text-green-600">繳納完成</strong>。
+        </p>
+        <p class="text-xs text-slate-400">此頁面可關閉。</p>
+    </div>
+</div>
+{% endblock %}

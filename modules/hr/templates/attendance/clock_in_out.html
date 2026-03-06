@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-2xl mx-auto">
+
+    <!-- Page header -->
+    <div class="text-center mb-8">
+        <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">打卡</h1>
+        <p class="text-slate-500 mt-1">{{ today|date:"Y 年 m 月 d 日" }} ({% with day=today|date:"w" %}{% if day == "0" %}星期日{% elif day == "1" %}星期一{% elif day == "2" %}星期二{% elif day == "3" %}星期三{% elif day == "4" %}星期四{% elif day == "5" %}星期五{% elif day == "6" %}星期六{% endif %}{% endwith %})</p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="px-4 py-3 rounded-md text-sm font-medium
+            {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+            {% elif message.tags == 'warning' %}bg-amber-50 text-amber-700 border border-amber-200
+            {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+            {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not employee %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <svg class="w-12 h-12 mx-auto text-red-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.07 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <p class="text-red-700 font-medium">您的帳號尚未綁定員工資料，無法使用打卡功能。</p>
+        <p class="text-red-500 text-sm mt-1">請聯繫管理員進行帳號綁定。</p>
+    </div>
+    {% else %}
+
+    <!-- Employee Info -->
+    <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                {{ employee.name|truncatechars:1 }}
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">{{ employee.name }}</h2>
+                <p class="text-sm text-slate-500">員工編號：{{ employee.employee_number }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Record -->
+    <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-6">
+        <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">今日出勤狀態</h3>
+        {% if today_record %}
+        <div class="grid grid-cols-2 gap-4">
+            <div class="text-center p-4 rounded-lg {% if today_record.clock_in %}bg-green-50 border border-green-200{% else %}bg-slate-50 border border-slate-200{% endif %}">
+                <p class="text-xs font-medium text-slate-500 mb-1">上班打卡</p>
+                {% if today_record.clock_in %}
+                <p class="text-2xl font-bold text-green-600 font-mono">{{ today_record.clock_in|time:"H:i" }}</p>
+                <p class="text-xs text-green-500 mt-1">✓ 已打卡</p>
+                {% else %}
+                <p class="text-2xl font-bold text-slate-300 font-mono">--:--</p>
+                <p class="text-xs text-slate-400 mt-1">尚未打卡</p>
+                {% endif %}
+            </div>
+            <div class="text-center p-4 rounded-lg {% if today_record.clock_out %}bg-blue-50 border border-blue-200{% else %}bg-slate-50 border border-slate-200{% endif %}">
+                <p class="text-xs font-medium text-slate-500 mb-1">下班打卡</p>
+                {% if today_record.clock_out %}
+                <p class="text-2xl font-bold text-blue-600 font-mono">{{ today_record.clock_out|time:"H:i" }}</p>
+                <p class="text-xs text-blue-500 mt-1">✓ 已打卡</p>
+                {% else %}
+                <p class="text-2xl font-bold text-slate-300 font-mono">--:--</p>
+                <p class="text-xs text-slate-400 mt-1">尚未打卡</p>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-slate-400">
+            <p class="text-sm">今日尚無打卡紀錄</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Clock Buttons -->
+    <style>
+        .btn-clock-in { background: linear-gradient(to bottom right, #22c55e, #16a34a); }
+        .btn-clock-out { background: linear-gradient(to bottom right, #3b82f6, #2563eb); }
+        .btn-clock-disabled { background-color: #cbd5e1; }
+    </style>
+    <div class="grid grid-cols-2 gap-4">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="clock_type" value="in">
+            {% if today_record and today_record.clock_in %}
+            <button type="submit" disabled
+                class="w-full py-6 rounded-xl text-white font-bold text-lg shadow-lg cursor-not-allowed btn-clock-disabled">
+                <svg class="w-8 h-8 mx-auto mb-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                上班打卡
+            </button>
+            {% else %}
+            <button type="submit"
+                class="w-full py-6 rounded-xl text-white font-bold text-lg shadow-lg transition-all duration-200 hover:shadow-xl active:scale-95 btn-clock-in">
+                <svg class="w-8 h-8 mx-auto mb-2 text-green-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                上班打卡
+            </button>
+            {% endif %}
+        </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="clock_type" value="out">
+            {% if today_record and today_record.clock_out or not today_record or not today_record.clock_in %}
+            <button type="submit" disabled
+                class="w-full py-6 rounded-xl text-white font-bold text-lg shadow-lg cursor-not-allowed btn-clock-disabled">
+                <svg class="w-8 h-8 mx-auto mb-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                下班打卡
+            </button>
+            {% else %}
+            <button type="submit"
+                class="w-full py-6 rounded-xl text-white font-bold text-lg shadow-lg transition-all duration-200 hover:shadow-xl active:scale-95 btn-clock-out">
+                <svg class="w-8 h-8 mx-auto mb-2 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                下班打卡
+            </button>
+            {% endif %}
+        </form>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

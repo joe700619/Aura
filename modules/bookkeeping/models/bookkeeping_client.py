@@ -39,8 +39,18 @@ class BookkeepingClient(BaseModel):
         MERGE = 'merge', '併同其他客戶'
         COURIER = 'courier', '快遞'
         OTHER = 'other', '其他'
+        
+    class ClientSource(models.TextChoices):
+        OUR_FIRM = 'our_firm', '本所設立'
+        TRANSFERRED = 'transferred', '他所轉入'
 
     # ── 基本資料 ──
+    user = models.OneToOneField(
+        'core.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='bookkeeping_client_profile',
+        verbose_name=_('綁定帳號'),
+        help_text=_('綁定供外部客戶登入的帳號')
+    )
     tax_id = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
     tax_registration_no = models.CharField(_('稅籍編號'), max_length=20, blank=True, null=True)
     name = models.CharField(_('公司名稱'), max_length=100)
@@ -109,12 +119,39 @@ class BookkeepingClient(BaseModel):
         _('併同客戶名稱 (收發票)'), max_length=100, blank=True, null=True
     )
 
+    # ── 客戶來源與移交 ──
+    client_source = models.CharField(
+        _('客戶來源'), max_length=20,
+        choices=ClientSource.choices,
+        blank=True, null=True
+    )
+    contact_date = models.DateField(
+        _('聯繫客戶日期'), blank=True, null=True
+    )
+    transfer_checklist = models.JSONField(
+        _('移交檢查表'), default=dict, blank=True
+    )
+
     # ── 7-11 便利袋追蹤 ──
     last_convenience_bag_date = models.DateField(
         _('最後提供便利袋日期'), blank=True, null=True
     )
     last_convenience_bag_qty = models.PositiveIntegerField(
         _('最後提供便利袋數量'), blank=True, null=True
+    )
+
+    # ── 帳號密碼 (營業人) ──
+    business_password = models.CharField(
+        _('記帳客戶登入密碼'), max_length=100, blank=True, null=True
+    )
+    national_tax_password = models.CharField(
+        _('營業人(國稅局)密碼'), max_length=100, blank=True, null=True
+    )
+    e_invoice_account = models.CharField(
+        _('電子發票帳號'), max_length=100, blank=True, null=True
+    )
+    e_invoice_password = models.CharField(
+        _('電子發票密碼'), max_length=100, blank=True, null=True
     )
 
     # ── 公費分攤 ──

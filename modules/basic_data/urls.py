@@ -4,7 +4,9 @@ from .views import (
     ContactListView, ContactCreateView, ContactUpdateView, ContactDeleteView, ContactHistoryView,
     ServiceItemListView, ServiceItemCreateView, ServiceItemUpdateView, ServiceItemDeleteView
 )
-from .views.api import CustomerSearchApiView, CustomerSearchForProgressApiView, ContactSearchForProgressApiView, ServiceItemSearchApiView
+from .views.api import CustomerSearchApiView, CustomerSearchForProgressApiView, ContactSearchForProgressApiView, ServiceItemSearchApiView, CustomerInfoApiView
+
+app_name = 'basic_data'
 
 urlpatterns = [
     path('customers/', CustomerListView.as_view(), name='customer_list'),
@@ -14,6 +16,7 @@ urlpatterns = [
     
     # API
     path('api/customers/search/', CustomerSearchApiView.as_view(), name='customer_search_api'),
+    path('api/customers/info/', CustomerInfoApiView.as_view(), name='customer_info_api'),
     path('api/customers/search/progress/', CustomerSearchForProgressApiView.as_view(), name='customer_search_progress_api'),
     path('api/contacts/search/progress/', ContactSearchForProgressApiView.as_view(), name='contact_search_progress_api'),
     path('api/service-items/search/', ServiceItemSearchApiView.as_view(), name='service_item_search_api'),

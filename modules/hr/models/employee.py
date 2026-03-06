@@ -80,6 +80,17 @@ class Employee(models.Model):
         help_text=_("綁定此員工對應的系統登入帳號")
     )
     
+    # ========== 主管設定 ==========
+    supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='subordinates',
+        verbose_name=_("直屬主管"),
+        help_text=_("此員工的直屬主管，用於請假等核准流程")
+    )
+    
     class Meta:
         verbose_name = _("員工")
         verbose_name_plural = _("員工")

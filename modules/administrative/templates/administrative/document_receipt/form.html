@@ -1,0 +1,88 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}
+{% if object %}編輯收文紀錄 - {{ object.subject }}{% else %}新增收文紀錄{% endif %}
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'administrative:document_receipt_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<!-- Card 1: Basic Info -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">主要資訊</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">客戶 <span class="text-red-500">*</span></label>
+        {{ form.customer }}
+        {{ form.customer.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">收文日期</label>
+            {{ form.receipt_date }}
+            {{ form.receipt_date.errors }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">信件分類</label>
+            {{ form.category }}
+            {{ form.category.errors }}
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">信件主旨 <span class="text-red-500">*</span></label>
+        {{ form.subject }}
+        {{ form.subject.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<!-- Card 2: Status & Upload -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">狀態與附件</h4>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">處理狀態</label>
+        {{ form.status }}
+        {{ form.status.errors }}
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">附件上傳 (選填)</label>
+        {{ form.attachment }}
+        {{ form.attachment.errors }}
+        {% if object.attachment %}
+        <div class="mt-2 text-sm text-slate-600">
+            目前檔案：<a href="{{ object.attachment.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">查看附件</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<!-- Bottom Block: Remarks -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        {{ form.remarks }}
+        {{ form.remarks.errors }}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}發文紀錄查詢{% endblock %}
+
+{% block header_title %}發文紀錄查詢{% endblock %}
+{% block header_description %}查詢與過濾所有發出的單筆項目{% endblock %}
+
+{% block actions %}
+<a href="{% url 'administrative:document_dispatch_list' %}"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-colors shadow-sm">
+    返回發文系統
+</a>
+{% endblock %}
+
+{% block table_headers %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg">發出日期</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">方式</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center">吸收</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right">郵資</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">客戶名稱</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">統一編號</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">寄送地址</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">聯絡人</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">收件人</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">自訂訊息</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg">已通知</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center w-12">連結</th>
+{% endblock %}
+
+{% block table_rows %}
+    {% for item in items %}
+    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"
+        x-show="matches('ALL', '{{ item.customer.name|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }}')"
+        :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+        {% include "components/row_checkbox.html" with value=item.pk %}
+        <td class="px-4 py-3 whitespace-nowrap font-mono text-slate-600 text-sm">
+            {{ item.dispatch.date|date:"Y-m-d" }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
+            {{ item.dispatch.dispatch_method }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-center">
+            {% if item.is_absorbed_by_customer %}
+            <span class="text-green-600 flex justify-center"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></span>
+            {% else %}
+            <span class="text-slate-300">-</span>
+            {% endif %}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap font-mono text-right text-slate-800">
+            ${{ item.postage }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-800">
+            {{ item.customer.name }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-slate-600 font-mono text-sm">
+            {{ item.tax_id|default:"-" }}
+        </td>
+        <td class="px-4 py-3 text-slate-600 truncate max-w-[150px]" title="{{ item.address }}">
+            {{ item.address|default:"-" }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+            {{ item.contact_person|default:"-" }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+            {{ item.recipient|default:"-" }}
+        </td>
+        <td class="px-4 py-3 text-slate-600 truncate max-w-[150px]" title="{{ item.custom_message }}">
+            {{ item.custom_message|default:"-" }}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-center">
+            {% if item.is_notified %}
+            <span class="text-blue-600 flex justify-center"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></span>
+            {% else %}
+            <span class="text-slate-300">-</span>
+            {% endif %}
+        </td>
+        <td class="px-4 py-3 whitespace-nowrap text-center">
+            <a href="{% url 'administrative:document_dispatch_update' item.dispatch.pk %}" class="text-blue-500 hover:text-blue-700 transition-colors" title="查看原始表單">
+                <svg class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="12" class="px-4 py-12 text-center text-slate-500 bg-white rounded-b-lg">
+            <div class="flex flex-col items-center justify-center">
+                <p>目前沒有任何發文詳細紀錄</p>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.customer.name|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

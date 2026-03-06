@@ -1,8 +1,13 @@
 <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
     <div class="flex justify-center space-x-3">
         {% if update_url %}
+        {% if pk %}
+        <a href="{% url update_url pk %}"
+            class="text-blue-600 hover:text-blue-800 transition duration-200" title="編輯">
+        {% else %}
         <a href="{{ update_url }}"
             class="text-blue-600 hover:text-blue-800 transition duration-200" title="編輯">
+        {% endif %}
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -11,8 +16,13 @@
         </a>
         {% endif %}
         {% if delete_url %}
+        {% if pk %}
+        <a href="{% url delete_url pk %}"
+            class="text-red-400 hover:text-red-600 transition duration-200" title="刪除">
+        {% else %}
         <a href="{{ delete_url }}"
             class="text-red-400 hover:text-red-600 transition duration-200" title="刪除">
+        {% endif %}
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -22,3 +32,4 @@
         {% endif %}
     </div>
 </td>
+

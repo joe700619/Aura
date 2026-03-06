@@ -6,6 +6,7 @@
 <div class="container mx-auto px-4 pb-8" x-data="{ 
         selectedRows: [], 
         selectAll: false,
+        toastMsg: '',
         filter: 'ALL',
         search: '',
         allItems: [],
@@ -38,8 +39,17 @@
         },
         get visibleCount() {
             return this.allItems.filter(item => this.matches(item.category, item.content)).length;
+        },
+        showToast(msg) {
+            this.toastMsg = msg;
+            setTimeout(() => { this.toastMsg = ''; }, 3000);
         }
     }">
+
+    <!-- Toast Notification -->
+    <div x-show="toastMsg !== ''" x-transition
+        class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] bg-red-500 text-white px-6 py-3 rounded-lg shadow-xl text-sm font-bold"
+        x-text="toastMsg" style="display:none;"></div>
 
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -72,7 +82,7 @@
                     {% block bulk_actions %}
                     <!-- Excel Export (Always Available) -->
                     <button type="button"
-                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-export-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', ids: selectedRows }))"
+                        @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-export-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', ids: selectedRows }))"
                         class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
                         <svg class="w-4 h-4 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -84,7 +94,7 @@
                     <!-- Email (If Template Exists) -->
                     {% if list_actions.has_email %}
                     <button type="button"
-                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-email-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+                        @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-email-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
                         class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
                         <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +108,7 @@
                     <!-- Line (If Template Exists) -->
                     {% if list_actions.has_line %}
                     <button type="button"
-                        @click="selectedRows.length === 0 ? alert('請至少選擇一筆資料') : (open = false, $dispatch('open-line-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+                        @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-line-modal', { appLabel: '{{ model_app_label }}', modelName: '{{ model_name }}', objectIds: selectedRows }))"
                         class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-green-50 hover:text-green-600 transition-colors text-left">
                         <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -115,11 +125,20 @@
                 </div>
             </div>
 
-            <!-- Standard Create Button (if model_name is provided) -->
-            {% if model_name %}
-            {% url model_name|add:'_create' as create_url %}
-            {% if create_url %}
-            <a href="{{ create_url }}"
+            <!-- Standard Create Button -->
+            {% if custom_create_url %}
+            <a href="{{ custom_create_url }}"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% if create_button_label %}{{ create_button_label }}{% else %}新增資料{% endif %}
+            </a>
+            {% elif model_name %}
+            {% url model_name|add:'_create' as auto_create_url %}
+            {% if auto_create_url %}
+            <a href="{{ auto_create_url }}"
                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -130,10 +149,15 @@
             {% endif %}
             {% endif %}
 
+            {% block extra_header_buttons %}{% endblock %}
+
             <!-- Custom Actions (Override in child templates if needed) -->
             {% block actions %}{% endblock %}
         </div>
     </div>
+
+    <!-- Extra Toolbar (Override in child templates for standalone actions) -->
+    {% block extra_toolbar %}{% endblock %}
 
     <!-- Data Table Card -->
     <div class="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">

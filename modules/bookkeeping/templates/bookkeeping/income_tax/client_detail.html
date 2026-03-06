@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block header %}所得稅申報維護 - {{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12" x-data="{ globalSubmitting: false }">
+
+    {# ── Sticky Toolbar ── #}
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20">
+        <div class="flex flex-wrap gap-2 mb-3 sm:mb-0">
+            <a href="{% url 'bookkeeping:income_tax_list' %}"
+               class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                回列表
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {# 新增年度 #}
+            <form id="add-year-form" action="{% url 'bookkeeping:income_tax_add_year' client.pk %}" method="POST" class="inline-flex m-0 p-0">
+                {% csrf_token %}
+                <input type="number" id="new-year-input" name="year" class="hidden" required>
+            </form>
+            <button type="button" onclick="promptAddYear()"
+                class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增年度
+            </button>
+            {# 儲存設定 #}
+            <button type="button"
+                @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('income-tax-settings-form').submit() }, 300) }"
+                :disabled="globalSubmitting"
+                class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-slate-600 hover:bg-slate-700 focus:outline-none disabled:opacity-75">
+                <span x-text="globalSubmitting ? '儲存中...' : '儲存設定'"></span>
+            </button>
+        </div>
+    </div>
+
+    {# ── 3 Information Cards ── #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+        {# Card 1: 基本資料 #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+                <a href="{% url 'bookkeeping:client_update' client.pk %}" class="ml-auto text-xs text-blue-500 hover:underline">編輯</a>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">統一編號</label>
+                    <input type="text" value="{{ client.tax_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">稅籍編號</label>
+                    <input type="text" value="{{ client.tax_registration_no|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs text-slate-400 block mb-0.5">公司名稱</label>
+                <input type="text" value="{{ client.name }}" readonly
+                    class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm font-bold text-slate-800 cursor-default focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Line ID</label>
+                    <input type="text" value="{{ client.line_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Room ID</label>
+                    <input type="text" value="{{ client.room_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-3 space-y-2">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">帳號密碼</p>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">營業人(國稅局)密碼</label>
+                    <input type="text" value="{{ client.national_tax_password|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        {# Card 2: 主要聯絡人 #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">主要聯絡人</h4>
+            </div>
+            <div class="space-y-2">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">聯絡人</label>
+                    <input type="text" value="{{ client.contact_person|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">電話</label>
+                        <input type="text" value="{{ client.phone|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">手機</label>
+                        <input type="text" value="{{ client.mobile|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Email</label>
+                    <input type="text" value="{{ client.email|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">通訊地址</label>
+                    <input type="text" value="{{ client.correspondence_address|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">登記地址</label>
+                    <input type="text" value="{{ client.registered_address|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        {# Card 3: 申報設定 #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">申報設定</h4>
+            </div>
+            <form id="income-tax-settings-form" method="POST" action="{% url 'bookkeeping:income_tax_save_settings' client.pk %}">
+                {% csrf_token %}
+                {% if current_year_obj %}
+                <input type="hidden" name="current_year" value="{{ current_year_obj.year }}">
+                {% endif %}
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">提供服務</label>
+                        <input type="text" value="{{ client.get_service_type_display }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">記帳助理</label>
+                        <input type="text" value="{{ client.bookkeeping_assistant.name|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">集團助理</label>
+                        <input type="text" value="{{ client.group_assistant.name|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                    {% if setting %}
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1 font-semibold">申報方式</label>
+                        <select name="filing_method"
+                            class="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="book_review" {% if setting.filing_method == 'book_review' %}selected{% endif %}>書審</option>
+                            <option value="standard" {% if setting.filing_method == 'standard' %}selected{% endif %}>所標</option>
+                            <option value="industry_profit" {% if setting.filing_method == 'industry_profit' %}selected{% endif %}>同業利潤</option>
+                            <option value="cpa_certified" {% if setting.filing_method == 'cpa_certified' %}selected{% endif %}>簽證</option>
+                            <option value="audit" {% if setting.filing_method == 'audit' %}selected{% endif %}>查帳</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1 font-semibold">通知方式</label>
+                        <select name="notification_method"
+                            class="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- 請選擇 --</option>
+                            <option value="line" {% if setting.notification_method == 'line' %}selected{% endif %}>Line</option>
+                            <option value="email" {% if setting.notification_method == 'email' %}selected{% endif %}>Email</option>
+                            <option value="both" {% if setting.notification_method == 'both' %}selected{% endif %}>Line + Email</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1 font-semibold">預設繳稅方式</label>
+                        <select name="payment_method"
+                            class="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- 請選擇 --</option>
+                            <option value="self_pay" {% if setting.payment_method == 'self_pay' %}selected{% endif %}>自行繳納</option>
+                            <option value="office_pay" {% if setting.payment_method == 'office_pay' %}selected{% endif %}>事務所代繳</option>
+                            <option value="auto_debit" {% if setting.payment_method == 'auto_debit' %}selected{% endif %}>自動扣款</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Year Selector + Add Button ── #}
+    <div class="mb-4 flex items-center gap-3">
+        {% if available_years %}
+        <form method="GET" action="" class="flex items-center gap-2" id="year-select-form">
+            <label for="year-select" class="text-sm font-medium text-slate-600 whitespace-nowrap">選擇年度</label>
+            <select id="year-select" name="year" onchange="document.getElementById('year-select-form').submit()"
+                class="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                {% for y_obj in available_years %}
+                <option value="{{ y_obj.year }}" {% if current_year_obj and current_year_obj.year == y_obj.year %}selected{% endif %}>
+                    {{ y_obj.year }} 年度
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% else %}
+        <span class="text-sm text-slate-400">尚無年度資料，請點擊「新增年度」</span>
+        {% endif %}
+    </div>
+
+    {# ── Year Detail: 4 Item Cards ── #}
+    {% if not current_year_obj %}
+    <div class="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-slate-900">尚無申報年度資料</h3>
+        <p class="mt-1 text-sm text-slate-500">請點擊右上角「新增年度」按鈕來建立第一筆年度資料表。</p>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+            <h3 class="text-base font-bold text-slate-800">{{ current_year_obj.year }} 年度申報項目</h3>
+            <span class="text-xs text-slate-500 font-semibold bg-white px-2 py-1 rounded border border-slate-200">共 4 項</span>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                {# ── 暫繳申報 ── #}
+                {% if provisional %}
+                <div class="rounded-lg border border-amber-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <a href="{% url 'bookkeeping:provisional_tax_detail' client.pk provisional.pk %}"
+                       class="block">
+                        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                                <h4 class="font-bold text-amber-800 text-sm">暫繳申報</h4>
+                            </div>
+                            <span class="text-xs text-amber-600 font-medium">9月</span>
+                        </div>
+                        <div class="p-4 space-y-2 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">去年應納稅額</span><span class="font-medium">{{ provisional.last_year_tax|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">本年暫繳金額</span><span class="font-medium">{{ provisional.provisional_amount|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">截止日</span><span class="font-medium">{{ provisional.provisional_deadline|date:'Y-m-d'|default:'-' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">狀態</span>{% include "bookkeeping/income_tax/_status_badge.html" with status=provisional.filing_status %}</div>
+                        </div>
+                        <div class="px-4 py-2 bg-amber-50/50 border-t border-amber-100 text-center">
+                            <span class="text-xs font-medium text-amber-700 hover:text-amber-900">點擊進入詳情 →</span>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+
+                {# ── 扣繳申報 ── #}
+                {% if withholding %}
+                <div class="rounded-lg border border-teal-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <a href="{% url 'bookkeeping:withholding_tax_detail' client_pk=client.pk pk=withholding.pk %}"
+                       class="block">
+                        <div class="px-4 py-3 bg-teal-50 border-b border-teal-200 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-teal-500"></div>
+                                <h4 class="font-bold text-teal-800 text-sm">扣繳申報</h4>
+                            </div>
+                            <span class="text-xs text-teal-600 font-medium">次年1月</span>
+                        </div>
+                        <div class="p-4 space-y-2 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">所得明細筆數</span><span class="font-medium">{{ withholding.details.count }} 筆</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">申報日期</span><span class="font-medium">{{ withholding.filing_date|date:'Y-m-d'|default:'-' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">狀態</span>{% include "bookkeeping/income_tax/_status_badge.html" with status=withholding.filing_status %}</div>
+                        </div>
+                        <div class="px-4 py-2 bg-teal-50/50 border-t border-teal-100 text-center">
+                            <span class="text-xs font-medium text-teal-700 hover:text-teal-900">點擊進入詳情 →</span>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+
+                {# ── 股利申報 ── #}
+                {% if dividend %}
+                <div class="rounded-lg border border-violet-200 overflow-hidden">
+                    <a href="{% url 'bookkeeping:dividend_tax_detail' client_pk=client.pk pk=dividend.pk %}"
+                       class="block hover:shadow-md transition-shadow cursor-pointer">
+                    <div class="px-4 py-3 bg-violet-50 border-b border-violet-200 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-violet-500"></div>
+                            <h4 class="font-bold text-violet-800 text-sm">股利申報</h4>
+                        </div>
+                        <span class="text-xs text-violet-600 font-medium">次年1月</span>
+                    </div>
+                    <div class="p-4 space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-500">去年淨利</span><span class="font-medium">{{ dividend.last_year_profit|floatformat:0|default:'0' }}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">分配金額</span><span class="font-medium">{{ dividend.distributed_amount|floatformat:0|default:'0' }}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">加徵稅額</span><span class="font-medium">{{ dividend.undistributed_surtax|floatformat:0|default:'0' }}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">股東人數</span><span class="font-medium">{{ dividend.shareholders.count }} 人</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">狀態</span>{% include "bookkeeping/income_tax/_status_badge.html" with status=dividend.filing_status %}</div>
+                    </div>
+                    <div class="px-4 py-2 bg-violet-50/50 border-t border-violet-100 text-center">
+                        <span class="text-xs font-medium text-violet-700 hover:text-violet-900">點擊進入詳情 →</span>
+                    </div>
+                    </a>
+                </div>
+                {% endif %}
+
+                {# ── 所得稅申報 ── #}
+                {% if income_filing %}
+                <div class="rounded-lg border border-rose-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <a href="{% url 'bookkeeping:income_tax_filing_detail' client_pk=client.pk pk=income_filing.pk %}"
+                       class="block">
+                        <div class="px-4 py-3 bg-rose-50 border-b border-rose-200 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                                <h4 class="font-bold text-rose-800 text-sm">所得稅申報</h4>
+                            </div>
+                            <span class="text-xs text-rose-600 font-medium">次年5月</span>
+                        </div>
+                        <div class="p-4 space-y-2 text-sm">
+                            <div class="flex justify-between"><span class="text-slate-500">應納稅額</span><span class="font-medium">{{ income_filing.annual_tax|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">暫繳扣抵</span><span class="font-medium">{{ income_filing.provisional_credit|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">應補繳</span><span class="font-bold text-rose-600">{{ income_filing.self_pay_amount|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">合計</span><span class="font-bold">{{ income_filing.total_payable|floatformat:0|default:'0' }}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">狀態</span>{% include "bookkeeping/income_tax/_status_badge.html" with status=income_filing.filing_status %}</div>
+                        </div>
+                        <div class="px-4 py-2 bg-rose-50/50 border-t border-rose-100 text-center">
+                            <span class="text-xs font-medium text-rose-700 hover:text-rose-900">點擊進入詳情 →</span>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function promptAddYear() {
+        const today = new Date();
+        const currentYear = today.getFullYear() - 1911;
+        const year = prompt("請輸入要建立的年度（民國年）\n系統會自動產生暫繳、扣繳、股利、所得稅 4 個申報項目", currentYear);
+        if (year && !isNaN(year) && parseInt(year) > 0) {
+            document.getElementById('new-year-input').value = parseInt(year, 10);
+            document.getElementById('add-year-form').submit();
+        }
+    }
+</script>
+{% endblock %}

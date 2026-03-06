@@ -1,0 +1,35 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}刪除國稅局查帳通知{% endblock %}
+{% block header_title %}刪除國稅局查帳通知{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'administrative:irs_audit_notice_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">取消</a>
+{% endblock %}
+
+{% block form_content %}
+<div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center space-y-4">
+    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+    </div>
+    <h3 class="text-xl font-bold text-slate-900">確認刪除</h3>
+    <p class="text-slate-600 text-center max-w-sm">您確定要刪除這筆國稅局查帳通知 <strong>「{{ object.subject }}」</strong> 嗎？此操作無法復原，相關的溝通紀錄也會一併刪除。</p>
+
+    <div class="flex items-center gap-3 pt-4">
+        <a href="{% url 'administrative:irs_audit_notice_list' %}" class="bg-white hover:bg-slate-50 text-slate-700 font-medium py-2 px-6 border border-slate-300 rounded-lg transition-colors duration-150">取消</a>
+        <form method="post" action="{% url 'administrative:irs_audit_notice_delete' object.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors duration-150 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                確認刪除
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

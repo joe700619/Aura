@@ -20,3 +20,54 @@ def update_bookkeeping_client_convenience_bag_fields(sender, instance, **kwargs)
         
     # 只更新指定的欄位，避免覆蓋其他正在編輯的資訊
     client.save(update_fields=['last_convenience_bag_date', 'last_convenience_bag_qty'])
+
+@receiver(post_save, sender='bookkeeping.BookkeepingClient')
+def sync_client_portal_user(sender, instance, created, **kwargs):
+    """
+    當 BookkeepingClient 存檔時，自動建立或更新外部客戶登入的 User 帳號
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    # Needs a tax ID and a business password to act as an account
+    if not instance.tax_id or not instance.business_password:
+        return
+        
+    username = str(instance.tax_id).strip()
+    password = str(instance.business_password).strip()
+    
+    if not instance.user:
+        # Create a new User
+        try:
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                role='EXTERNAL',
+                first_name=instance.name[:30],
+                is_staff=False,
+                is_superuser=False,
+                email=instance.email or ''
+            )
+            # Use raw query or update to avoid triggering infinite recursion
+            type(instance).objects.filter(pk=instance.pk).update(user=user)
+        except Exception as e:
+            print(f"Failed to auto-create client portal user for {username}: {str(e)}")
+    else:
+        # User already exists, update username and password if they differ
+        user = instance.user
+        changed = False
+        
+        if user.username != username:
+            user.username = username
+            changed = True
+            
+        if not user.check_password(password):
+            user.set_password(password)
+            changed = True
+            
+        if user.first_name != instance.name[:30]:
+            user.first_name = instance.name[:30]
+            changed = True
+            
+        if changed:
+            user.save()

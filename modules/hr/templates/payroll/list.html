@@ -1,0 +1,75 @@
+{% extends 'components/list_view.html' %}
+{% block page_title %}薪資單{% endblock %}
+{% block header_title %}薪資單{% endblock %}
+{% block header_description %}檢視及產生每月薪資明細{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[{% for item in items %}{"id":{{ item.pk }},"category":"ALL","content":"{{ item.employee.name|escapejs }} {{ item.year_month|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block custom_bulk_actions %}{% endblock %}
+
+{% block extra_toolbar %}
+<!-- Batch Generate - 獨立區塊，不放在下拉選單內 -->
+<div class="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+    <form method="post" action="{% url 'hr:payroll_batch_generate' %}" class="flex items-center gap-2">
+        {% csrf_token %}
+        <span class="text-sm font-medium text-slate-700">批次產生新月份：</span>
+        <input type="text" name="year_month" placeholder="如 2026-03" class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-28" required>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors whitespace-nowrap">
+            自動產生當月草稿
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block filters %}
+<form method="get" class="flex items-center gap-3">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜尋員工..." class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-48">
+    <input type="text" name="year_month" value="{{ selected_year_month }}" placeholder="年月 (如 2026-03)" class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-36">
+    <select name="status" class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600">
+        <option value="draft" {% if selected_status == 'draft' %}selected{% endif %}>草稿</option>
+        <option value="finalized" {% if selected_status == 'finalized' %}selected{% endif %}>已確認</option>
+        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>全部狀態</option>
+    </select>
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
+    {% if q or selected_year_month or selected_status != 'draft' %}<a href="{% url 'hr:payroll_list' %}?status=draft" class="text-sm text-slate-500 hover:text-slate-700">清除</a>{% endif %}
+</form>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">員工</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">年月</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">出勤</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">應發</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">加班費</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">實發</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in items %}
+<tr class="hover:bg-slate-50 transition duration-150" x-show="matches('ALL','{{ item.employee.name|escapejs }} {{ item.year_month|escapejs }}')" :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.employee.name }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-600">{{ item.year_month }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-600">{{ item.work_days_actual }}/{{ item.work_days_required }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-mono text-slate-700">${{ item.gross_salary|floatformat:0 }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-mono text-blue-600">${{ item.overtime_pay|floatformat:0 }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-mono font-bold text-green-600">${{ item.net_salary|floatformat:0 }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.is_finalized %}<span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">已確認</span>
+        {% else %}<span class="px-2 py-1 text-xs rounded-full font-semibold bg-amber-100 text-amber-700">草稿</span>{% endif %}
+    </td>
+    {% include "components/row_actions.html" with update_url='hr:payroll_update' delete_url='hr:payroll_delete' pk=item.pk %}
+</tr>
+{% empty %}
+<tr><td colspan="9" class="px-6 py-8 text-center text-slate-500">目前沒有薪資單</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}{% include "components/export_modal.html" %}{% include "components/email_sidebar.html" %}{% include "components/line_sidebar.html" %}{% endblock %}

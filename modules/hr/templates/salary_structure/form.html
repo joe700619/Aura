@@ -1,0 +1,118 @@
+{% extends 'components/form_view.html' %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-6">
+    <!-- 1. 薪資設定 (本薪與津貼) -->
+    <div class="space-y-4">
+        <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+            <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">薪資設定</h4>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+            {{ form.employee }}{{ form.employee.errors }}
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">底薪</label>{{ form.base_salary }}{{ form.base_salary.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">伙食津貼</label>{{ form.meal_allowance }}{{ form.meal_allowance.errors }}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">交通津貼</label>{{ form.transport_allowance }}{{ form.transport_allowance.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">其他津貼</label>{{ form.other_allowance }}{{ form.other_allowance.errors }}</div>
+        </div>
+    </div>
+
+    <!-- 投保級距選擇列 -->
+    <div class="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mt-6 relative" x-data="{ brackets: [], selectedBracket: '' }" x-init="
+        fetch('{% url "hr:insurance_brackets_api" %}')
+            .then(res => res.json())
+            .then(data => brackets = data);
+        
+        $watch('selectedBracket', value => {
+            if(!value) return;
+            const b = brackets.find(x => x.id == value);
+            if(b) {
+                document.getElementById('{{ form.labor_insurance.id_for_label }}').value = b.labor_employee;
+                document.getElementById('{{ form.health_insurance.id_for_label }}').value = b.health_employee;
+                
+                document.getElementById('{{ form.labor_insurance_employer.id_for_label }}').value = b.labor_employer;
+                document.getElementById('{{ form.health_insurance_employer.id_for_label }}').value = b.health_employer;
+                document.getElementById('{{ form.pension_employer.id_for_label }}').value = b.pension_employer;
+                document.getElementById('{{ form.occupational_hazard_employer.id_for_label }}').value = b.occupational_hazard;
+                document.getElementById('{{ form.wage_arrears_employer.id_for_label }}').value = b.wage_arrears;
+                
+                // 視覺提示已自動帶入
+                const inputs = [
+                    '{{ form.labor_insurance.id_for_label }}', '{{ form.health_insurance.id_for_label }}',
+                    '{{ form.labor_insurance_employer.id_for_label }}', '{{ form.health_insurance_employer.id_for_label }}',
+                    '{{ form.pension_employer.id_for_label }}', '{{ form.occupational_hazard_employer.id_for_label }}', '{{ form.wage_arrears_employer.id_for_label }}'
+                ];
+                inputs.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                        el.classList.add('ring-2', 'ring-green-400', 'bg-green-50');
+                        setTimeout(() => el.classList.remove('ring-2', 'ring-green-400', 'bg-green-50'), 1500);
+                    }
+                });
+            }
+        });
+    ">
+        <label class="block text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            快速帶入：選擇投保級距
+        </label>
+        <select x-model="selectedBracket" class="w-full px-3 py-2 border border-blue-200 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm bg-white cursor-pointer">
+            <option value="">-- 自行手動輸入 / 選擇級距自動帶入 --</option>
+            <template x-for="b in brackets" :key="b.id">
+                <option :value="b.id" x-text="`${b.level_name} - 投保薪資: $${b.insured_salary} (勞保自付 $${b.labor_employee} / 健保自付 $${b.health_employee})`"></option>
+            </template>
+        </select>
+        <p class="text-xs text-blue-600 mt-1.5">選擇後將自動填寫下方「員工自付」與「雇主負擔」共 7 個欄位。</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-8">
+        <!-- 2. 勞健保與扣除額 (員工自付) -->
+        <div class="space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2 w-full">
+                <div class="w-1 h-4 bg-indigo-500 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">勞健保 (員工自付額)</h4>
+            </div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">勞保自付額</label>{{ form.labor_insurance }}{{ form.labor_insurance.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">健保自付額</label>{{ form.health_insurance }}{{ form.health_insurance.errors }}</div>
+        </div>
+
+        <!-- 3. 雇主負擔與勞退 -->
+        <div class="space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2 w-full">
+                <div class="w-1 h-4 bg-teal-500 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">公司雇主負擔</h4>
+            </div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">勞保費_雇主負擔</label>{{ form.labor_insurance_employer }}{{ form.labor_insurance_employer.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">健保費_雇主負擔</label>{{ form.health_insurance_employer }}{{ form.health_insurance_employer.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">退休金_雇主負擔</label>{{ form.pension_employer }}{{ form.pension_employer.errors }}</div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium text-slate-700 mb-1">職災</label>{{ form.occupational_hazard_employer }}{{ form.occupational_hazard_employer.errors }}</div>
+                <div><label class="block text-sm font-medium text-slate-700 mb-1">工資墊償金</label>{{ form.wage_arrears_employer }}{{ form.wage_arrears_employer.errors }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 其他設定 -->
+    <div class="space-y-4 pt-4 border-t border-slate-100">
+        <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+            <div class="w-1 h-4 bg-slate-400 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">其他設定</h4>
+        </div>
+        <div class="grid grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">生效日期</label>{{ form.effective_date }}{{ form.effective_date.errors }}</div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">目前生效</label>{{ form.is_current }}{{ form.is_current.errors }}</div>
+        </div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">備註</label>{{ form.note }}{{ form.note.errors }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block toolbar_nav %}{{ block.super }}
+<a href="{% url 'hr:salary_structure_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}

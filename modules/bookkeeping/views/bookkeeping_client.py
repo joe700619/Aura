@@ -68,6 +68,10 @@ def _get_common_context(context, form, obj=None, request=None):
         BookkeepingClient.ReceiveInvoiceMethod.choices,
         form['receive_invoice_method'].value() if 'receive_invoice_method' in form else None,
     )
+    context['client_source_options'] = _build_select_options(
+        BookkeepingClient.ClientSource.choices,
+        form['client_source'].value() if 'client_source' in form else None,
+    )
     context['employees'] = Employee.objects.filter(is_active=True).order_by('name')
     context['invoice_type_choices'] = GroupInvoice.InvoiceType.choices
 
@@ -103,7 +107,8 @@ BOOKKEEPING_CLIENT_FIELDS = [
     'send_invoice_method', 'send_merged_client_name',
     'receive_invoice_method', 'receive_merged_client_name',
     'last_convenience_bag_date', 'last_convenience_bag_qty',
-    'notes', 'cost_sharing_data',
+    'notes', 'cost_sharing_data', 'client_source', 'contact_date', 'transfer_checklist',
+    'business_password', 'e_invoice_account', 'e_invoice_password',
 ]
 
 

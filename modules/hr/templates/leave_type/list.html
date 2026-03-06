@@ -1,0 +1,67 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}假別設定{% endblock %}
+{% block header_title %}假別設定{% endblock %}
+{% block header_description %}管理各種假別的名稱、有薪/無薪、年度上限{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.code|escapejs }} {{ item.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">代碼</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">假別名稱</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">有薪</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">年度上限(h)</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">需附證明</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in items %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('ALL', '{{ item.code|escapejs }} {{ item.name|escapejs }}')"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-mono text-slate-600">{{ item.code }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.name }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.is_paid %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">有薪</span>
+        {% else %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-slate-100 text-slate-500">無薪</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-700">
+        {{ item.max_hours_per_year|default:"無上限" }}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.requires_doc %}
+        <span class="text-amber-500">✓</span>
+        {% else %}
+        <span class="text-slate-300">-</span>
+        {% endif %}
+    </td>
+    {% include "components/row_actions.html" with update_url='hr:leave_type_update' delete_url='hr:leave_type_delete' pk=item.pk %}
+</tr>
+{% empty %}
+<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">目前沒有假別設定</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}

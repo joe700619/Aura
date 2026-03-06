@@ -1,0 +1,58 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">餘額設定</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.employee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+        {{ form.employee }}
+        {{ form.employee.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label for="{{ form.leave_type.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">假別</label>
+            {{ form.leave_type }}
+            {{ form.leave_type.errors }}
+        </div>
+        <div>
+            <label for="{{ form.year.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">年度</label>
+            {{ form.year }}
+            {{ form.year.errors }}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label for="{{ form.entitled_hours.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">應有時數</label>
+            {{ form.entitled_hours }}
+            {{ form.entitled_hours.errors }}
+        </div>
+        <div>
+            <label for="{{ form.used_hours.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">已使用時數</label>
+            {{ form.used_hours }}
+            {{ form.used_hours.errors }}
+            <p class="mt-1 text-xs text-slate-500">此欄位由請假單自動累計</p>
+        </div>
+    </div>
+
+    <div>
+        <label for="{{ form.manually_granted.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">人工給假</label>
+        {{ form.manually_granted }}
+        {{ form.manually_granted.errors }}
+        <p class="mt-1 text-xs text-slate-500">例如喪假等由管理員手動給予的假期</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'hr:leave_balance_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'components/list_view.html' %}
+{% load humanize %}
+
+{% block page_title %}出勤紀錄{% endblock %}
+{% block header_title %}出勤紀錄{% endblock %}
+{% block header_description %}管理員工打卡與補卡紀錄{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "{{ item.source|escapejs }}",
+        "content": "{{ item.employee.name|escapejs }} {{ item.date|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block filters %}
+<form method="get" class="flex flex-wrap items-center gap-3">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜尋員工姓名..."
+        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-48">
+    <input type="date" name="date_from" value="{{ date_from }}"
+        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600">
+    <span class="text-slate-400 text-sm">至</span>
+    <input type="date" name="date_to" value="{{ date_to }}"
+        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600">
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
+    {% if q or date_from or date_to %}
+    <a href="{% url 'hr:attendance_list' %}" class="text-sm text-slate-500 hover:text-slate-700">清除</a>
+    {% endif %}
+</form>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">員工</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">上班</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">下班</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">來源</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in items %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('{{ item.source|escapejs }}', '{{ item.employee.name|escapejs }} {{ item.date|escapejs }}')"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+        {{ item.employee.employee_number }} - {{ item.employee.name }}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600">{{ item.date|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm">
+        {% if item.clock_in %}
+        <span class="text-green-600">{{ item.clock_in|time:"H:i" }}</span>
+        {% else %}
+        <span class="text-slate-300">-</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm">
+        {% if item.clock_out %}
+        <span class="text-blue-600">{{ item.clock_out|time:"H:i" }}</span>
+        {% else %}
+        <span class="text-slate-300">-</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.source == 'web' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-blue-100 text-blue-700">網頁</span>
+        {% elif item.source == 'line' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">Line</span>
+        {% elif item.source == 'makeup' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-amber-100 text-amber-700">補卡</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.clock_in and item.clock_out %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">正常</span>
+        {% elif item.clock_in or item.clock_out %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-yellow-100 text-yellow-700">缺卡</span>
+        {% else %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-red-100 text-red-700">未出勤</span>
+        {% endif %}
+    </td>
+    {% include "components/row_actions.html" with update_url='hr:attendance_update' delete_url='hr:attendance_delete' pk=item.pk %}
+</tr>
+{% empty %}
+<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">目前沒有出勤紀錄</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}

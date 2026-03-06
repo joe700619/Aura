@@ -32,6 +32,7 @@ class EmployeeForm(forms.ModelForm):
             'hire_date',
             'resignation_date',
             'team',
+            'supervisor',
         ]
         widgets = {
             'user': forms.Select(attrs={
@@ -81,6 +82,9 @@ class EmployeeForm(forms.ModelForm):
                 'type': 'date'
             }),
             'team': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
+            }),
+            'supervisor': forms.Select(attrs={
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'
             }),
         }

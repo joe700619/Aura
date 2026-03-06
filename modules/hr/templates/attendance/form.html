@@ -1,0 +1,71 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">出勤資料</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.employee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+        {{ form.employee }}
+        {{ form.employee.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">出勤日期</label>
+        {{ form.date }}
+        {{ form.date.errors }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label for="{{ form.clock_in.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">上班打卡</label>
+            {{ form.clock_in }}
+            {{ form.clock_in.errors }}
+        </div>
+        <div>
+            <label for="{{ form.clock_out.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">下班打卡</label>
+            {{ form.clock_out }}
+            {{ form.clock_out.errors }}
+        </div>
+    </div>
+
+    <div>
+        <label for="{{ form.source.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">打卡來源</label>
+        {{ form.source }}
+        {{ form.source.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-amber-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">補卡資訊</h4>
+    </div>
+
+    <div>
+        <label for="{{ form.makeup_reason.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">補卡事由</label>
+        {{ form.makeup_reason }}
+        {{ form.makeup_reason.errors }}
+        <p class="mt-1 text-xs text-slate-500">打卡來源為「補卡」時必須填寫</p>
+    </div>
+
+    <div>
+        <label for="{{ form.note.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">備註</label>
+        {{ form.note }}
+        {{ form.note.errors }}
+    </div>
+</div>
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'hr:attendance_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
+{% endblock %}

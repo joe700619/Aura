@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ client.name }} | 客戶服務中心</title>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% load tailwind_tags %}
+    {% tailwind_css %}
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900 flex flex-col min-h-screen">
+    
+    <!-- Navbar -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <a href="{% url 'client_portal:dashboard' %}" class="flex items-center gap-2 font-bold text-xl tracking-wide shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-300" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.496 2.132a1 1 0 00-.992 0l-7 4A1 1 0 003 8v7a2 2 0 002 2h10a2 2 0 002-2V8a1 1 0 00-.504-.868l-7-4zM6 9a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1zm3 1a1 1 0 012 0v3a1 1 0 11-2 0v-3zm5-1a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    Aura 稅務中心
+                </a>
+                
+                <nav class="hidden md:flex items-center gap-1 font-medium text-sm">
+                    <a href="{% url 'client_portal:dashboard' %}" 
+                       class="px-3 py-2 rounded-md hover:bg-indigo-600 hover:text-white transition-colors
+                       {% if request.resolver_match.url_name == 'dashboard' %}bg-indigo-800 text-white{% else %}text-indigo-100{% endif %}">
+                        首頁儀表板
+                    </a>
+                    <a href="{% url 'client_portal:vat_documents' %}" 
+                       class="px-3 py-2 rounded-md hover:bg-indigo-600 hover:text-white transition-colors
+                       {% if request.resolver_match.url_name == 'vat_documents' %}bg-indigo-800 text-white{% else %}text-indigo-100{% endif %}">
+                        稅務文件中心
+                    </a>
+                </nav>
+            </div>
+
+            <!-- User Menu & Logout -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-2 py-1.5 rounded-md">
+                    <div class="w-8 h-8 rounded-full bg-indigo-500 font-bold flex items-center justify-center text-sm shadow-inner text-white">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                    <span class="text-sm font-medium hidden sm:block text-indigo-50">{{ client.name }}</span>
+                </div>
+                
+                <form action="{% url 'client_portal:logout' %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-100 hover:text-white hover:bg-indigo-600 rounded-md transition-colors border border-transparent hover:border-indigo-500 w-full text-left">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        登出系統
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center text-sm text-slate-500 gap-4">
+            <p>&copy; 2026 Aura 會計師事務所. All rights reserved.</p>
+            <div class="flex items-center gap-4">
+                <a href="#" class="hover:text-indigo-600 transition-colors">聯絡我們</a>
+                <a href="#" class="hover:text-indigo-600 transition-colors">隱私權政策</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

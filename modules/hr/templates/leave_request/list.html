@@ -1,0 +1,86 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}請假管理{% endblock %}
+{% block header_title %}請假管理{% endblock %}
+{% block header_description %}管理員工請假申請{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "{{ item.status|escapejs }}",
+        "content": "{{ item.employee.name|escapejs }} {{ item.leave_type.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block filters %}
+<form method="get" class="flex flex-wrap items-center gap-3">
+    <input type="text" name="q" value="{{ q }}" placeholder="搜尋員工姓名..."
+        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-48">
+    <select name="status" onchange="this.form.submit()"
+        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600">
+        <option value="">全部狀態</option>
+        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>待審核</option>
+        <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>已核准</option>
+        <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>已駁回</option>
+        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>已取消</option>
+    </select>
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
+    {% if q or selected_status %}
+    <a href="{% url 'hr:leave_request_list' %}" class="text-sm text-slate-500 hover:text-slate-700">清除</a>
+    {% endif %}
+</form>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">員工</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">假別</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">開始</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">結束</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">時數</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in items %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('{{ item.status|escapejs }}', '{{ item.employee.name|escapejs }} {{ item.leave_type.name|escapejs }}')"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.employee.name }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-700">
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-purple-100 text-purple-700">{{ item.leave_type.name }}</span>
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-600">{{ item.start_datetime|date:"m/d H:i" }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono text-slate-600">{{ item.end_datetime|date:"m/d H:i" }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-mono font-bold text-blue-600">{{ item.total_hours }}h</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+        {% if item.status == 'pending' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-amber-100 text-amber-700">待審核</span>
+        {% elif item.status == 'approved' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">已核准</span>
+        {% elif item.status == 'rejected' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-red-100 text-red-700">已駁回</span>
+        {% elif item.status == 'cancelled' %}
+        <span class="px-2 py-1 text-xs rounded-full font-semibold bg-slate-100 text-slate-500">已取消</span>
+        {% endif %}
+    </td>
+    {% include "components/row_actions.html" with update_url='hr:leave_request_update' delete_url='hr:leave_request_delete' pk=item.pk %}
+</tr>
+{% empty %}
+<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">目前沒有請假紀錄</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}
