@@ -93,6 +93,10 @@
     {% endfor %}
 {% endblock %}
 
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}
+
 {% block metadata_json %}
 [
     {% for item in items %}

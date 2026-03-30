@@ -167,3 +167,98 @@ class ReceivableTransferService:
         progress.save(update_fields=['is_posted'])
         
         return voucher
+
+    @staticmethod
+    @transaction.atomic
+    def generate_voucher_for_bill(bill, user):
+        """
+        Generates a Voucher and associated VoucherDetails from a ClientBill.
+        Mapping rules for billing:
+        - Total Service Fees (items not starting with 8 or 9) -> Cr 400002 記帳收入
+        - Total Advance Payments (items starting with 9) -> Cr 613202 發票及郵資
+        - Uncollected Total (Balance) -> Dr 1123 應收帳款
+        """
+        if not bill.quotation_data:
+            raise ValueError("無帳單明細資料，無法產生傳票")
+
+        company_vat = bill.client.tax_id or ''
+
+        # Required accounts
+        account_mapping = {
+            '400002': '記帳收入',
+            '613202': '發票及郵資',
+            '1123': '應收帳款',
+        }
+        
+        accounts = {code: Account.objects.filter(code=code).first() for code in account_mapping.keys()}
+        missing_accounts = [code for code, acc in accounts.items() if not acc]
+        if missing_accounts:
+            raise ValueError(f"系統缺少必要的會計科目代碼：{', '.join(missing_accounts)}，請先至會計科目管理新增。")
+
+        service_fee_total = 0
+        advance_payment_total = 0
+        
+        # Calculate totals
+        for item in bill.quotation_data:
+            if not isinstance(item, dict):
+                continue
+                
+            service_name = str(item.get('service_name', '')).strip()
+            amount = float(item.get('amount', 0))
+
+            if not service_name or amount <= 0:
+                continue
+
+            if service_name.startswith('9'):
+                advance_payment_total += amount
+            elif not service_name.startswith('8'):
+                service_fee_total += amount
+
+        entries = []
+        
+        if service_fee_total > 0:
+            entries.append({'type': 'credit', 'account': accounts['400002'], 'amount': service_fee_total, 'remark': '服務費用合計'})
+            
+        if advance_payment_total > 0:
+            entries.append({'type': 'credit', 'account': accounts['613202'], 'amount': advance_payment_total, 'remark': '代墊款合計'})
+            
+        uncollected_total = service_fee_total + advance_payment_total
+        if uncollected_total > 0:
+            entries.append({'type': 'debit', 'account': accounts['1123'], 'amount': uncollected_total, 'remark': '未收款合計'})
+
+        if not entries:
+            return None
+
+        # Create the Voucher
+        today = timezone.now().date()
+        today_str = today.strftime('%Y%m%d')
+        count = Voucher.objects.filter(date=today).count() + 1
+        voucher_no = f'VOU-{today_str}-{count:03d}'
+
+        voucher = Voucher.objects.create(
+            date=today,
+            voucher_no=voucher_no,
+            description=f"帳單過帳: {bill.client.name} ({bill.bill_no})",
+            status=Voucher.Status.DRAFT,
+            source=Voucher.Source.SYSTEM,
+            created_by=user
+        )
+
+        for entry in entries:
+            company_id = ''
+            if entry['account'].auxiliary_type == 'PARTNER':
+                company_id = company_vat
+
+            VoucherDetail.objects.create(
+                voucher=voucher,
+                account=entry['account'],
+                debit=entry['amount'] if entry['type'] == 'debit' else 0,
+                credit=entry['amount'] if entry['type'] == 'credit' else 0,
+                company_id=company_id,
+                remark=entry['remark']
+            )
+        
+        bill.is_posted = True
+        bill.save(update_fields=['is_posted'])
+        
+        return voucher

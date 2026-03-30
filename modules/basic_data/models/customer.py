@@ -38,6 +38,7 @@ class Customer(BaseModel):
 
     # 三、聯絡人資訊 (預留)
     contact_person = models.CharField(max_length=50, blank=True, null=True, verbose_name="聯絡人 (預留)")
+    notes = models.TextField(blank=True, null=True, verbose_name="備註")
 
     class Meta:
         verbose_name = "客戶資料"

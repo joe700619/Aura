@@ -1,5 +1,5 @@
 from django.urls import path
-from modules.bookkeeping.views import VATListView, IncomeTaxListView
+from modules.bookkeeping.views import VATListView, IncomeTaxListView, IndustryTaxRateListView
 from modules.bookkeeping.views.bookkeeping_client import (
     BookkeepingClientListView,
     BookkeepingClientCreateView,
@@ -20,7 +20,11 @@ from modules.bookkeeping.views.business_tax import BusinessTaxListView
 from modules.bookkeeping.views.business_tax_detail import BusinessTaxDetailView, AddBusinessTaxYearView, SaveTaxSettingsView
 from modules.bookkeeping.views.business_tax_period import TaxFilingPeriodDetailView
 from modules.bookkeeping.views.business_tax_progress import BusinessTaxProgressView
-from modules.bookkeeping.views.vat_views import SendVATNotificationView, VATConfirmView
+from modules.bookkeeping.views.vat_views import SendVATNotificationView, VATConfirmView, CheckOutstandingReceivablesAPI
+from modules.bookkeeping.views.progress_views import (
+    ProgressListView, ProgressDetailView, AddProgressYearView, ProgressPeriodDetailView,
+    ProgressTrackerView, RunExpertSystemView, SaveExpertRuleSettingsView
+)
 from modules.bookkeeping.views.income_tax_detail import (
     IncomeTaxClientDetailView,
     AddIncomeTaxYearView,
@@ -30,6 +34,14 @@ from modules.bookkeeping.views.provisional_tax import ProvisionalTaxDetailView
 from modules.bookkeeping.views.dividend_tax import DividendTaxDetailView, ImportShareholdersView
 from modules.bookkeeping.views.withholding_tax import WithholdingTaxDetailView
 from modules.bookkeeping.views.income_tax_filing import IncomeTaxFilingDetailView
+from modules.bookkeeping.views.bill_views import (
+    ClientBillListView, ClientBillCreateView,
+    ClientBillUpdateView, ClientBillDeleteView, ClientBillTransferView,
+    FetchUnbilledAdvancePaymentsView, BookkeepingClientSearchView,
+    GenerateBillPaymentLinkView,
+)
+from modules.bookkeeping.views.corporate_tax import CorporateTaxDraftAPIView, ImportCorporateTaxExcelAPIView
+from modules.bookkeeping.views.api_rates import FetchIndustryRatesApiView
 
 app_name = 'bookkeeping'
 
@@ -58,8 +70,18 @@ urlpatterns = [
     path('business-tax/<int:pk>/save-settings/', SaveTaxSettingsView.as_view(), name='business_tax_save_settings'),
     path('business-tax/<int:client_pk>/period/<int:pk>/', TaxFilingPeriodDetailView.as_view(), name='business_tax_period_detail'),
     path('business-tax/<int:client_pk>/period/<int:pk>/send-notification/', SendVATNotificationView.as_view(), name='vat_send_notification'),
+    path('business-tax/<int:client_pk>/check-receivables/', CheckOutstandingReceivablesAPI.as_view(), name='api_check_receivables'),
     # Public (no login) VAT payment confirmation callback
     path('vat/confirm/<uuid:token>/', VATConfirmView.as_view(), name='vat_confirm'),
+
+    # 記帳進度表
+    path('progress/', ProgressListView.as_view(), name='progress_list'),
+    path('progress/tracker/', ProgressTrackerView.as_view(), name='progress_tracker'),
+    path('progress/<int:pk>/', ProgressDetailView.as_view(), name='progress_detail'),
+    path('progress/<int:client_pk>/save-expert-settings/', SaveExpertRuleSettingsView.as_view(), name='progress_save_expert_settings'),
+    path('progress/<int:pk>/add-year/', AddProgressYearView.as_view(), name='progress_add_year'),
+    path('progress/<int:client_pk>/period/<int:pk>/', ProgressPeriodDetailView.as_view(), name='progress_period_detail'),
+    path('progress/<int:client_pk>/period/<int:pk>/run-expert/', RunExpertSystemView.as_view(), name='progress_run_expert'),
 
     # 所得稅申報
     path('income-tax/', IncomeTaxListView.as_view(), name='income_tax_list'),
@@ -71,5 +93,22 @@ urlpatterns = [
     path('income-tax/<int:client_pk>/dividend/<int:pk>/import-shareholders/', ImportShareholdersView.as_view(), name='import_shareholders'),
     path('income-tax/<int:client_pk>/withholding/<int:pk>/', WithholdingTaxDetailView.as_view(), name='withholding_tax_detail'),
     path('income-tax/<int:client_pk>/filing/<int:pk>/', IncomeTaxFilingDetailView.as_view(), name='income_tax_filing_detail'),
-]
 
+    # 客戶帳單系統
+    path('bills/', ClientBillListView.as_view(), name='bill_list'),
+    path('bills/add/', ClientBillCreateView.as_view(), name='bill_create'),
+    path('bills/<int:pk>/edit/', ClientBillUpdateView.as_view(), name='bill_update'),
+    path('bills/<int:pk>/delete/', ClientBillDeleteView.as_view(), name='bill_delete'),
+    path('bills/<int:pk>/transfer/', ClientBillTransferView.as_view(), name='bill_transfer'),
+    path('bills/<int:pk>/generate-payment-link/', GenerateBillPaymentLinkView.as_view(), name='bill_generate_payment_link'),
+    
+    # API
+    path('api/unbilled-advance-payments/<int:client_pk>/', FetchUnbilledAdvancePaymentsView.as_view(), name='api_unbilled_advance_payments'),
+    path('api/clients/search/', BookkeepingClientSearchView.as_view(), name='api_client_search'),
+    path('api/corporate-tax/<int:year_id>/', CorporateTaxDraftAPIView.as_view(), name='api_corporate_tax_draft'),
+    path('api/corporate-tax/<int:year_id>/import/', ImportCorporateTaxExcelAPIView.as_view(), name='api_corporate_tax_import'),
+    path('api/industry-rates/fetch/', FetchIndustryRatesApiView.as_view(), name='api_industry_rates_fetch'),
+
+    # Industry Tax Rates (Master Data)
+    path('industry-tax-rates/', IndustryTaxRateListView.as_view(), name='industry_tax_rate_list'),
+]

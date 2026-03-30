@@ -1,0 +1,512 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}
+{% if object %}編輯帳單 - {{ object.bill_no }}{% else %}新增帳單{% endif %}
+{% endblock %}
+
+{% block toolbar_actions %}
+{{ block.super }}
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'bookkeeping:bill_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<!-- Card 1: 帳單基本資料 -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">帳單資訊</h4>
+    </div>
+
+    {% if object %}
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">帳單編號</label>
+        <input type="text" value="{{ object.bill_no }}" readonly
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-600 cursor-not-allowed text-sm">
+    </div>
+    {% endif %}
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">客戶 <span class="text-red-500">*</span></label>
+        <div class="relative">
+            <input type="text" id="id_client_display" readonly
+                value="{% if object.client %}{{ object.client.name }}{% if object.client.tax_id %} ({{ object.client.tax_id }}){% endif %}{% endif %}"
+                placeholder="點擊搜尋記帳客戶..."
+                class="w-full px-3 py-2 border border-slate-300 rounded-md bg-white text-slate-700 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onclick="window.dispatchEvent(new CustomEvent('open-client-modal'))">
+            <button type="button"
+                onclick="window.dispatchEvent(new CustomEvent('open-client-modal'))"
+                class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-blue-500">
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+        <input type="hidden" name="{{ form.client.name }}" id="id_client" value="{{ form.client.value|default:'' }}">
+        {% if form.client.errors %}<p class="text-sm text-red-600 mt-1">{{ form.client.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="id_year">年度 <span class="text-red-500">*</span></label>
+            <input type="number" name="{{ form.year.name }}" id="id_year" value="{{ form.year.value|default:'' }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="例：2026">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="id_month">月份 <span class="text-red-500">*</span></label>
+            <input type="number" name="{{ form.month.name }}" id="id_month" value="{{ form.month.value|default:'' }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="1-12" min="1" max="12">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<!-- Card 2: 日期 & 狀態 -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">日期與狀態</h4>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">開立日期</label>
+            <input type="date" name="{{ form.bill_date.name }}" value="{{ form.bill_date.value|date:'Y-m-d'|default:'' }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">應繳日期</label>
+            <input type="date" name="{{ form.due_date.name }}" value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">狀態</label>
+        <div class="w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 font-medium text-sm cursor-not-allowed">
+            {% for val, label in status_choices %}
+                {% if form.status.value|default:'draft' == val %}{{ label }}{% endif %}
+            {% endfor %}
+        </div>
+        <input type="hidden" name="{{ form.status.name }}" value="{{ form.status.value|default:'draft' }}">
+    </div>
+
+    <div class="pt-3 border-t border-slate-100">
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">合計金額</span>
+            <span class="text-2xl font-bold text-emerald-700">NT$ <span id="display_total_amount">{{ object.total_amount|default:0|floatformat:0 }}</span></span>
+            <input type="hidden" name="total_amount" id="id_total_amount" value="{{ object.total_amount|default:0 }}">
+        </div>
+    </div>
+    
+    <div class="pt-4 mt-6 border-t-2 border-slate-200">
+        <label for="{{ form.is_posted.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-2">傳票與應收帳款過帳</label>
+        
+        {% if object.pk %}
+            {% if object.is_posted %}
+            <div class="px-3 py-2 bg-slate-100 border border-slate-200 rounded-md flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span class="text-sm text-slate-500 font-medium">此帳單已經過過帳處理，無法重複拋轉。</span>
+                {{ form.is_posted.as_hidden }}
+            </div>
+            {% else %}
+            <div class="flex flex-col gap-3 bg-blue-50/50 p-3 rounded-md border border-blue-100">
+                <div class="flex items-start gap-2">
+                    <div class="flex items-center h-5 mt-0.5">
+                        {{ form.is_posted }}
+                    </div>
+                    <div class="text-sm flex-1">
+                        <span class="font-bold text-slate-700 block">確認並過帳？</span>
+                        <span class="text-slate-500 text-xs">勾選後「儲存」表單，將自動拋轉至「應收帳款」並產生「會計傳票」。</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="button" onclick="validateAndOpenVoucherModal()"
+                        class="inline-flex items-center px-3 py-1.5 border hover:border-blue-600 hover:text-blue-600 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md text-sm font-bold transition-colors">
+                        <svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        預覽傳票項目
+                    </button>
+                </div>
+            </div>
+            {{ form.is_posted.errors }}
+            {% endif %}
+        {% else %}
+            <div class="px-3 py-2 bg-slate-50 border-l-4 border-amber-400 text-amber-700 text-sm rounded-r-md">
+                請先建立並儲存帳單，即可啟用預覽與過帳功能。
+                {{ form.is_posted.as_hidden }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<!-- Card 3: 客戶資訊（選客戶後自動帶入） -->
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">其他</h4>
+        <span class="text-xs text-slate-400 italic ml-1">選擇客戶後自動帶入</span>
+    </div>
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">記帳助理</label>
+            <input type="text" id="display_bookkeeping_assistant" readonly
+                value="{% if object.client.bookkeeping_assistant %}{{ object.client.bookkeeping_assistant.name }}{% endif %}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">集團助理</label>
+            <input type="text" id="display_group_assistant" readonly
+                value="{% if object.client.group_assistant %}{{ object.client.group_assistant.name }}{% endif %}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>       
+    </div>
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">收費週期</label>
+            <input type="text" id="display_billing_cycle" readonly
+                value="{% if client_service_fee %}{{ client_service_fee.get_billing_cycle_display }}{% endif %}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">服務費用</label>
+            <input type="text" id="display_service_fee" readonly
+                value="{% if client_service_fee %}NT$ {{ client_service_fee.service_fee|floatformat:0 }}{% endif %}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>
+    </div>
+
+    {% if object %}
+    <div class="pt-2">
+        <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+            <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">第三方支付</h4>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+            <button type="button" id="btn-generate-payment-link"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition-colors">
+                取得第三方支付連結
+            </button>
+            <div id="payment-link-result" class="hidden flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="payment-link-url" readonly
+                        class="flex-1 min-w-0 px-3 py-2 border border-green-300 bg-green-50 rounded-md text-sm text-slate-700">
+                    <button type="button" id="btn-copy-payment-link"
+                        class="shrink-0 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-sm rounded-md transition-colors">
+                        複製
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script>
+        (function () {
+            const btn = document.getElementById('btn-generate-payment-link');
+            const result = document.getElementById('payment-link-result');
+            const urlInput = document.getElementById('payment-link-url');
+            const copyBtn = document.getElementById('btn-copy-payment-link');
+
+            btn.addEventListener('click', function () {
+                btn.disabled = true;
+                btn.textContent = '產生中…';
+                const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+                fetch('{% url "bookkeeping:bill_generate_payment_link" object.pk %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        urlInput.value = data.url;
+                        result.classList.remove('hidden');
+                    }
+                    btn.textContent = '重新產生';
+                    btn.disabled = false;
+                })
+                .catch(() => {
+                    alert('產生失敗，請確認 ECPay 系統設定是否完整。');
+                    btn.textContent = '取得第三方支付連結';
+                    btn.disabled = false;
+                });
+            });
+
+            copyBtn.addEventListener('click', function () {
+                navigator.clipboard.writeText(urlInput.value).then(() => {
+                    copyBtn.textContent = '已複製！';
+                    setTimeout(() => { copyBtn.textContent = '複製'; }, 2000);
+                });
+            });
+        })();
+        </script>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block form_bottom_block %}
+<div class="space-y-4">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+        <div class="w-1 h-4 bg-slate-500 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">備註</h4>
+    </div>
+    <div>
+        <textarea name="{{ form.notes.name }}" rows="3"
+            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+            placeholder="帳單備註">{{ form.notes.value|default:'' }}</textarea>
+    <input type="hidden" name="items-TOTAL_FORMS" id="id_items-TOTAL_FORMS" value="0">
+    <input type="hidden" name="items-INITIAL_FORMS" id="id_items-INITIAL_FORMS" value="0">
+    <input type="hidden" name="items-MIN_NUM_FORMS" id="id_items-MIN_NUM_FORMS" value="0">
+    <input type="hidden" name="items-MAX_NUM_FORMS" id="id_items-MAX_NUM_FORMS" value="1000">
+    {{ form.quotation_data }}
+    {{ form.cost_sharing_data }}
+    {{ form.advance_payment_data }}
+</div>
+
+<script>
+    function updateBillTotals() {
+        let rootTotal = 0;
+        
+        let qTotal = 0;
+        try {
+            const qData = JSON.parse(document.getElementById('id_quotation_data').value || '[]');
+            qTotal = qData.reduce((sum, item) => sum + (parseInt(item.amount) || 0), 0);
+        } catch(e) {}
+        
+        let aTotal = 0;
+        try {
+            const aData = JSON.parse(document.getElementById('id_advance_payment_data').value || '[]');
+            aTotal = aData.reduce((sum, item) => sum + (parseInt(item.amount) || 0), 0);
+        } catch(e) {}
+        
+        rootTotal = qTotal + aTotal;
+        
+        const rootTotalInput = document.getElementById('id_total_amount');
+        if (rootTotalInput) {
+            rootTotalInput.value = rootTotal;
+        }
+        const rootTotalDisplay = document.getElementById('display_total_amount');
+        if (rootTotalDisplay) {
+            rootTotalDisplay.innerText = rootTotal.toLocaleString('en-US');
+        }
+    }
+
+</script>
+{% endblock %}
+
+{% block initial_tab %}tab_quotation{% endblock %}
+
+{% block tabs_header %}
+<button type="button" @click="activeTab = 'tab_quotation'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_quotation'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    帳單明細
+</button>
+
+<button type="button" @click="activeTab = 'tab_cost_sharing'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_cost_sharing'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    公費分攤
+</button>
+
+<!-- Tab 4: 代墊款明細 -->
+<button type="button" @click="activeTab = 'tab_advance_payment'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200"
+    :class="activeTab === 'tab_advance_payment' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    代墊款明細
+</button>
+{% endblock %}
+
+{% block tabs_content %}
+<!-- Tab: Quotation -->
+<div x-show="activeTab === 'tab_quotation'" x-cloak class="py-4">
+    {% include "components/quotation_table.html" %}
+</div>
+
+<!-- Tab: Cost Sharing -->
+<div x-show="activeTab === 'tab_cost_sharing'" x-cloak class="py-4">
+    {% include "components/cost_sharing_table.html" %}
+</div>
+
+<!-- Content 4: 代墊款明細 -->
+<div x-show="activeTab === 'tab_advance_payment'" x-cloak class="py-4">
+    {% include "components/advance_payment_table.html" %}
+</div>
+{% endblock %}
+
+{% block overlays %}
+{{ block.super }}
+
+<!-- Client Search Modal -->
+<div x-data="{
+    isOpen: false,
+    searchQuery: '',
+    results: [],
+    isSearching: false,
+    async search() {
+        this.isSearching = true;
+        try {
+            const resp = await fetch('{% url 'bookkeeping:api_client_search' %}?q=' + encodeURIComponent(this.searchQuery), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            this.results = await resp.json();
+        } catch(e) { this.results = []; }
+        this.isSearching = false;
+    },
+    selectClient(client) {
+        document.getElementById('id_client').value = client.id;
+        document.getElementById('id_client_display').value = client.name + (client.tax_id ? ' (' + client.tax_id + ')' : '');
+
+        const csInput = document.getElementById('id_cost_sharing_data');
+        if (csInput) csInput.value = JSON.stringify(client.cost_sharing_data || []);
+        window.dispatchEvent(new CustomEvent('cost-sharing-imported', { detail: { rows: client.cost_sharing_data || [] } }));
+
+        const vatScript = document.getElementById('receivable_unified_business_no');
+        if (vatScript) vatScript.textContent = JSON.stringify(client.tax_id || '');
+
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal('display_bookkeeping_assistant', client.bookkeeping_assistant_name);
+        setVal('display_group_assistant', client.group_assistant_name);
+        setVal('display_billing_cycle', client.billing_cycle_display);
+        setVal('display_service_fee', client.service_fee > 0 ? 'NT$ ' + client.service_fee.toLocaleString() : '');
+
+        this.isOpen = false;
+    }
+}" @open-client-modal.window="isOpen = true; search()"
+    x-show="isOpen" style="display: none;"
+    class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
+
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Backdrop -->
+        <div x-show="isOpen"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-slate-900/60" @click="isOpen = false"></div>
+
+        <!-- Panel -->
+        <div x-show="isOpen"
+            x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+            class="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col z-10">
+
+            <!-- Header -->
+            <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-lg">
+                <h3 class="text-base font-bold text-slate-800">搜尋記帳客戶</h3>
+                <button type="button" @click="isOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Search Input -->
+            <div class="p-3 border-b border-slate-200">
+                <div class="relative">
+                    <input type="text" x-model="searchQuery" @input.debounce.400ms="search()"
+                        x-ref="clientSearchInput"
+                        class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="輸入公司名稱或統一編號搜尋...">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="overflow-y-auto flex-1">
+                <div x-show="isSearching" class="py-8 text-center text-slate-400 text-sm">搜尋中...</div>
+                <div x-show="!isSearching && results.length === 0" class="py-8 text-center text-slate-400 text-sm">無符合結果</div>
+                <template x-for="client in results" :key="client.id">
+                    <div @click="selectClient(client)"
+                        class="flex items-center justify-between px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 transition-colors">
+                        <div>
+                            <div class="text-sm font-semibold text-slate-800" x-text="client.name"></div>
+                            <div class="text-xs text-slate-500 mt-0.5">
+                                <span x-show="client.tax_id" x-text="'統編：' + client.tax_id"></span>
+                                <span x-show="client.bookkeeping_assistant_name" x-text="' ｜ 記帳：' + client.bookkeeping_assistant_name"></span>
+                            </div>
+                        </div>
+                        <div class="text-right text-xs text-slate-400 ml-4 shrink-0">
+                            <div x-show="client.billing_cycle_display" x-text="client.billing_cycle_display"></div>
+                            <div x-show="client.service_fee > 0" x-text="'NT$ ' + client.service_fee.toLocaleString()"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex justify-end rounded-b-lg">
+                <button type="button" @click="isOpen = false"
+                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if object.pk %}
+<!-- Scripts passing context to the voucher modal -->
+<script id="voucher_generation_mode" type="application/json">"billing"</script>
+<script id="receivable_unified_business_no" type="application/json">"{{ object.client.tax_id|default:'' }}"</script>
+<script>
+function validateAndOpenVoucherModal() {
+    // 直接解析 hidden input JSON，避免 x-show 隱藏時 innerText 回傳空字串的問題
+    let srv = 0;
+    try {
+        const qData = JSON.parse(document.getElementById('id_quotation_data').value || '[]');
+        qData.forEach(function(item) {
+            const name = (item.service_name || '').trim();
+            const amount = parseFloat(item.amount) || 0;
+            if (amount > 0 && !name.startsWith('8') && !name.startsWith('9')) {
+                srv += amount;
+            }
+        });
+    } catch(e) {}
+
+    let cost = 0;
+    let hasCostSharingRows = false;
+    try {
+        const cData = JSON.parse(document.getElementById('id_cost_sharing_data').value || '[]');
+        cData.forEach(function(item) {
+            const amount = parseFloat(item.amount) || 0;
+            if (item.employee_id || item.employee_name || amount > 0) {
+                hasCostSharingRows = true;
+            }
+            if (amount > 0) cost += amount;
+        });
+    } catch(e) {}
+
+    // 當服務費用 > 0，且公費分攤有填寫但金額不符時，顯示 alert
+    if (srv > 0 && hasCostSharingRows && Math.abs(cost - srv) > 0.1) {
+        alert("【警告：驗證失敗】\n\n公費分攤合計 (NT$ " + cost.toLocaleString() + ") \n與服務費用合計 (NT$ " + srv.toLocaleString() + ") 不符！\n\n請確認「公費分攤」頁籤中各員工的分攤比例，\n使分攤金額合計等於服務費用合計後，再預覽傳票。");
+        return;
+    }
+
+    // 當服務費用 > 0，但公費分攤完全未填寫時，也提示警告
+    if (srv > 0 && !hasCostSharingRows) {
+        alert("【提醒】\n\n本帳單有服務費用 (NT$ " + srv.toLocaleString() + ")，\n但尚未填寫公費分攤資料。\n\n如需拋轉公費分攤，請先至「公費分攤」頁籤填寫。\n\n若確認不需分攤，請繼續。");
+    }
+
+    window.dispatchEvent(new CustomEvent('open-voucher-modal'));
+}
+</script>
+{% if not object.is_posted %}
+{% include "components/voucher_preview_modal.html" %}
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,7 +1,9 @@
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from core.models import BaseModel
+from modules.basic_data.models import Customer
 
 
 class BookkeepingClient(BaseModel):
@@ -50,6 +52,11 @@ class BookkeepingClient(BaseModel):
         null=True, blank=True, related_name='bookkeeping_client_profile',
         verbose_name=_('綁定帳號'),
         help_text=_('綁定供外部客戶登入的帳號')
+    )
+    customer = models.ForeignKey(
+        Customer, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='bookkeeping_clients',
+        verbose_name=_('關聯客戶'),
     )
     tax_id = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
     tax_registration_no = models.CharField(_('稅籍編號'), max_length=20, blank=True, null=True)
@@ -161,6 +168,13 @@ class BookkeepingClient(BaseModel):
         verbose_name = _('記帳客戶')
         verbose_name_plural = _('記帳客戶')
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tax_id'],
+                condition=Q(is_deleted=False) & Q(tax_id__isnull=False) & ~Q(tax_id=''),
+                name='unique_active_bookkeeping_client_tax_id',
+            )
+        ]
 
     def __str__(self):
         return self.name

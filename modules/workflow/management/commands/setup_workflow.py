@@ -144,3 +144,46 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"\n✅ Overtime record workflow setup complete!"))
         self.stdout.write(f"   Template: {ot_template.name} ({ot_template.code})")
+
+        # ===== Advance Payment Workflow =====
+        self.stdout.write('\nSetting up advance payment workflow...')
+
+        from django.contrib.auth.models import Group
+        ap_group, _ = Group.objects.get_or_create(name='管理層')
+
+        ap_template, created = WorkflowTemplate.objects.get_or_create(
+            code='advance_payment_approval',
+            defaults={
+                'name': '代墊款核准',
+                'description': '代墊款申請需要主管核准',
+                'is_active': True,
+                'reminder_hours': 24,
+                'max_reminders': 3,
+            }
+        )
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"✓ Created workflow template: {ap_template.name}"))
+        else:
+            self.stdout.write(f"✓ Workflow template already exists: {ap_template.name}")
+
+        ap_step1, created = WorkflowStep.objects.get_or_create(
+            template=ap_template,
+            step_number=1,
+            defaults={
+                'step_name': '主管核准',
+                'approver_role': ap_group,
+                'can_approve': True,
+                'can_reject': True,
+                'can_return': True,
+            }
+        )
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(f"  ✓ Created step 1: {ap_step1.step_name}"))
+        else:
+            self.stdout.write(f"  ✓ Step 1 already exists: {ap_step1.step_name}")
+
+        self.stdout.write(self.style.SUCCESS(f"\n✅ Advance payment workflow setup complete!"))
+        self.stdout.write(f"   Template: {ap_template.name} ({ap_template.code})")
+        self.stdout.write(f"   Approver role: {ap_group.name} (請至 Django Admin 將相關人員加入此群組)")

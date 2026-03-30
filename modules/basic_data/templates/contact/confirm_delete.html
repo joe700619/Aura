@@ -24,7 +24,7 @@
             <form method="post">
                 {% csrf_token %}
                 <div class="flex justify-end space-x-4">
-                    <a href="{% url 'contact_list' %}"
+                    <a href="{% url 'basic_data:contact_list' %}"
                         class="px-6 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition-colors">
                         取消
                     </a>

@@ -80,8 +80,8 @@
             {% endif %}
 
             <!-- Save Button -->
-            <button type="button" 
-                @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('main-form').requestSubmit() }, 300) }"
+            <button type="button"
+                @click="if(!globalSubmitting) { globalSubmitting = true; document.getElementById('main-form').requestSubmit() }"
                 :disabled="globalSubmitting"
                 class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed"
             >
@@ -249,12 +249,12 @@
         <!-- Form Area -->
         <div class="space-y-6 w-full">
 
-            <form id="main-form" method="post" class="space-y-6" @submit="globalSubmitting = true" {% block form_attributes %}{% endblock %}>
+            <form id="main-form" method="post" enctype="multipart/form-data" class="space-y-6" @submit="globalSubmitting = true" {% block form_attributes %}{% endblock %}>
                 {% csrf_token %}
 
                 {% if form.errors %}
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                    <p class="text-sm text-red-700 font-bold">請修正以下錯誤：</p>
+                    <p class="text-sm text-red-700 font-bold">請修正以下主表單錯誤：</p>
                     <ul class="text-sm text-red-600 list-disc pl-5 mt-1 text-left">
                         {% for field in form %}
                         {% if field.errors %}
@@ -266,6 +266,8 @@
                     </ul>
                 </div>
                 {% endif %}
+                
+                {% block extra_errors %}{% endblock %}
 
                 <!-- Main Container -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

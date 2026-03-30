@@ -45,11 +45,11 @@
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    客戶名稱
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="name">
+    客戶名稱 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    統一編號
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="taxid">
+    統一編號 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
     聯絡人
@@ -66,7 +66,9 @@
 {% for customer in customers %}
 <tr class="hover:bg-slate-50 transition duration-150"
     x-show="matches('{{ customer.source|escapejs }}', '{{ customer.name|escapejs }}')"
-    :class="selectedRows.includes({{ customer.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ customer.pk }}) ? 'bg-blue-50/30' : ''"
+    data-name="{{ customer.name|escapejs }}"
+    data-taxid="{{ customer.tax_id|default:''|escapejs }}">
     {% include "components/row_checkbox.html" with value=customer.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <div class="flex items-center">
@@ -103,8 +105,8 @@
             {% endif %}
         </div>
     </td>
-    {% url 'customer_update' customer.pk as update_url %}
-    {% url 'customer_delete' customer.pk as delete_url %}
+    {% url 'basic_data:customer_update' customer.pk as update_url %}
+    {% url 'basic_data:customer_delete' customer.pk as delete_url %}
     {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
 </tr>
 {% empty %}

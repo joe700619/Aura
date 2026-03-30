@@ -228,7 +228,18 @@
 
                     if (response.ok) {
                         const result = await response.json();
-                        alert('Line 訊息已傳送！');
+                        if (result.fail_count !== undefined && result.fail_count > 0) {
+                            if (result.success_count > 0) {
+                                alert(`部份傳送完成！(成功: ${result.success_count}, 失敗: ${result.fail_count})\n失敗原因可能為：「接收者尚未加入機器人好友」或 ID 不正確。`);
+                            } else {
+                                alert(`傳送失敗！(成功: 0, 失敗: ${result.fail_count})\n失敗原因可能為：「接收者尚未加入機器人好友」或「綁定的 LineID/RoomID 不正確」。`);
+                            }
+                        } else if (result.message && this.objectIds.length === 0) {
+                             // Single send success logic
+                             alert('Line 訊息已傳送！');
+                        } else {
+                            alert('Line 訊息已全部成功傳送！');
+                        }
                         this.closeSidebar();
                     } else {
                         const error = await response.json();

@@ -6,7 +6,7 @@
 
 {% block toolbar_nav %}
 {{ block.super }}
-<a href="{% url 'service_item_list' %}"
+<a href="{% url 'basic_data:service_item_list' %}"
     class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
 {% endblock %}
 
@@ -121,4 +121,9 @@
 
 {% block form_bottom_block %}
 {# No bottom block needed if remarks are in card 1 #}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
 {% endblock %}

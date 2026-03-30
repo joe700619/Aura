@@ -1,4 +1,5 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
 from simple_history.admin import SimpleHistoryAdmin
 from .models import Customer, Contact
 
@@ -59,3 +60,4 @@ class ContactAdmin(SimpleHistoryAdmin):
     def restore_action(self, request, queryset):
         updated = queryset.update(is_deleted=False)
         self.message_user(request, f'{updated} 筆資料已復原。')
+

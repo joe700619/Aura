@@ -5,6 +5,11 @@
 {% block header_title %}收文紀錄列表{% endblock %}
 {% block header_description %}管理與查看所有收文紀錄{% endblock %}
 
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}
+
 {% block content %}
 <script id="list-metadata" type="application/json">
 [
@@ -54,20 +59,20 @@
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    收文日期
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="receiptdate">
+    收文日期 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    客戶名稱
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="customer">
+    客戶名稱 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    分類
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="category">
+    分類 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
     主旨
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    狀態
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="status">
+    狀態 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
     Line 狀態
@@ -81,7 +86,11 @@
 {% for receipt in receipts %}
 <tr class="hover:bg-slate-50 transition duration-150"
     x-show="matches('{{ receipt.status|escapejs }}', '{{ receipt.subject|escapejs }} {{ receipt.customer.name|escapejs }}')"
-    :class="selectedRows.includes({{ receipt.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ receipt.pk }}) ? 'bg-blue-50/30' : ''"
+    data-receiptdate="{{ receipt.receipt_date|date:'Y-m-d' }}"
+    data-customer="{{ receipt.customer.name|escapejs }}"
+    data-category="{{ receipt.category|default:''|escapejs }}"
+    data-status="{{ receipt.status|escapejs }}">
     {% include "components/row_checkbox.html" with value=receipt.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm font-mono text-slate-700">{{ receipt.receipt_date|date:"Y-m-d" }}</span>
@@ -166,7 +175,11 @@
 {% endblock %}
 
 {% block pagination_info %}
+{% if is_paginated %}
+顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+{% else %}
 顯示第 1 到 {{ receipts|length }} 筆，共 {{ receipts|length }} 筆資料
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"c:/Users/joe70/PythonProject/Aura/.venv/Scripts/python.exe\" manage.py makemigrations basic_data --name historicalserviceitem)"
+    ]
+  }
+}

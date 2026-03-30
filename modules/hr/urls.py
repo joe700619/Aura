@@ -33,7 +33,7 @@ from .views.payroll import (
     overtime_submit_approval, overtime_approve,
     overtime_reject, overtime_return, overtime_cancel_approval,
 )
-from .views.line_clock import LineWebhookView, LineClockSimulateView
+from .views.line_clock import LineClockSimulateView
 
 urlpatterns = [
     # API
@@ -129,7 +129,6 @@ urlpatterns = [
     path('advance-payments/<int:pk>/approval/return/', advancepayment_return, name='advancepayment_return'),
     path('advance-payments/<int:pk>/approval/cancel/', advancepayment_cancel_approval, name='advancepayment_cancel_approval'),
 
-    # Line 打卡
-    path('line/webhook/', LineWebhookView.as_view(), name='line_webhook'),
+    # Line 打卡（webhook 已移至 /core/notifications/line/webhook/）
     path('line/simulate/', LineClockSimulateView.as_view(), name='line_clock_simulate'),
 ]

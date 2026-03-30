@@ -38,7 +38,16 @@ SECRET_KEY = 'django-insecure-3@pct5)+ds#3jt=9#8_g)osm_-fxj27m-=g*_etm1qmrq4s-es
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'torrie-smellable-lashunda.ngrok-free.dev',
+]
+
+# 允許 ngrok 的 HTTPS 請求（Line Webhook POST 需要）
+CSRF_TRUSTED_ORIGINS = [
+    'https://torrie-smellable-lashunda.ngrok-free.dev',
+]
 
 
 # Application definition
@@ -126,6 +135,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/admin/login/'
 

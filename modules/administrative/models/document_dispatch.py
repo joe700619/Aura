@@ -14,7 +14,14 @@ class DocumentDispatch(BaseModel):
 
     date = models.DateField(default=timezone.now, verbose_name="發文日期")
     dispatch_method = models.CharField(max_length=20, choices=DISPATCH_METHOD_CHOICES, default='掛號', verbose_name="發信方式")
-    
+    transferred_advance_payment = models.ForeignKey(
+        'administrative.AdvancePayment',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='source_dispatches',
+        verbose_name='已拋轉代墊款',
+    )
+
     class Meta:
         verbose_name = "發文紀錄"
         verbose_name_plural = "發文紀錄"

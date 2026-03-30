@@ -1,0 +1,90 @@
+{% extends 'scaffolds/list_view_template.html' %}
+
+{% block create_url %}{% url 'administrative:system_bulletin_create' %}{% endblock %}
+{% block create_label %}新增公佈欄{% endblock %}
+
+{% block table_headers %}
+    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">狀態</th>
+    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">重要性</th>
+    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">公佈日期</th>
+    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">主題</th>
+    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">建立時間</th>
+    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+    {% for item in object_list %}
+        <tr class="hover:bg-gray-50 bg-white"
+            x-show="matches('ALL', '{{ item.subject|escapejs }}')"
+            :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+            <td class="px-6 py-4 whitespace-nowrap">
+                <label class="relative flex cursor-pointer select-none items-center">
+                    <input type="checkbox" class="sr-only" value="{{ item.pk }}" x-model.number="selectedRows">
+                    <div :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                        class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                        <template x-if="selectedRows.includes({{ item.pk }})">
+                            <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </template>
+                    </div>
+                </label>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                {% if item.status == 'active' %}
+                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    生效
+                </span>
+                {% else %}
+                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                    失效
+                </span>
+                {% endif %}
+            <td class="px-6 py-4 whitespace-nowrap">
+                {% if item.importance_level == 'high' %}
+                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">高</span>
+                {% elif item.importance_level == 'medium' %}
+                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">中</span>
+                {% else %}
+                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">低</span>
+                {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ item.publish_date|date:"Y-m-d" }}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900 font-medium">
+                {{ item.subject }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ item.created_at|date:"Y-m-d H:i" }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <a href="{% url 'administrative:system_bulletin_update' item.pk %}" class="text-indigo-600 hover:text-indigo-900 mr-3">編輯</a>
+                <a href="{% url 'administrative:system_bulletin_delete' item.pk %}" class="text-red-600 hover:text-red-900">刪除</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="6" class="px-6 py-10 whitespace-nowrap text-sm text-gray-500 text-center">
+                <div class="flex flex-col items-center justify-center">
+                    <svg class="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <p class="text-gray-500 text-lg font-medium">目前沒有系統公佈欄資料</p>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in object_list %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.subject|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

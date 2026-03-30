@@ -1,10 +1,11 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from core.models import BaseModel
 
 
-class SealProcurement(models.Model):
+class SealProcurement(BaseModel):
     """印章採購單 - 主表"""
-    
+
     YES_NO_CHOICES = [
         (True, '是'),
         (False, '否'),
@@ -24,15 +25,13 @@ class SealProcurement(models.Model):
 
     # Card 3: 其他
     transfer_to_advance = models.BooleanField(_('轉為代墊款'), default=False)
+    is_advance_transferred = models.BooleanField(_('已拋轉代墊款'), default=False)
     transfer_to_inventory = models.BooleanField(_('轉為庫存'), default=False)
     seal_cost_subtotal = models.DecimalField(_('印章費用小計'), max_digits=10, decimal_places=0, default=0)
     is_paid = models.BooleanField(_('是否已付款'), default=False)
 
     # 備註
     note = models.TextField(_('備註'), blank=True, default='')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -49,7 +48,7 @@ class SealProcurement(models.Model):
         self.save(update_fields=['seal_cost_subtotal'])
 
 
-class SealProcurementItem(models.Model):
+class SealProcurementItem(BaseModel):
     """印章請購明細 - 子表"""
 
     MOVEMENT_TYPE_CHOICES = [

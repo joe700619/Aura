@@ -1,8 +1,9 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from core.mixins import ListActionMixin, PrevNextMixin
-from ..models import IrsAuditNotice, IrsAuditCommunication
+from ..models import IrsAuditNotice, IrsAuditNoticeAttachment
 from ..forms import IrsAuditNoticeForm, IrsAuditCommunicationFormSet
 from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404
@@ -36,7 +37,6 @@ class IrsAuditNoticeCreateView(LoginRequiredMixin, CreateView):
     model = IrsAuditNotice
     form_class = IrsAuditNoticeForm
     template_name = 'administrative/irs_audit_notice/form.html'
-    success_url = reverse_lazy('administrative:irs_audit_notice_list')
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -44,26 +44,35 @@ class IrsAuditNoticeCreateView(LoginRequiredMixin, CreateView):
             data['communications'] = IrsAuditCommunicationFormSet(self.request.POST)
         else:
             data['communications'] = IrsAuditCommunicationFormSet()
+        data['attachments'] = []
         return data
 
     def form_valid(self, form):
         context = self.get_context_data()
         communications = context['communications']
         if communications.is_valid():
-            self.object = form.save()
-            communications.instance = self.object
-            communications.save()
+            with transaction.atomic():
+                self.object = form.save()
+                communications.instance = self.object
+                communications.save()
+                for f in self.request.FILES.getlist('new_attachments'):
+                    IrsAuditNoticeAttachment.objects.create(notice=self.object, file=f)
             messages.success(self.request, '新增國稅局查帳通知成功。')
             return redirect(self.get_success_url())
         else:
             return self.form_invalid(form)
 
+    def get_success_url(self):
+        return reverse_lazy('administrative:irs_audit_notice_update', kwargs={'pk': self.object.pk})
+
 class IrsAuditNoticeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     model = IrsAuditNotice
     form_class = IrsAuditNoticeForm
     template_name = 'administrative/irs_audit_notice/form.html'
-    success_url = reverse_lazy('administrative:irs_audit_notice_list')
     prev_next_order_field = 'created_at'
+
+    def get_success_url(self):
+        return reverse_lazy('administrative:irs_audit_notice_update', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -71,25 +80,51 @@ class IrsAuditNoticeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             data['communications'] = IrsAuditCommunicationFormSet(self.request.POST, instance=self.object)
         else:
             data['communications'] = IrsAuditCommunicationFormSet(instance=self.object)
-        
+
+        if self.object:
+            data['attachments'] = self.object.attachments.all()
+
         # Approval related context
         approval_request = self.object.get_approval_request()
         data['approval_request'] = approval_request
-        
+
         if approval_request:
             data['can_approve'] = self.object.can_user_approve(self.request.user)
         else:
             data['can_approve'] = False
-            
+
+        # History
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            data['history'] = history_list
+
         return data
 
     def form_valid(self, form):
         context = self.get_context_data()
         communications = context['communications']
         if communications.is_valid():
-            self.object = form.save()
-            communications.instance = self.object
-            communications.save()
+            with transaction.atomic():
+                self.object = form.save()
+                communications.instance = self.object
+                communications.save()
+
+                deleted_ids_str = self.request.POST.get('deleted_attachment_ids', '')
+                if deleted_ids_str:
+                    id_list = [i.strip() for i in deleted_ids_str.split(',') if i.strip().isdigit()]
+                    if id_list:
+                        IrsAuditNoticeAttachment.objects.filter(id__in=id_list, notice=self.object).delete()
+
+                for f in self.request.FILES.getlist('new_attachments'):
+                    IrsAuditNoticeAttachment.objects.create(notice=self.object, file=f)
+
             messages.success(self.request, '更新國稅局查帳通知成功。')
             return redirect(self.get_success_url())
         else:
@@ -107,7 +142,7 @@ def get_customer_tax_id(request):
     if customer_id:
         try:
             customer = Customer.objects.get(pk=customer_id)
-            return JsonResponse({'tax_id': customer.unified_business_no})
+            return JsonResponse({'tax_id': customer.tax_id})
         except Customer.DoesNotExist:
             return JsonResponse({'error': 'Customer not found'}, status=404)
     return JsonResponse({'error': 'No customer_id provided'}, status=400)
@@ -128,7 +163,7 @@ def irs_audit_notice_submit_approval(request, pk):
                 # Here we reuse the code from `case_assessment` but there might not be a specific code.
                 approval_request = initiate_approval(
                     obj=notice,
-                    workflow_code='anti_money_laundering', # Will use this generic one found in registration 
+                    workflow_code='irs_audit',
                     requester=request.user
                 )
             submit_for_approval(approval_request, comments='')

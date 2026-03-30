@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block header %}刪除確認{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 max-w-lg mt-10">
+    <div class="bg-white shadow-md rounded-lg p-6 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mx-auto mb-4" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">確定要刪除此帳單嗎？</h3>
+        <p class="text-gray-600 mb-6">帳單編號: <strong>{{ object.bill_no }}</strong><br>此筆資料將被標記為已刪除。</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex justify-center space-x-4">
+                <a href="{% url 'bookkeeping:bill_list' %}"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
+                    取消
+                </a>
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">
+                    確認刪除
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

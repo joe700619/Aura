@@ -25,6 +25,34 @@
                 detail: { total: this.calculateServiceFee() }
             }));
         });
+        
+        // Listen for advance payment imports to automatically append to items
+        window.addEventListener('import-advance-payment', (e) => {
+            const addedAmount = e.detail.amount;
+            if (addedAmount === 0) return;
+            
+            let found = false;
+            for (let i = 0; i < this.rows.length; i++) {
+                if (this.rows[i].service_name === '9.01代墊發票及郵資') {
+                    const newAmount = (parseInt(this.rows[i].amount) || 0) + addedAmount;
+                    this.rows[i].amount = newAmount > 0 ? newAmount : 0;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found && addedAmount > 0) {
+                this.rows.push({
+                    service_code: '',
+                    service_name: '9.01代墊發票及郵資',
+                    amount: addedAmount,
+                    remark: '匯入代墊款自動產生',
+                    is_company_law_22_1: false,
+                    is_money_laundering_check: false,
+                    is_business_entity_change: false,
+                    is_shareholder_list_change: false
+                });
+            }
+        });
     },
     addRow() {
         this.rows.push({
@@ -169,7 +197,7 @@
                 <tr>
                     <td colspan="2" class="px-4 py-3 text-right text-sm text-slate-700">服務費用合計 (+) :</td>
                     <td class="px-4 py-3 text-right text-sm text-slate-900">
-                        <span x-text="calculateServiceFee().toLocaleString()"></span>
+                        <span id="service_fee_amount_display" x-text="calculateServiceFee().toLocaleString()"></span>
                     </td>
                     <td></td>
                 </tr>

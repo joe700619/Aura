@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py makemigrations bookkeeping --name=\"unique_active_tax_id\")",
+      "Bash(python manage.py shell -c \":*)"
+    ]
+  }
+}

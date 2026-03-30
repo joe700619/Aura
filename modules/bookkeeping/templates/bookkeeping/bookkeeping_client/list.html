@@ -140,3 +140,7 @@
 {% block pagination_info %}
 顯示第 1 到 {{ clients|length }} 筆，共 {{ clients|length }} 筆資料
 {% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}客戶帳單管理{% endblock %}
+{% block header_title %}客戶帳單系統{% endblock %}
+{% block header_description %}管理記帳客戶帳單，支援自動產帳與拋轉AR{% endblock %}
+
+{% block content %}
+<script id="list-metadata" type="application/json">
+[
+    {% for bill in bills %}
+    {
+        "id": {{ bill.pk }},
+        "category": "{{ bill.get_status_display|escapejs }}",
+        "content": "{{ bill.bill_no|escapejs }} {{ bill.client.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+{{ block.super }}
+{% endblock %}
+
+{% block filters %}
+<button @click="filter = 'ALL'"
+    :class="filter === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">全部</button>
+<button @click="filter = '草稿'"
+    :class="filter === '草稿' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">草稿</button>
+<button @click="filter = '已開立'"
+    :class="filter === '已開立' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已開立</button>
+<button @click="filter = '已收款'"
+    :class="filter === '已收款' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已收款</button>
+<button @click="filter = '逾期'"
+    :class="filter === '逾期' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">逾期</button>
+{% endblock %}
+
+{% block table_headers %}
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">帳單編號</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">客戶名稱</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">帳單期間</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">開立日期</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">合計金額</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">AR</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for bill in bills %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('{{ bill.get_status_display|escapejs }}', '{{ bill.bill_no|escapejs }} {{ bill.client.name|escapejs }}')"
+    :class="selectedRows.includes({{ bill.pk }}) ? 'bg-blue-50/30' : ''">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <label class="relative flex cursor-pointer select-none items-center">
+            <input type="checkbox" class="sr-only" value="{{ bill.pk }}" x-model.number="selectedRows">
+            <div :class="selectedRows.includes({{ bill.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
+                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
+                <template x-if="selectedRows.includes({{ bill.pk }})">
+                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </template>
+            </div>
+        </label>
+    </td>
+    <td class="px-4 py-4">
+        <span class="font-mono text-sm text-blue-700">{{ bill.bill_no }}</span>
+    </td>
+    <td class="px-4 py-4">{{ bill.client.name }}</td>
+    <td class="px-4 py-4 text-center text-sm">{{ bill.year }}/{{ bill.month|stringformat:"02d" }}</td>
+    <td class="px-4 py-4 text-center text-sm">{{ bill.bill_date|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 text-right font-semibold">
+        <span class="text-emerald-700">NT$ {{ bill.total_amount|floatformat:0 }}</span>
+    </td>
+    <td class="px-4 py-4 text-center">
+        {% if bill.status == 'draft' %}
+        <span class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600 font-medium">{{ bill.get_status_display }}</span>
+        {% elif bill.status == 'issued' %}
+        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 font-medium">{{ bill.get_status_display }}</span>
+        {% elif bill.status == 'paid' %}
+        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">{{ bill.get_status_display }}</span>
+        {% elif bill.status == 'overdue' %}
+        <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">{{ bill.get_status_display }}</span>
+        {% elif bill.status == 'void' %}
+        <span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-500 font-medium line-through">{{ bill.get_status_display }}</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 text-center">
+        {% if bill.is_ar_transferred %}
+        <span class="text-green-600" title="已拋轉"><svg class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></span>
+        {% else %}
+        <form method="post" action="{% url 'bookkeeping:bill_transfer' bill.pk %}" class="inline"
+              onsubmit="return confirm('確定要將此帳單拋轉至應收帳款嗎？');">
+            {% csrf_token %}
+            <button type="submit" class="text-amber-600 hover:text-amber-800 text-xs font-medium px-2 py-1 rounded border border-amber-200 hover:bg-amber-50 transition">
+                拋轉AR
+            </button>
+        </form>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 text-center">
+        <div class="flex items-center justify-center space-x-3">
+            <a href="{% url 'bookkeeping:bill_update' bill.pk %}"
+                class="text-blue-600 hover:text-blue-800 transition-colors" title="編輯">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </a>
+            <form method="post" action="{% url 'bookkeeping:bill_delete' bill.pk %}" class="inline"
+                  onsubmit="return confirm('確定要刪除帳單 {{ bill.bill_no|escapejs }} 嗎？');">
+                {% csrf_token %}
+                <button type="submit" class="text-red-400 hover:text-red-600 transition-colors" title="刪除">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="9" class="px-6 py-8 text-center text-slate-500">目前沒有帳單資料</td></tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}

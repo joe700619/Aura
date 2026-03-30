@@ -51,9 +51,75 @@ class DocumentCenterView(ClientRequiredMixin, TemplateView):
         client = self.request.user.bookkeeping_client_profile
         context['client'] = client
         
-        # List all periods descending
-        context['vat_periods'] = TaxFilingPeriod.objects.filter(
-            year_record__client=client
-        ).order_by('-year_record__year', '-period_start_month')
+        # Determine selected year or default to latest
+        all_periods = TaxFilingPeriod.objects.filter(year_record__client=client).order_by('-year_record__year', '-period_start_month')
         
+        # Get distinct years
+        available_years = sorted(list(set(p.year_record.year for p in all_periods)), reverse=True)
+        context['available_years'] = available_years
+        
+        selected_year = self.request.GET.get('year')
+        if not selected_year and available_years:
+            selected_year = available_years[0]
+        elif selected_year:
+            try:
+                selected_year = int(selected_year)
+            except ValueError:
+                selected_year = available_years[0] if available_years else None
+            
+        context['selected_year'] = selected_year
+        
+        if selected_year:
+            context['vat_periods'] = all_periods.filter(year_record__year=selected_year)
+        else:
+            context['vat_periods'] = all_periods
+        
+        return context
+
+class ShareholderManagementView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/shareholders.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
+        return context
+
+class FinancialAnalysisView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/financial_analysis.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
+        return context
+
+class IncomeDeclarationView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/income_declaration.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
+        return context
+
+class DividendDeclarationView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/dividend_declaration.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
+        return context
+
+class ServiceRemunerationView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/service_remuneration.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
+        return context
+
+class SettingsView(ClientRequiredMixin, TemplateView):
+    template_name = 'client_portal/settings.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['client'] = self.request.user.bookkeeping_client_profile
         return context

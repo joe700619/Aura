@@ -79,13 +79,12 @@ class ReceivableForm(forms.ModelForm):
     class Meta:
         model = Receivable
         fields = [
-            'receivable_no', 'company_name', 'unified_business_no', 'line_id', 'room_id',
+            'company_name', 'unified_business_no', 'line_id', 'room_id',
             'main_contact', 'mobile', 'phone', 'address', 'email',
             'assistant', 'assistant_email', 'is_posted', 'remarks',
             'quotation_data', 'cost_sharing_data'
         ]
         widgets = {
-            'receivable_no': forms.TextInput(attrs={'class': 'block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm', 'placeholder': '應收帳款編號'}),
             'company_name': forms.TextInput(attrs={'class': 'block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'}),
             'unified_business_no': forms.TextInput(attrs={'class': 'block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'}),
             'line_id': forms.TextInput(attrs={'class': 'block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'}),

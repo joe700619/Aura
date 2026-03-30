@@ -1,0 +1,33 @@
+<!-- Client Topbar -->
+<header class="bg-white border-b border-gray-200">
+    <div class="flex items-center justify-between px-6 py-4">
+        <div class="flex items-center">
+            <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 focus:outline-none lg:text-gray-700 hover:text-indigo-600">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 6H20M4 12H20M4 18H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
+            
+            <h2 class="ml-4 text-xl font-bold text-gray-800">
+                {% block page_title %}{% endblock %}
+            </h2>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 px-2 py-1.5 rounded-md">
+                <div class="w-8 h-8 rounded-full bg-indigo-500 font-bold flex items-center justify-center text-sm shadow-inner text-white">
+                    {{ request.user.username|make_list|first|upper }}
+                </div>
+                <span class="text-sm font-medium hidden sm:block text-slate-700">{{ client.name }}</span>
+            </div>
+            
+            <form action="{% url 'client_portal:logout' %}" method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent w-full text-left">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    登出系統
+                </button>
+            </form>
+        </div>
+    </div>
+</header>

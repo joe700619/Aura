@@ -142,7 +142,7 @@
                 </div>
                 
                 {% if form.instance.pk %}
-                <button type="button" @click="$dispatch('open-voucher-modal')" 
+                <button type="button" onclick="validateAndOpenVoucherModal()"
                     class="ml-auto inline-flex items-center px-3 py-1.5 border hover:border-blue-600 hover:text-blue-600 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md text-sm font-bold transition-colors">
                     <svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     預覽傳票項目
@@ -680,6 +680,21 @@
 <!-- Scripts passing context to the voucher modal -->
 <script id="voucher_generation_mode" type="application/json">"progress"</script>
 <script id="receivable_unified_business_no" type="application/json">"{{ object.unified_business_no|default:'' }}"</script>
+<script>
+function validateAndOpenVoucherModal() {
+    let srvText = document.getElementById('service_fee_amount_display')?.innerText || '0';
+    let costText = document.getElementById('cost_sharing_amount_display')?.innerText || '0';
+    
+    let srv = parseFloat(srvText.replace(/,/g, '')) || 0;
+    let cost = parseFloat(costText.replace(/,/g, '')) || 0;
+    
+    if (Math.abs(cost - srv) > 0.1) {
+        alert("【警告：驗證失敗】\n\n公費分攤合計 (NT$ " + cost + ") \n與服務費用合計 (NT$ " + srv + ") 不符！\n\n您必須完整填寫「公費分攤」且兩者金額一致後，才能預覽並拋轉傳票。");
+    } else {
+        window.dispatchEvent(new CustomEvent('open-voucher-modal'));
+    }
+}
+</script>
 {% if not object.is_posted %}
 {% include "components/voucher_preview_modal.html" %}
 {% endif %}

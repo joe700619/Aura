@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.utils import timezone
 from core.models import BaseModel
@@ -107,6 +108,28 @@ class IrsAuditNotice(BaseModel):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('administrative:irs_audit_notice_update', kwargs={'pk': self.pk})
+
+
+class IrsAuditNoticeAttachment(models.Model):
+    notice = models.ForeignKey(IrsAuditNotice, on_delete=models.CASCADE, related_name='attachments', verbose_name="查帳通知")
+    file = models.FileField(upload_to='irs_audit_notices/%Y/%m/', verbose_name="附件")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")
+
+    class Meta:
+        verbose_name = "查帳通知附件"
+        verbose_name_plural = "查帳通知附件"
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"{self.notice} - {os.path.basename(self.file.name)}"
+
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
+
+    @property
+    def is_image(self):
+        return self.file.name.lower().rsplit('.', 1)[-1] in ('jpg', 'jpeg', 'png', 'gif', 'webp')
 
 
 class IrsAuditCommunication(BaseModel):

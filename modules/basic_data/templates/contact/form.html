@@ -4,6 +4,12 @@
 {% if object %}編輯聯絡人 - {{ object.name }}{% else %}新增聯絡人{% endif %}
 {% endblock %}
 
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'basic_data:contact_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
 {% block form_card_1 %}
 <!-- Card 1: Basic Info -->
 <div class="space-y-4">
@@ -13,18 +19,18 @@
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">姓名 <span class="text-red-500">*</span></label>
-        <input type="text" name="{{ form.name.name }}" value="{{ form.name.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-            required>
+        {{ form.name }}
+        {{ form.name.errors }}
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">公司名稱 <span class="text-red-500">*</span></label>
         {{ form.customer }}
+        {{ form.customer.errors }}
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
-        <input type="text" name="{{ form.tax_id.name }}" value="{{ form.tax_id.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.tax_id }}
+        {{ form.tax_id.errors }}
     </div>
 </div>
 {% endblock %}
@@ -38,23 +44,23 @@
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">電話</label>
-        <input type="text" name="{{ form.phone.name }}" value="{{ form.phone.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.phone }}
+        {{ form.phone.errors }}
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">手機</label>
-        <input type="text" name="{{ form.mobile.name }}" value="{{ form.mobile.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.mobile }}
+        {{ form.mobile.errors }}
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">傳真</label>
-        <input type="text" name="{{ form.fax.name }}" value="{{ form.fax.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.fax }}
+        {{ form.fax.errors }}
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">通訊地址</label>
-        <input type="text" name="{{ form.address.name }}" value="{{ form.address.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.address }}
+        {{ form.address.errors }}
     </div>
 </div>
 {% endblock %}
@@ -68,8 +74,8 @@
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-        <input type="email" name="{{ form.email.name }}" value="{{ form.email.value|default:'' }}"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        {{ form.email }}
+        {{ form.email.errors }}
     </div>
 </div>
 {% endblock %}
@@ -82,8 +88,8 @@
         <h4 class="font-bold text-slate-800 text-sm">備註</h4>
     </div>
     <div>
-        <textarea name="{{ form.notes.name }}" rows="3"
-            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">{{ form.notes.value|default:'' }}</textarea>
+        {{ form.notes }}
+        {{ form.notes.errors }}
     </div>
 </div>
 {% endblock %}
@@ -91,7 +97,7 @@
 {% block history_more_link %}
 {% if object.pk %}
 <div class="p-3 bg-slate-50 text-center border-t border-slate-100">
-    <a href="{% url 'contact_history' object.pk %}" class="text-xs text-blue-600 hover:text-blue-800">完整紀錄 &rarr;</a>
+    <a href="{% url 'basic_data:contact_history' object.pk %}" class="text-xs text-blue-600 hover:text-blue-800">完整紀錄 &rarr;</a>
 </div>
 {% endif %}
 {% endblock %}

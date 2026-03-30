@@ -26,6 +26,13 @@
         // Request initial total from quotation table
         console.log('Requesting initial service fee total...');
         window.dispatchEvent(new CustomEvent('request-service-fee'));
+
+        // Listen for client selection to import cost-sharing data from client profile
+        window.addEventListener('cost-sharing-imported', (e) => {
+            if (e.detail && Array.isArray(e.detail.rows)) {
+                this.rows = e.detail.rows.length > 0 ? e.detail.rows : [{ employee_id: '', employee_name: '', task_description: '', ratio: 0, amount: 0 }];
+            }
+        });
     },
     addRow() {
         this.rows.push({
@@ -146,7 +153,7 @@
                 <tr>
                     <td colspan="2" class="px-3 py-2 text-right text-indigo-800">總計金額:</td>
                     <td class="px-2 py-2 text-right text-indigo-800">
-                        <span x-text="calculateTotalAmount().toLocaleString()"></span>
+                        <span id="cost_sharing_amount_display" x-text="calculateTotalAmount().toLocaleString()"></span>
                     </td>
                     <td class="px-2 py-2 text-right text-indigo-800">
                         <span x-text="calculateTotalRatio() + '%'"></span>

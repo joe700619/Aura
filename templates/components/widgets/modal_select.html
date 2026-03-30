@@ -13,14 +13,17 @@
             input.dispatchEvent(new Event('change')); 
         } 
         
-        if (extraData) { 
-            for (const [key, val] of Object.entries(extraData)) { 
-                const targetField = document.querySelector(`[name='{{ form_prefix }}${key}']`); 
-                if (targetField) { 
-                    targetField.value = val; 
-                } 
-            } 
-        } 
+        if (extraData) {
+            const fieldName = '{{ name }}';
+            const lastDash = fieldName.lastIndexOf('-');
+            const prefix = lastDash !== -1 ? fieldName.substring(0, lastDash + 1) : '';
+            for (const [key, val] of Object.entries(extraData)) {
+                const targetField = document.querySelector(`[name='${prefix}${key}']`);
+                if (targetField) {
+                    targetField.value = val;
+                }
+            }
+        }
     } 
 }" class="relative">
 

@@ -36,11 +36,24 @@ def build_vat_context(period, request=None):
         base = getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000')
         confirm_url = f"{base}{confirm_path}"
 
+    # Extract outstanding_balance from POST if available
+    outstanding_balance = 0
+    if request and request.method == 'POST':
+        try:
+            outstanding_balance = int(float(request.POST.get('outstanding_balance', 0)))
+        except (ValueError, TypeError):
+            outstanding_balance = 0
+
+    payable_tax = int(period.payable_tax or 0)
+    final_total = payable_tax + outstanding_balance
+
     return {
         'client_name': client.name,
         'year': period.year_record.year,
         'period_label': period_label,
-        'payable_tax': period.payable_tax,
+        'payable_tax': payable_tax,
+        'outstanding_balance': outstanding_balance,
+        'final_total': final_total,
         'tax_deadline': period.tax_deadline.strftime('%Y/%m/%d') if period.tax_deadline else '（未設定）',
         'payment_method': period.get_period_payment_method_display() or '（未設定）',
         'confirm_url': confirm_url,

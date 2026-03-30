@@ -1,0 +1,25 @@
+{% if employees %}
+<ul class="divide-y divide-gray-200">
+    {% for employee in employees %}
+    <li class="p-4 hover:bg-blue-50 cursor-pointer flex justify-between items-center transition-colors"
+        @click="selectItem({ id: '{{ employee.id }}', name: '{{ employee.name|escapejs }}' })">
+        <div>
+            <p class="text-sm font-medium text-gray-900">{{ employee.name }}</p>
+            <p class="text-sm text-gray-500">{{ employee.employee_number|default:'無編號' }} <span class="mx-1">|</span> {{ employee.department.name|default:'未分發' }}</p>
+        </div>
+        <div class="text-blue-500">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="p-8 text-center text-gray-500 border-t border-gray-100">
+    <svg class="mx-auto h-12 w-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    找不到符合的員工
+</div>
+{% endif %}

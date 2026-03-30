@@ -6,7 +6,7 @@ from core.widgets import ModalSelectWidget
 class DocumentReceiptForm(forms.ModelForm):
     class Meta:
         model = DocumentReceipt
-        fields = ['customer', 'receipt_date', 'subject', 'category', 'status', 'remarks', 'attachment']
+        fields = ['customer', 'receipt_date', 'subject', 'category', 'status', 'remarks']
         widgets = {
             'customer': ModalSelectWidget(search_url='/basic-data/api/customers/search/', label_model=Customer),
             'receipt_date': forms.DateInput(attrs={
@@ -28,10 +28,6 @@ class DocumentReceiptForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': '輸入備註...',
             }),
-            'attachment': forms.FileInput(attrs={
-                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm',
-                'accept': 'image/*,application/pdf'
-            }),
         }
 
 from .models import IrsAuditNotice, IrsAuditCommunication
@@ -44,12 +40,18 @@ class IrsAuditNoticeForm(forms.ModelForm):
         model = IrsAuditNotice
         fields = [
             'customer', 'tax_id', 'attributable_year', 'tax_category', 'subject', 'receipt_date', 'assigned_assistant', 'assistant_email',
-            'reply_deadline', 'merge_annual_income_tax', 'status', 'attachment', 'remarks',
+            'reply_deadline', 'merge_annual_income_tax', 'status', 'remarks',
             'irs_phone', 'irs_contact', 'irs_email', 'irs_district'
         ]
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Enforce required fields
+        self.fields['assigned_assistant'].required = True
+        self.fields['irs_contact'].required = True
+        self.fields['irs_phone'].required = True
+        self.fields['irs_district'].required = True
         
         # Applying standard Tailwind classes to all fields
         for field_name, field in self.fields.items():
@@ -144,7 +146,7 @@ class SealProcurementForm(forms.ModelForm):
     search_customer = forms.CharField(
         label=_('搜尋客戶'),
         required=False,
-        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/')
+        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/', button_label='帶入客戶')
     )
 
     search_contact = forms.CharField(
@@ -158,7 +160,7 @@ class SealProcurementForm(forms.ModelForm):
         fields = [
             'unified_business_no', 'company_name', 'line_id', 'room_id',
             'main_contact', 'mobile', 'phone', 'address',
-            'transfer_to_advance', 'transfer_to_inventory', 'seal_cost_subtotal', 'is_paid',
+            'transfer_to_advance', 'transfer_to_inventory', 'seal_cost_subtotal',
             'note',
         ]
         widgets = {
@@ -173,24 +175,160 @@ class SealProcurementForm(forms.ModelForm):
             'transfer_to_advance': forms.CheckboxInput(attrs={'class': 'h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500'}),
             'transfer_to_inventory': forms.Select(choices=[(False, '否'), (True, '是')], attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'seal_cost_subtotal': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-50 text-slate-500 text-sm', 'readonly': 'readonly'}),
-            'is_paid': forms.Select(choices=[(False, '否'), (True, '是')], attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
+        }
+
+
+class SealProcurementItemForm(forms.ModelForm):
+    _ABSORBED_CHOICES = [('', '請選擇'), ('True', '是'), ('False', '否')]
+    is_absorbed_by_customer = forms.ChoiceField(
+        label=_('客戶吸收'),
+        choices=_ABSORBED_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm', 'required': True})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Convert the bool from model instance to string so the select pre-selects correctly
+        if self.instance and self.instance.pk is not None:
+            self.initial['is_absorbed_by_customer'] = str(self.instance.is_absorbed_by_customer)
+
+    def clean_is_absorbed_by_customer(self):
+        val = self.cleaned_data.get('is_absorbed_by_customer')
+        if val == '' or val is None:
+            raise forms.ValidationError(_('此欄位為必填'))
+        return val == 'True'
+
+    class Meta:
+        model = SealProcurementItem
+        fields = ['is_absorbed_by_customer', 'movement_type', 'seal_type', 'quantity', 'name_or_address', 'unit_price', 'subtotal']
+        widgets = {
+            'movement_type': forms.Select(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm', 'onchange': 'onMovementTypeChange(this)'}),
+            'seal_type': forms.Select(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm', 'onchange': 'updateSealPrice(this)'}),
+            'quantity': forms.NumberInput(attrs={'class': 'w-20 px-2 py-1.5 border border-slate-300 rounded-md text-sm text-center', 'min': '1', 'onchange': 'calculateSubtotal(this)'}),
+            'name_or_address': forms.TextInput(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'w-24 px-2 py-1.5 border border-slate-300 rounded-md text-sm text-right font-mono', 'onchange': 'calculateSubtotal(this)'}),
+            'subtotal': forms.NumberInput(attrs={'class': 'w-24 px-2 py-1.5 border border-slate-300 rounded-md bg-slate-50 text-sm text-right font-mono', 'readonly': 'readonly'}),
         }
 
 
 SealProcurementItemFormSet = inlineformset_factory(
     SealProcurement,
     SealProcurementItem,
-    fields=['is_absorbed_by_customer', 'movement_type', 'seal_type', 'quantity', 'name_or_address', 'unit_price', 'subtotal'],
+    form=SealProcurementItemForm,
     extra=0,
     can_delete=True,
-    widgets={
-        'is_absorbed_by_customer': forms.CheckboxInput(attrs={'class': 'h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500'}),
-        'movement_type': forms.Select(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm', 'onchange': 'onMovementTypeChange(this)'}),
-        'seal_type': forms.Select(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm', 'onchange': 'updateSealPrice(this)'}),
-        'quantity': forms.NumberInput(attrs={'class': 'w-20 px-2 py-1.5 border border-slate-300 rounded-md text-sm text-center', 'min': '1', 'onchange': 'calculateSubtotal(this)'}),
-        'name_or_address': forms.TextInput(attrs={'class': 'w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm'}),
-        'unit_price': forms.NumberInput(attrs={'class': 'w-24 px-2 py-1.5 border border-slate-300 rounded-md text-sm text-right font-mono', 'onchange': 'calculateSubtotal(this)'}),
-        'subtotal': forms.NumberInput(attrs={'class': 'w-24 px-2 py-1.5 border border-slate-300 rounded-md bg-slate-50 text-sm text-right font-mono', 'readonly': 'readonly'}),
-    }
+)
+
+# ===== System Bulletin Board =====
+from .models.bulletin import SystemBulletin
+
+class SystemBulletinCRUDForm(forms.ModelForm):
+    class Meta:
+        model = SystemBulletin
+        fields = ['publish_date', 'subject', 'importance_level', 'content', 'status']
+        widgets = {
+            'publish_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+            }),
+            'subject': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm',
+                'placeholder': '輸入公佈欄主題'
+            }),
+            'importance_level': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm',
+                'rows': 5,
+                'placeholder': '在此輸入公佈事項說明內容...'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm'
+            }),
+        }
+
+# ===== Advance Payment =====
+from .models.advance_payment import AdvancePayment, AdvancePaymentDetail
+
+class AdvancePaymentForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['total_amount'].required = False
+
+    class Meta:
+        model = AdvancePayment
+        fields = [
+            'advance_no', 'date', 'total_amount', 'description', 'note', 'is_posted'
+        ]
+        widgets = {
+            'advance_no': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
+                'placeholder': '系統自動產生或手動輸入'
+            }),
+            'date': forms.DateInput(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
+                'type': 'date'
+            }),
+            'total_amount': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50',
+                'readonly': 'readonly' # Frontend calculates this
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
+                'rows': 3,
+                'placeholder': '請輸入摘要'
+            }),
+            'note': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
+                'rows': 3,
+                'placeholder': '其他備註說明'
+            }),
+            'is_posted': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500'
+            }),
+        }
+
+class AdvancePaymentDetailForm(forms.ModelForm):
+    class Meta:
+        model = AdvancePaymentDetail
+        fields = [
+            'is_customer_absorbed', 'customer', 'unified_business_no', 
+            'reason', 'amount', 'is_billed', 'payment_type'
+        ]
+        widgets = {
+            'is_customer_absorbed': forms.Select(choices=[(True, 'Yes'), (False, 'No')], attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 is-absorbed-select'
+            }),
+            'customer': ModalSelectWidget(
+                search_url='/basic-data/api/customers/search/', 
+                label_model=Customer
+            ),
+            'unified_business_no': forms.TextInput(attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 ubn-input',
+            }),
+            'reason': forms.TextInput(attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 reason-input'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 amount-input text-right',
+                'step': '1'
+            }),
+            'is_billed': forms.Select(choices=[(True, 'Yes'), (False, 'No')], attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500'
+            }),
+            'payment_type': forms.Select(attrs={
+                'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 payment-type-select'
+            }),
+        }
+
+AdvancePaymentDetailFormSet = inlineformset_factory(
+    AdvancePayment,
+    AdvancePaymentDetail,
+    form=AdvancePaymentDetailForm,
+    extra=1,
+    can_delete=True,
+    fields=['is_customer_absorbed', 'customer', 'unified_business_no', 'reason', 'amount', 'is_billed', 'payment_type']
 )

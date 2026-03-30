@@ -40,8 +40,12 @@
             <table class="table-auto w-full text-sm">
                 <thead class="text-xs font-semibold uppercase text-slate-400 border-b border-slate-200">
                     <tr>
-                        <th class="px-4 py-3 whitespace-nowrap text-left">統一編號</th>
-                        <th class="px-4 py-3 whitespace-nowrap text-left">公司名稱</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-left cursor-pointer select-none hover:text-slate-600 transition-colors" onclick="sortInventory('ubn')" id="th-ubn">
+                            統一編號 <span id="sort-icon-ubn" class="ml-1 text-slate-300">↕</span>
+                        </th>
+                        <th class="px-4 py-3 whitespace-nowrap text-left cursor-pointer select-none hover:text-slate-600 transition-colors" onclick="sortInventory('company')" id="th-company">
+                            公司名稱 <span id="sort-icon-company" class="ml-1 text-slate-300">↕</span>
+                        </th>
                         <th class="px-4 py-3 whitespace-nowrap text-center">大章(自留)</th>
                         <th class="px-4 py-3 whitespace-nowrap text-center">小章(自留)</th>
                         <th class="px-4 py-3 whitespace-nowrap text-center">大章(登記)</th>
@@ -50,10 +54,13 @@
                         <th class="px-4 py-3 whitespace-nowrap text-right">金額合計</th>
                     </tr>
                 </thead>
-                <tbody class="text-sm divide-y divide-slate-100" x-data="{ expandedRow: null }">
+                <tbody class="text-sm divide-y divide-slate-100" x-data="{ expandedRow: null }" id="seal-inventory-tbody">
                     {% for item in summary_data %}
                     <!-- Main Row -->
-                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" @click="expandedRow = expandedRow === '{{ item.unified_business_no }}' ? null : '{{ item.unified_business_no }}'">
+                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer group main-inv-row"
+                        data-ubn="{{ item.unified_business_no|escapejs }}"
+                        data-company="{{ item.company_name|escapejs }}"
+                        @click="expandedRow = expandedRow === '{{ item.unified_business_no }}' ? null : '{{ item.unified_business_no }}'">
                         <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-800 flex items-center">
                             <svg class="w-4 h-4 mr-2 text-slate-400 transform transition-transform duration-200" 
                                  :class="{'rotate-90 text-indigo-500': expandedRow === '{{ item.unified_business_no }}'}" 
@@ -142,4 +149,65 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    let sortCol = null;
+    let sortAsc = true;
+
+    window.sortInventory = function (col) {
+        const tbody = document.getElementById('seal-inventory-tbody');
+        if (!tbody) return;
+
+        // Collect row pairs: [mainRow, detailRow]
+        const allRows = Array.from(tbody.querySelectorAll('tr'));
+        const pairs = [];
+        for (let i = 0; i < allRows.length; i++) {
+            if (allRows[i].classList.contains('main-inv-row')) {
+                pairs.push([allRows[i], allRows[i + 1] || null]);
+                i++; // skip the detail row
+            }
+        }
+
+        if (pairs.length === 0) return;
+
+        // Toggle direction
+        if (sortCol === col) {
+            sortAsc = !sortAsc;
+        } else {
+            sortCol = col;
+            sortAsc = true;
+        }
+
+        pairs.sort(function (a, b) {
+            const aVal = (a[0].dataset[col] || '').trim();
+            const bVal = (b[0].dataset[col] || '').trim();
+            const cmp = aVal.localeCompare(bVal, 'zh-TW', { sensitivity: 'base', numeric: true });
+            return sortAsc ? cmp : -cmp;
+        });
+
+        // Re-insert sorted pairs
+        pairs.forEach(function (pair) {
+            tbody.appendChild(pair[0]);
+            if (pair[1]) tbody.appendChild(pair[1]);
+        });
+
+        // Update sort icons
+        ['ubn', 'company'].forEach(function (key) {
+            const icon = document.getElementById('sort-icon-' + key);
+            if (!icon) return;
+            if (key === col) {
+                icon.textContent = sortAsc ? '↑' : '↓';
+                icon.classList.remove('text-slate-300');
+                icon.classList.add('text-indigo-500');
+            } else {
+                icon.textContent = '↕';
+                icon.classList.add('text-slate-300');
+                icon.classList.remove('text-indigo-500');
+            }
+        });
+    };
+})();
+</script>
+
 {% endblock %}

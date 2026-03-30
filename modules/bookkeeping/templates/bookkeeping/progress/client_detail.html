@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block header %}記帳進度表維護 - {{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12" x-data="{ globalSubmitting: false }">
+
+    <!-- Sticky Toolbar -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20">
+        <div class="flex flex-wrap gap-2 mb-3 sm:mb-0">
+            <a href="{% url 'bookkeeping:progress_list' %}"
+               class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                回列表
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <!-- Year Add Form -->
+            <form id="add-year-form" action="{% url 'bookkeeping:progress_add_year' client.pk %}" method="POST" class="inline-flex m-0 p-0">
+                {% csrf_token %}
+                <input type="number" id="new-year-input" name="year" class="hidden" required>
+            </form>
+            <button type="button" onclick="promptAddYear()"
+                class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增年度
+            </button>
+            {% if current_year_obj %}
+            <!-- Formset Save Button -->
+            <button type="button"
+                @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('progress-formset').submit() }, 300) }"
+                :disabled="globalSubmitting"
+                class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-75">
+                <span x-text="globalSubmitting ? '儲存中...' : '儲存進度資料'"></span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 3 Information Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+        <!-- Card 1: 基本資料 (read-only from BookkeepingClient) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
+                <a href="{% url 'bookkeeping:client_update' client.pk %}" class="ml-auto text-xs text-blue-500 hover:underline">編輯</a>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">統一編號</label>
+                    <input type="text" value="{{ client.tax_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">稅籍編號</label>
+                    <input type="text" value="{{ client.tax_registration_no|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs text-slate-400 block mb-0.5">公司名稱</label>
+                <input type="text" value="{{ client.name }}" readonly
+                    class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm font-bold text-slate-800 cursor-default focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Line ID</label>
+                    <input type="text" value="{{ client.line_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Room ID</label>
+                    <input type="text" value="{{ client.room_id|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-3 space-y-2">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">帳號密碼</p>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">營業人密碼</label>
+                    <input type="text" value="{{ client.business_password|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">電子發票帳號</label>
+                    <input type="text" value="{{ client.e_invoice_account|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">電子發票密碼</label>
+                    <input type="text" value="{{ client.e_invoice_password|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: 主要聯絡人 (read-only from BookkeepingClient) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">主要聯絡人</h4>
+            </div>
+            <div class="space-y-2">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">聯絡人</label>
+                    <input type="text" value="{{ client.contact_person|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">電話</label>
+                        <input type="text" value="{{ client.phone|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">手機</label>
+                        <input type="text" value="{{ client.mobile|default:'' }}" readonly
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">Email</label>
+                    <input type="text" value="{{ client.email|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">通訊地址</label>
+                    <input type="text" value="{{ client.correspondence_address|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">登記地址</label>
+                    <input type="text" value="{{ client.registered_address|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: 申報設定 (editable, targets TaxFilingSetting) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div class="w-1 h-4 bg-purple-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">進度設定</h4>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">提供服務</label>
+                    <input type="text" value="{{ client.get_service_type_display }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">記帳助理</label>
+                    <input type="text" value="{{ client.bookkeeping_assistant.name|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">集團助理</label>
+                    <input type="text" value="{{ client.group_assistant.name|default:'' }}" readonly
+                        class="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none">
+                </div>
+                <!-- Optional: Removed business tax specific settings as requested by user -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 專家系統設定 -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6" x-data="{ expertSettingsOpen: false }">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3 cursor-pointer" @click="expertSettingsOpen = !expertSettingsOpen">
+            <div class="flex items-center gap-2">
+                <div class="w-1 h-4 bg-amber-500 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">專家系統與稽核參數</h4>
+                <span class="text-xs text-slate-500 ml-2" x-show="!expertSettingsOpen">點擊展開設定</span>
+            </div>
+            <svg :class="{'rotate-180': expertSettingsOpen}" class="w-5 h-5 text-slate-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+        </div>
+        
+        <style>
+            .rule-toggle { display:inline-flex; align-items:center; cursor:pointer; position:relative; }
+            .rule-toggle input { position:absolute; opacity:0; width:0; height:0; }
+            .rule-toggle-track { display:inline-block; width:44px; height:24px; background:#D1D5DB; border-radius:9999px; transition:background-color 0.2s; flex-shrink:0; }
+            .rule-toggle input:checked ~ .rule-toggle-track { background:#2563EB; }
+            .rule-toggle-knob { position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:9999px; box-shadow:0 1px 3px rgba(0,0,0,0.25); transition:transform 0.2s; pointer-events:none; }
+            .rule-toggle input:checked ~ .rule-toggle-knob { transform:translateX(20px); }
+        </style>
+        <div x-show="expertSettingsOpen" style="display: none;" x-transition>
+            <form action="{% url 'bookkeeping:progress_save_expert_settings' client.pk %}{% if current_year_obj %}?year={{ current_year_obj.year }}{% endif %}" method="POST">
+                {% csrf_token %}
+                <div class="overflow-x-auto mb-4 border border-slate-200 rounded-lg">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-1/4">規則名稱</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">說明與預設值</th>
+                                <th class="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-24">是否啟用</th>
+                                <th class="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-40">客製化閾值</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            {% for item in expert_rules_data %}
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-800">{{ item.rule.name }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">{{ item.rule.code }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <p class="text-xs text-slate-600">{{ item.rule.description }}</p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">系統預設閾值: <span class="font-mono bg-slate-100 px-1 rounded">{{ item.rule.default_threshold }}</span></p>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <label class="rule-toggle">
+                                        <input type="checkbox" name="rule_{{ item.rule.code }}_active"
+                                               {% if not item.setting or item.setting.is_active %}checked{% endif %}>
+                                        <span class="rule-toggle-track"></span>
+                                        <span class="rule-toggle-knob"></span>
+                                    </label>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <input type="number" step="any" name="rule_{{ item.rule.code }}_threshold" 
+                                           class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-right focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder-slate-400"
+                                           placeholder="留空即套用預設"
+                                           value="{% if item.setting and item.setting.custom_threshold is not None %}{{ item.setting.custom_threshold }}{% endif %}">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not expert_rules_data %}
+                            <tr>
+                                <td colspan="4" class="px-3 py-4 text-center text-sm text-slate-400 bg-slate-50">系統內目前尚無任何專家規則</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm transition-colors">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        儲存參數設定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Year Selector + Add Button -->
+    <div class="mb-4 flex items-center gap-3">
+        {% if available_years %}
+        <form method="GET" action="" class="flex items-center gap-2" id="year-select-form">
+            <label for="year-select" class="text-sm font-medium text-slate-600 whitespace-nowrap">選擇年度</label>
+            <select id="year-select" name="year" onchange="document.getElementById('year-select-form').submit()"
+                class="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                {% for y_obj in available_years %}
+                <option value="{{ y_obj.year }}" {% if current_year_obj and current_year_obj.year == y_obj.year %}selected{% endif %}>
+                    {{ y_obj.year }} 年度
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% else %}
+        <span class="text-sm text-slate-400">尚無年度資料，請點擊「新增年度」</span>
+        {% endif %}
+    </div>
+
+    <!-- No data state -->
+    {% if not current_year_obj %}
+    <div class="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-slate-900">尚無記帳年度資料</h3>
+        <p class="mt-1 text-sm text-slate-500">請點擊右上角「新增年度」按鈕來建立第一筆年度資料表。</p>
+    </div>
+    {% else %}
+    <!-- Formset Table -->
+    <form id="progress-formset" method="POST" action="?year={{ current_year_obj.year }}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-800">{{ current_year_obj.year }} 年度各期進度明細</h3>
+                <span class="text-xs text-slate-500 font-semibold bg-white px-2 py-1 rounded border border-slate-200">共 {{ formset|length }} 期</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-24">期別</th>
+                            <th class="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-36">帳務處理進度</th>
+                            <th class="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-36">帳務完成日期</th>
+                            <th class="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-14">詳情</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        {% for form in formset %}
+                        {{ form.id }}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-3 py-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 bg-amber-50 text-amber-800 text-sm font-extrabold rounded-full border border-amber-200">
+                                    {{ form.instance.period_start_month|stringformat:"02d" }}-{{ form.instance.period_start_month|add:1|stringformat:"02d" }}月
+                                </span>
+                            </td>
+                            <td class="px-2 py-3">{{ form.account_status|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400" }}</td>
+                            <td class="px-2 py-3">{{ form.accounting_date|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400"|attr:"type:date" }}</td>
+                            {# 隱藏欄位保留數值 #}
+                            {{ form.sales_amount.as_hidden }}
+                            {{ form.tax_amount.as_hidden }}
+                            {{ form.filing_status.as_hidden }}
+                            <td class="px-2 py-3 text-center">
+                                <a href="{% url 'bookkeeping:progress_period_detail' client.pk form.instance.pk %}"
+                                   class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Bottom Save Button -->
+        <div class="flex justify-end">
+            <button type="submit"
+                class="inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none shadow-sm">
+                儲存進度資料
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+</div>
+
+<script>
+    function promptAddYear() {
+        const today = new Date();
+        const currentYear = today.getFullYear() - 1911;
+        const year = prompt("請輸入要建立的記帳年度（民國年）\n系統會自動為您產生本年度 6 期資料表", currentYear);
+        if (year && !isNaN(year) && parseInt(year) > 0) {
+            document.getElementById('new-year-input').value = parseInt(year, 10);
+            document.getElementById('add-year-form').submit();
+        }
+    }
+</script>
+{% endblock %}

@@ -1,11 +1,12 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.shortcuts import redirect
-from core.mixins import ListActionMixin
+from django.shortcuts import redirect, get_object_or_404
+from django.utils import timezone
+from core.mixins import ListActionMixin, PrevNextMixin, SoftDeleteMixin
 from ..models import DocumentDispatch, DocumentDispatchItem, DocumentDispatchImage
 from ..forms import DocumentDispatchForm, DocumentDispatchItemFormSet
 
@@ -14,7 +15,10 @@ class DocumentDispatchListView(LoginRequiredMixin, ListActionMixin, ListView):
     template_name = 'administrative/document_dispatch/list.html'
     context_object_name = 'dispatches'
     create_button_label = '新增發文'
-    
+
+    def get_queryset(self):
+        return DocumentDispatch.objects.filter(is_deleted=False)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '發文紀錄與管理'
@@ -22,6 +26,8 @@ class DocumentDispatchListView(LoginRequiredMixin, ListActionMixin, ListView):
             {'title': '行政管理', 'url': '#'},
             {'title': '發文系統', 'url': ''},
         ]
+        context['model_name'] = 'documentdispatch'
+        context['model_app_label'] = 'administrative'
         return context
 
 class DocumentDispatchItemListView(LoginRequiredMixin, ListActionMixin, ListView):
@@ -39,6 +45,8 @@ class DocumentDispatchItemListView(LoginRequiredMixin, ListActionMixin, ListView
             {'title': '發文系統', 'url': reverse_lazy('administrative:document_dispatch_list')},
             {'title': '發文紀錄查詢', 'url': ''},
         ]
+        context['model_name'] = 'documentdispatchitem'
+        context['model_app_label'] = 'administrative'
         return context
 
 class DocumentDispatchCreateView(LoginRequiredMixin, CreateView):
@@ -78,7 +86,7 @@ class DocumentDispatchCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "請修正表格中的錯誤。")
             return self.render_to_response(self.get_context_data(form=form))
 
-class DocumentDispatchUpdateView(LoginRequiredMixin, UpdateView):
+class DocumentDispatchUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     model = DocumentDispatch
     form_class = DocumentDispatchForm
     template_name = 'administrative/document_dispatch/form.html'
@@ -91,8 +99,8 @@ class DocumentDispatchUpdateView(LoginRequiredMixin, UpdateView):
             context['items_formset'] = DocumentDispatchItemFormSet(self.request.POST, instance=self.object)
         else:
             context['items_formset'] = DocumentDispatchItemFormSet(instance=self.object)
-            
         context['images'] = self.object.images.all()
+        context['history'] = self.object.history.all().order_by('-history_date')[:50]
         return context
 
     def form_valid(self, form):
@@ -127,11 +135,97 @@ class DocumentDispatchUpdateView(LoginRequiredMixin, UpdateView):
             messages.error(self.request, "請修正表格中的錯誤。")
             return self.render_to_response(self.get_context_data(form=form))
 
-class DocumentDispatchDeleteView(LoginRequiredMixin, DeleteView):
+class DocumentDispatchDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
     model = DocumentDispatch
     template_name = 'administrative/document_dispatch/confirm_delete.html'
     success_url = reverse_lazy('administrative:document_dispatch_list')
 
-    def form_valid(self, form):
-        messages.success(self.request, '發文紀錄已成功刪除。')
-        return super().form_valid(form)
+
+@login_required
+def document_dispatch_item_label(_request, item_pk):
+    """
+    Download a .docx mailing label for a single DocumentDispatchItem.
+    Template: document_templates/郵寄標籤_範本.docx
+    Variables: {{ contact_person }}, {{ customer_name }}, {{ address }}
+    """
+    import os
+    from io import BytesIO
+    from docxtpl import DocxTemplate
+    from django.conf import settings
+    from django.http import HttpResponse
+
+    item = get_object_or_404(DocumentDispatchItem, pk=item_pk)
+
+    template_path = os.path.join(settings.BASE_DIR, 'document_templates', '郵寄標籤_範本.docx')
+    doc = DocxTemplate(template_path)
+    doc.render({
+        'contact_person': item.contact_person or '',
+        'customer_name': item.customer.name if item.customer_id else '',
+        'address': item.address or '',
+    })
+
+    output = BytesIO()
+    doc.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    response['Content-Disposition'] = f'attachment; filename="label_{item.pk}.docx"'
+    return response
+
+
+@login_required
+def document_dispatch_transfer_to_advance_payment(request, pk):
+    """
+    將發文紀錄中「客戶吸收 ✓」的郵資項目，拋轉建立一筆代墊款。
+    """
+    if request.method != 'POST':
+        return redirect('administrative:document_dispatch_update', pk=pk)
+
+    dispatch = get_object_or_404(DocumentDispatch, pk=pk, is_deleted=False)
+
+    if dispatch.transferred_advance_payment_id:
+        messages.warning(request, "此發文紀錄已拋轉過代墊款，無法重複操作。")
+        return redirect('administrative:document_dispatch_update', pk=pk)
+
+    absorbed_items = dispatch.items.filter(is_absorbed_by_customer=True, postage__gt=0)
+
+    if not absorbed_items.exists():
+        messages.warning(request, "沒有勾選「客戶吸收」且郵資大於 0 的項目，無法拋轉。")
+        return redirect('administrative:document_dispatch_update', pk=pk)
+
+    from ..models.advance_payment import AdvancePayment, AdvancePaymentDetail
+
+    today = timezone.now().date()
+    today_str = today.strftime('%Y%m%d')
+    count = AdvancePayment.objects.filter(date=today).count() + 1
+    advance_no = f'AP-{today_str}-{count:03d}'
+
+    with transaction.atomic():
+        advance = AdvancePayment.objects.create(
+            advance_no=advance_no,
+            date=today,
+            applicant=request.user,
+            description=f"發文郵資 {dispatch.date.strftime('%Y-%m-%d')} (發文單 #{dispatch.pk})",
+        )
+        total = 0
+        for item in absorbed_items:
+            AdvancePaymentDetail.objects.create(
+                advance_payment=advance,
+                is_customer_absorbed=True,
+                customer=item.customer,
+                unified_business_no=item.tax_id or '',
+                reason=f"發文郵資（{item.customer.name if item.customer else ''}）",
+                amount=item.postage,
+                payment_type='POSTAGE',
+            )
+            total += item.postage
+        advance.total_amount = total
+        advance.save(update_fields=['total_amount'])
+        dispatch.transferred_advance_payment = advance
+        dispatch.save(update_fields=['transferred_advance_payment'])
+
+    messages.success(request, f"已成功建立代墊款 {advance_no}，共 {absorbed_items.count()} 筆郵資項目。")
+    return redirect('administrative:advance_payment_update', pk=advance.pk)

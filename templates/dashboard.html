@@ -2,67 +2,495 @@
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <!-- Card 1 -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-gray-500 text-sm font-medium">總收入</h3>
-        <p class="text-3xl font-bold text-gray-800">$120,000</p>
+    <!-- Card 1: Bookkeeping -->
+    <div class="bg-white rounded-lg shadow p-6 flex items-start">
+        <div class="flex-grow">
+            <h3 class="text-gray-500 text-sm font-medium mb-1">記帳家數</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ bookkeeping_count|default:"0" }}</p>
+        </div>
+        <div class="p-3 bg-blue-50 text-blue-500 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        </div>
     </div>
-    <!-- Card 2: Pending Tasks -->
-    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-400">
-        <h3 class="text-gray-500 text-sm font-medium">待核准項目</h3>
-        <div class="flex items-end justify-between">
+    
+    <!-- Card 2: Registration -->
+    <div class="bg-white rounded-lg shadow p-6 flex items-start">
+        <div class="flex-grow">
+            <h3 class="text-gray-500 text-sm font-medium mb-1">簽證家數</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ registration_count|default:"0" }}</p>
+        </div>
+        <div class="p-3 bg-green-50 text-green-500 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+    </div>
+
+    <!-- Card 3: Unbilled Amount -->
+    <div class="bg-blue-50 rounded-lg shadow p-6 flex  items-start">
+        <div class="flex-grow">
+            <h3 class="text-gray-500 text-sm font-medium mb-1">未發帳單金額</h3>
+            <p class="text-3xl font-bold text-gray-800">NT$ {{ unbilled_amount|default:"0" }}</p>
+        </div>
+        <div class="p-3 bg-indigo-50 text-indigo-500 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+    </div>
+
+    <!-- Card 4: Pending Tasks -->
+    <div class="bg-yellow-50 rounded-lg shadow p-6 flex items-start ">
+        <div class="flex-grow">
+            <h3 class="text-gray-500 text-sm font-medium mb-1">待核准項目</h3>
             <p class="text-3xl font-bold text-gray-800">{{ pending_count|default:"0" }}</p>
-            <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">需要處理</span>
+        </div>
+        <div class="flex flex-col items-end justify-between h-full">
+            <div class="p-3 bg-yellow-50 text-yellow-500 rounded-full mb-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </div>
+            {% if pending_count > 0 %}
+            <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full whitespace-nowrap">需要處理</span>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Main Content Area -->
-    <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">最近活動</h3>
-        <p class="text-gray-500">尚無最近活動。</p>
-    </div>
+<!-- Middle Section: Recent Activity & Pending Tasks -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Annual Tax Timeline -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow flex flex-col h-full">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                <span class="text-blue-500 mr-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </span>年度作業行事曆
+            </h3>
+        </div>
+        
+        <div class="p-6 flex-grow relative" style="background: #fafbfc;" x-data="{
+            activeTask: null,
+            scrollLeft() {
+                this.$refs.slider.scrollBy({ left: -300, behavior: 'smooth' });
+            },
+            scrollRight() {
+                this.$refs.slider.scrollBy({ left: 300, behavior: 'smooth' });
+            }
+        }">
+            <!-- Slider Controls & Track -->
+            <div class="relative">
+                <!-- Prev Button -->
+                <button @click="scrollLeft()" class="absolute top-1/2 z-30 bg-white rounded-full p-2 text-gray-600 focus:outline-none transition-all transform hover:scale-110" style="left: -12px; transform: translateY(-50%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
 
-    <!-- Pending Approvals List -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4 flex items-center">
-            <span class="mr-2">📋</span> 待辦事項
-        </h3>
-
-        {% if pending_approvals %}
-        <div class="space-y-4">
-            {% for approval_req in pending_approvals %}
-            <div class="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <span class="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                            {{ approval_req.workflow_template.name }}
-                        </span>
-                        <h4 class="font-medium text-gray-800 mt-1">{{ approval_req.content_object }}</h4>
-                    </div>
-                    <span class="text-xs text-gray-500">{{ approval_req.submit_date|date:"m/d H:i" }}</span>
+                <!-- Carousel Container -->
+                <div x-ref="slider" class="flex overflow-x-auto scroll-smooth custom-scrollbar" style="gap: 28px; padding: 20px 24px 28px 24px; scroll-snap-type: x mandatory; -ms-overflow-style: -ms-autohiding-scrollbar;">
+                    {% if timeline %}
+                        {% for item in timeline %}
+                        <!-- Month Card -->
+                        <div class="shrink-0 transition-all duration-300 ease-in-out" 
+                             style="scroll-snap-align: center; {% if item.is_current %}width: 280px; transform: scale(1.05); z-index: 10;{% else %}width: 240px; opacity: 0.92;{% endif %}">
+                            
+                            <div class="rounded-2xl overflow-hidden transition-all duration-300 timeline-card {% if item.is_current %}timeline-card-current{% endif %}"
+                                 style="background: rgba(255,255,255,0.97); border: none; {% if item.is_current %}box-shadow: 0 8px 30px rgba(99,102,241,0.15), 0 0 0 3px rgba(129,140,248,0.3);{% else %}box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);{% endif %}">
+                                
+                                <!-- Month Header -->
+                                <div class="text-center font-bold py-3 relative" 
+                                     style="{% if item.is_current %}background: linear-gradient(135deg, #eef2ff, #dbeafe); color: #3730a3; border-bottom: 1px solid rgba(199,210,254,0.5);{% else %}background: linear-gradient(135deg, #f9fafb, #ffffff); color: #374151; border-bottom: 1px solid rgba(229,231,235,0.5);{% endif %}">
+                                    {{ item.month }}月
+                                    {% if item.has_alert %}
+                                    <span class="absolute flex" style="top: 12px; right: 12px; width: 10px; height: 10px;">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full bg-red-500" style="width: 10px; height: 10px;"></span>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Tasks Container -->
+                                <div class="p-3 overflow-y-auto custom-scrollbar" style="height: 200px; background: #fff;">
+                                    {% if item.tasks %}
+                                        {% for task in item.tasks %}
+                                        <div @click="activeTask = { title: '{{ task.title|escapejs }}', deadline: '{{ task.deadline|date:"Y-m-d" }}', remarks: `{{ task.remarks|escapejs }}`, progress: {{ task.progress }}, completed: {{ task.is_completed|yesno:"true,false" }} }" 
+                                             class="mb-3 last:mb-0 p-3 rounded-xl cursor-pointer transition-all duration-200"
+                                             style="{% if task.is_completed %}background: #f9fafb; border: 1px solid #f3f4f6;{% else %}background: rgba(238,242,255,0.4); border: 1px solid rgba(224,231,255,0.5);{% endif %}"
+                                             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';"
+                                             onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                                            <div class="flex justify-between items-start mb-1.5">
+                                                <p class="text-sm font-semibold text-gray-800 truncate" title="{{ task.title }}">{{ task.title }}</p>
+                                            </div>
+                                            <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
+                                                <span>截止：{{ task.deadline|date:"m/d" }}</span>
+                                                <span class="font-medium" style="{% if task.is_completed %}color: #059669;{% elif task.progress < 50 %}color: #e11d48;{% else %}color: #4f46e5;{% endif %}">{{ task.progress }}%</span>
+                                            </div>
+                                            <div class="w-full rounded-full overflow-hidden" style="height: 6px; background: #e5e7eb;">
+                                                <div class="rounded-full transition-all duration-500" 
+                                                     style="height: 6px; width: {{ task.progress }}%; {% if task.is_completed %}background: #10b981;{% elif task.progress < 50 %}background: #f59e0b;{% else %}background: #6366f1;{% endif %}"></div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="h-full flex flex-col items-center justify-center text-gray-400" style="opacity: 0.5;">
+                                            <svg class="mb-2 text-gray-300" style="width: 32px; height: 32px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span class="text-sm font-medium">本月無待辦事項</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="w-full flex justify-center py-10 text-gray-400">
+                            <p>尚無年度行事曆資料，請先安排年度稅務任務。</p>
+                        </div>
+                    {% endif %}
                 </div>
 
-                <div class="flex items-center justify-between mt-3">
-                    <div class="flex items-center text-xs text-gray-500">
-                        <span class="mr-1">申請人:</span>
-                        <span class="font-medium text-gray-700">{{ approval_req.requester.get_full_name }}</span>
-                    </div>
+                <!-- Next Button -->
+                <button @click="scrollRight()" class="absolute top-1/2 z-30 bg-white rounded-full p-2 text-gray-600 focus:outline-none transition-all transform hover:scale-110" style="right: -12px; transform: translateY(-50%); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
 
-                    <a href="{{ approval_req.content_object.get_absolute_url }}"
-                        class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors">
-                        審核
-                    </a>
+            <!-- Active Task Detail Box (Remarks) -->
+            <div x-show="activeTask" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0"
+                 style="display: none;"
+                 class="mt-4 p-5 bg-white rounded-xl relative overflow-hidden" style="display:none; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e0e7ff;">
+                <!-- Top Decorative Line -->
+                <div class="absolute top-0 left-0 w-full" style="height: 3px; background: linear-gradient(90deg, #6366f1, #60a5fa);"></div>
+                
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-900" x-text="activeTask.title"></h4>
+                        <div class="flex items-center text-sm text-gray-500 mt-2" style="gap: 20px;">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                截止：<span x-text="activeTask.deadline"></span>
+                            </span>
+                            <span class="flex items-center font-medium" :class="activeTask.completed ? 'text-green-600' : 'text-indigo-600'">
+                                <svg class="w-4 h-4 mr-1.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                進度：<span x-text="activeTask.progress + '%'"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <button @click="activeTask = null" class="text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 focus:outline-none transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="rounded-lg p-4" style="background: rgba(239,246,255,0.5); border: 1px solid #dbeafe;">
+                    <h5 class="flex items-center text-xs font-bold tracking-wider text-indigo-800 mb-2">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        任務備註
+                    </h5>
+                    <div class="text-sm text-gray-700 leading-relaxed" x-show="activeTask && activeTask.remarks" x-html="activeTask.remarks"></div>
+                    <div class="text-sm text-gray-400 italic" x-show="activeTask && !activeTask.remarks">本任務尚無備註說明。</div>
                 </div>
             </div>
-            {% endfor %}
+            
+            <div x-show="!activeTask" class="mt-2 text-center text-sm text-gray-400 py-4 flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2 animate-bounce opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg> 點擊上方卡片中的任務，即可查看任務備註與詳細資訊。
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .timeline-card:hover {
+            box-shadow: 0 12px 36px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.05) !important;
+            transform: translateY(-4px);
+        }
+        .timeline-card-current:hover {
+            box-shadow: 0 12px 36px rgba(99,102,241,0.2), 0 0 0 3px rgba(129,140,248,0.3) !important;
+        }
+    </style>
+
+    <!-- Pending Approvals List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col h-full">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                <span class="text-indigo-600 mr-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                </span>待辦事項
+            </h3>
+        </div>
+
+        <div class="p-4 flex-grow overflow-y-auto">
+            {% if pending_approvals %}
+            <div class="space-y-3">
+                {% for approval_req in pending_approvals %}
+                <div class="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded border border-indigo-100">
+                            {{ approval_req.workflow_template.name }}
+                        </span>
+                        <span class="text-xs text-gray-400">{{ approval_req.submit_date|date:"m/d H:i" }}</span>
+                    </div>
+                    <h4 class="font-medium text-gray-800 text-sm mb-2 truncate" title="{{ approval_req.content_object }}">{{ approval_req.content_object }}</h4>
+                    <div class="flex items-center justify-between border-t border-gray-50 pt-2 mt-2">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <span class="inline-block w-6 h-6 rounded-full bg-gray-200 text-center leading-6 text-gray-600 font-bold mr-2">{{ approval_req.requester.get_full_name|slice:":1" }}</span>
+                            <span>{{ approval_req.requester.get_full_name }}</span>
+                        </div>
+                        <a href="{{ approval_req.content_object.get_absolute_url }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">審核 &rarr;</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-gray-500 h-full flex flex-col justify-center">
+                <p class="text-4xl mb-3">🎉</p>
+                <p class="font-medium">目前沒有待辦事項</p>
+                <p class="text-sm mt-1">您已處裡完所有的核准項目！</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Section: Calendar & Bulletin -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Attendance Clock In/Out -->
+    <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-center relative overflow-hidden h-full">
+        <!-- Background Decoration -->
+        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full opacity-50 blur-2xl pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-gradient-to-tr from-green-50 to-emerald-50 rounded-full opacity-50 blur-xl pointer-events-none"></div>
+
+        <div class="flex flex-col mt-2 mb-4 relative z-10">
+            <h3 class="text-xl font-bold text-slate-800 flex items-center mb-2">
+                <span class="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3 shadow-inner">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </span>
+                今日出勤打卡
+            </h3>
+            <div>
+                <p class="text-sm font-medium text-slate-500">{{ today|date:"Y 年 m 月 d 日" }} ({% with day=today|date:"w" %}{% if day == "0" %}星期日{% elif day == "1" %}星期一{% elif day == "2" %}星期二{% elif day == "3" %}星期三{% elif day == "4" %}星期四{% elif day == "5" %}星期五{% elif day == "6" %}星期六{% endif %}{% endwith %})</p>
+                {% if employee %}
+                <p class="text-xs text-slate-400 mt-0.5">{{ employee.name }} ({{ employee.employee_number }})</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not employee %}
+        <div class="bg-red-50 border border-red-100 rounded-xl p-4 text-center shadow-sm relative z-10 my-auto">
+            <svg class="w-8 h-8 mx-auto text-red-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.07 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p class="text-red-700 text-sm font-medium">尚未綁定員工資料</p>
         </div>
         {% else %}
-        <div class="text-center py-8 text-gray-500">
-            <p>目前沒有待辦事項 🎉</p>
+
+        <div class="relative z-10 flex-grow flex flex-col justify-between" style="gap: 1.5rem;">
+            <!-- Status Panel -->
+            <div class="bg-slate-50/50 border border-slate-100 rounded-xl p-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Clock In Status -->
+                    <div class="text-center rounded-lg {% if today_record.clock_in %}bg-green-50/50{% else %}bg-white{% endif %} py-2">
+                        <span class="block text-xs font-medium {% if today_record.clock_in %}text-green-800{% else %}text-slate-500{% endif %} mb-1">上班</span>
+                        {% if today_record.clock_in %}
+                            <div class="text-lg font-bold text-green-700 font-mono">{{ today_record.clock_in|time:"H:i" }}</div>
+                        {% else %}
+                            <div class="text-lg font-bold text-slate-400 font-mono">--:--</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Clock Out Status -->
+                    <div class="text-center rounded-lg {% if today_record.clock_out %}bg-blue-50/50{% else %}bg-white{% endif %} py-2">
+                        <span class="block text-xs font-medium {% if today_record.clock_out %}text-blue-800{% else %}text-slate-500{% endif %} mb-1">下班</span>
+                        {% if today_record.clock_out %}
+                            <div class="text-lg font-bold text-blue-700 font-mono">{{ today_record.clock_out|time:"H:i" }}</div>
+                        {% else %}
+                            <div class="text-lg font-bold text-slate-400 font-mono">--:--</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-3">
+                <style>
+                    .dashboard-btn-clock-in { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+                    .dashboard-btn-clock-in:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4), 0 8px 10px -6px rgba(16, 185, 129, 0.1); }
+                    .dashboard-btn-clock-out { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+                    .dashboard-btn-clock-out:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4), 0 8px 10px -6px rgba(59, 130, 246, 0.1); }
+                    .dashboard-btn-disabled { background: #e2e8f0; color: #94a3b8; box-shadow: none; pointer-events: none; }
+                </style>
+
+                <form method="post" action="{% url 'hr:clock_in_out' %}?next={% url 'dashboard' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="clock_type" value="in">
+                    <button type="submit" {% if today_record and today_record.clock_in %}disabled{% endif %}
+                        class="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-base transition-all duration-300 {% if today_record and today_record.clock_in %}dashboard-btn-disabled{% else %}text-white shadow-md dashboard-btn-clock-in{% endif %}">
+                        <svg class="w-5 h-5 {% if not today_record or not today_record.clock_in %}text-emerald-100{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        </svg>
+                        我來了 (上班)
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'hr:clock_in_out' %}?next={% url 'dashboard' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="clock_type" value="out">
+                    {% if today_record and today_record.clock_out or not today_record or not today_record.clock_in %}
+                    <button type="submit" disabled
+                        class="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-base transition-all duration-300 dashboard-btn-disabled">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        辛苦了 (下班)
+                    </button>
+                    {% else %}
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-base transition-all duration-300 text-white shadow-md dashboard-btn-clock-out">
+                        <svg class="w-5 h-5 text-blue-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        辛苦了 (下班)
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
         </div>
         {% endif %}
+    </div>
+
+    <!-- Bulletin Board -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow p-6 flex flex-col h-full">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                系統公佈欄
+            </h3>
+            <a href="{% url 'administrative:system_bulletin_create' %}" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                <svg class="-ml-0.5 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                新增公告
+            </a>
+        </div>
+        {% if system_bulletins %}
+        <ul class="space-y-4">
+            {% for bulletin in system_bulletins %}
+            <li class="flex items-start p-3 rounded-lg border transition-colors 
+                {% if bulletin.importance_level == 'high' %}
+                    bg-red-50 border-red-100
+                {% elif bulletin.importance_level == 'medium' %}
+                    bg-yellow-50 border-yellow-100
+                {% else %}
+                    bg-transparent border-transparent
+                {% endif %}">
+                
+                <span class="flex-shrink-0 w-2 h-2 mt-2 rounded-full mr-3 
+                    {% if bulletin.importance_level == 'high' %}
+                        bg-red-500
+                    {% elif bulletin.importance_level == 'medium' %}
+                        bg-yellow-500
+                    {% else %}
+                        bg-blue-500
+                    {% endif %}"></span>
+                    
+                <div class="flex-1">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-base font-bold text-black flex items-center">
+                            {% if bulletin.importance_level == 'high' %}
+                                <span class="bg-red-100 text-red-800 text-xs font-semibold px-2 py-0.5 rounded border border-red-200 mr-2">高重要性</span>
+                            {% elif bulletin.importance_level == 'medium' %}
+                                <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded border border-yellow-200 mr-2">中重要性</span>
+                            {% endif %}
+                            {{ bulletin.subject }}
+                        </h4>
+                        <p class="text-xs text-gray-500">{{ bulletin.publish_date|date:"Y-m-d" }}</p>
+                    </div>
+                    <div class="text-sm mt-2 {% if bulletin.importance_level == 'high' %}text-red-900{% elif bulletin.importance_level == 'medium' %}text-yellow-900{% else %}text-gray-700{% endif %}">
+                        {{ bulletin.content|linebreaksbr }}
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-8 text-gray-400">
+            目前沒有生效的系統公告。
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Footer Section: Bookkeeping Tracker -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+            <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            記帳案件進度表 (尚未處理)
+        </h3>
+        <a href="{% url 'bookkeeping:progress_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+            查看所有進度表 &rarr;
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 bg-gray-50 uppercase border-b border-gray-100">
+                <tr>
+                    <th scope="col" class="px-6 py-3 font-medium">客戶名稱</th>
+                    <th scope="col" class="px-6 py-3 font-medium">統編</th>
+                    <th scope="col" class="px-6 py-3 font-medium">年度</th>
+                    <th scope="col" class="px-6 py-3 font-medium">期別</th>
+                    <th scope="col" class="px-6 py-3 font-medium">帳務進度</th>
+                    <th scope="col" class="px-6 py-3 font-medium text-right">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if not_started_periods %}
+                    {% for period in not_started_periods %}
+                    <tr class="bg-white border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                            {{ period.year_record.client.name }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ period.year_record.client.tax_id|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ period.year_record.year }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {{ period.period_label }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">尚未處理</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'bookkeeping:progress_period_detail' period.year_record.client.pk period.year_record.year period.period_start_month %}" class="text-indigo-600 hover:text-indigo-900 font-medium">進入處理</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            您目前擔任記帳助理的客戶，皆無「尚未處理」的案件。
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

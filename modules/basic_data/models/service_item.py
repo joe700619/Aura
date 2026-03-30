@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from simple_history.models import HistoricalRecords
 
 class ServiceItem(models.Model):
     class Department(models.IntegerChoices):
@@ -20,6 +21,8 @@ class ServiceItem(models.Model):
     is_money_laundering_check = models.BooleanField(_('是否執行洗錢防制法檢查'), default=False)
     is_business_entity_change = models.BooleanField(_('是否需營業人變更'), default=False)
     is_shareholder_list_change = models.BooleanField(_('是否變更股東名簿'), default=False)
+
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = _('服務項目')

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-800">{{ page_title }}</h2>
+</div>
+
+<div class="bg-white shadow rounded-lg w-full max-w-4xl mx-auto border border-gray-100 pb-8">
+    <div class="px-8 py-6 border-b border-gray-100 bg-gray-50/50 rounded-t-lg">
+        <h3 class="text-lg font-medium text-gray-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+            公佈欄基本資料
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">請填寫要在儀表板上顯示的系統公告內容。</p>
+    </div>
+
+    <div class="p-8">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <!-- Heroicon name: solid/x-circle -->
+                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">儲存失敗</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8">
+                <!-- Row 1: Publish Date, Status, Importance -->
+                <div class="col-span-1">
+                    <label for="{{ form.publish_date.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.publish_date.label }}</label>
+                    <div class="mt-1">
+                        {{ form.publish_date }}
+                        {% if form.publish_date.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.publish_date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-span-1">
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.status.label }}</label>
+                    <div class="mt-1">
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">儀表板只會顯示標記為「生效」的內容。</p>
+                    </div>
+                </div>
+                <div class="col-span-1">
+                    <label for="{{ form.importance_level.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.importance_level.label }}</label>
+                    <div class="mt-1">
+                        {{ form.importance_level }}
+                        {% if form.importance_level.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.importance_level.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Row 2: Subject (Full Width) -->
+                <div class="col-span-1 md:col-span-3">
+                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.subject.label }}</label>
+                    <div class="mt-1">
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.subject.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Row 3: Content (Full Width) -->
+                <div class="col-span-1 md:col-span-3">
+                    <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ form.content.label }}</label>
+                    <div class="mt-1">
+                        {{ form.content }}
+                        {% if form.content.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-6 border-t border-gray-100 flex items-center justify-end gap-x-4">
+                <a href="{{ request.META.HTTP_REFERER|default:'/administrative/system_bulletin/' }}" class="text-sm font-semibold leading-6 text-gray-900 px-4 py-2 hover:bg-gray-50 rounded-md transition-colors">
+                    取消
+                </a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    儲存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

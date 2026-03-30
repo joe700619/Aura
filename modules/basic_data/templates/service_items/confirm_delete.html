@@ -1,4 +1,4 @@
-{% extends 'layouts/base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
 <div class="max-w-md mx-auto mt-10">
@@ -13,7 +13,7 @@
             <form method="post">
                 {% csrf_token %}
                 <div class="flex justify-end space-x-3">
-                    <a href="{% url 'service_item_list' %}"
+                    <a href="{% url 'basic_data:service_item_list' %}"
                         class="px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50">
                         取消
                     </a>

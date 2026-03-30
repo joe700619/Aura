@@ -140,4 +140,7 @@ class ClockInOutView(LoginRequiredMixin, View):
                     record.save()
                     messages.success(request, f'下班打卡成功！時間：{now.strftime("%H:%M")}')
 
+        next_url = request.GET.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('hr:clock_in_out')

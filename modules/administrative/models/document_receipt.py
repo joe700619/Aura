@@ -1,8 +1,11 @@
+import os
 from django.db import models
 from django.utils import timezone
 from modules.basic_data.models.customer import Customer
+from core.models import BaseModel
 
-class DocumentReceipt(models.Model):
+
+class DocumentReceipt(BaseModel):
     CATEGORY_CHOICES = [
         ('營業稅憑證', '營業稅憑證'),
         ('會計帳冊', '會計帳冊'),
@@ -30,8 +33,6 @@ class DocumentReceipt(models.Model):
     remarks = models.TextField(blank=True, null=True, verbose_name="備註")
     attachment = models.FileField(upload_to='document_receipts/%Y/%m/', blank=True, null=True, verbose_name="附件")
     is_line_notified = models.BooleanField(default=False, verbose_name="Line 通知狀態")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
 
     class Meta:
         verbose_name = "收文紀錄"
@@ -40,3 +41,25 @@ class DocumentReceipt(models.Model):
 
     def __str__(self):
         return f"{self.customer} - {self.subject} ({self.receipt_date})"
+
+
+class DocumentReceiptAttachment(models.Model):
+    receipt = models.ForeignKey(DocumentReceipt, on_delete=models.CASCADE, related_name='attachments', verbose_name="收文紀錄")
+    file = models.FileField(upload_to='document_receipts/%Y/%m/', verbose_name="附件")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="上傳時間")
+
+    class Meta:
+        verbose_name = "收文附件"
+        verbose_name_plural = "收文附件"
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"{self.receipt} - {os.path.basename(self.file.name)}"
+
+    @property
+    def filename(self):
+        return os.path.basename(self.file.name)
+
+    @property
+    def is_image(self):
+        return self.file.name.lower().rsplit('.', 1)[-1] in ('jpg', 'jpeg', 'png', 'gif', 'webp')

@@ -1,5 +1,7 @@
 {% extends 'components/form_view.html' %}
 
+{% block form_attributes %}enctype="multipart/form-data"{% endblock %}
+
 {% block page_title %}{% if object %}編輯國稅局查帳通知{% else %}新增國稅局查帳通知{% endif %}{% endblock %}
 {% block header_title %}{% if object %}編輯國稅局查帳通知{% else %}新增國稅局查帳通知{% endif %}{% endblock %}
 
@@ -69,7 +71,7 @@
     
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">指派助理</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">指派助理 <span class="text-red-500">*</span></label>
             {{ form.assigned_assistant }}
             {{ form.assigned_assistant.errors }}
         </div>
@@ -109,14 +111,140 @@
     </div>
 
     <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1 mt-4">附件上傳 (選填)</label>
-        {{ form.attachment }}
-        {{ form.attachment.errors }}
-        {% if object.attachment %}
-        <div class="mt-2 text-sm text-slate-600">
-            目前檔案：<a href="{{ object.attachment.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">查看附件</a>
+        <script id="irs-attachment-data" type="application/json">
+        [
+            {% for att in attachments %}
+            { "id": "{{ att.id }}", "url": "{{ att.file.url|escapejs }}", "name": "{{ att.filename|escapejs }}", "isImage": {{ att.is_image|yesno:"true,false" }}, "isTemp": false, "time": "{{ att.uploaded_at|date:'Y-m-d H:i'|escapejs }}" }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+        <script>
+        function irsFileViewer() {
+            return {
+                activeIndex: 0,
+                fileList: [],
+                deletedIds: [],
+                init() {
+                    try {
+                        const el = document.getElementById('irs-attachment-data');
+                        if (el) this.fileList = JSON.parse(el.textContent);
+                    } catch(e) { this.fileList = []; }
+                },
+                handleFileSelect(event) {
+                    const files = event.target.files;
+                    if (!files || !files.length) return;
+                    const startIndex = this.fileList.length;
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const isImage = file.type.startsWith('image/');
+                        const now = new Date();
+                        const timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+                        this.fileList.push({
+                            id: 'temp_' + Date.now() + '_' + i,
+                            url: isImage ? URL.createObjectURL(file) : '',
+                            name: file.name,
+                            isImage: isImage,
+                            isTemp: true,
+                            time: timeStr + ' (暫存)'
+                        });
+                    }
+                    this.activeIndex = startIndex;
+                },
+                deleteActive() {
+                    const f = this.fileList[this.activeIndex];
+                    if (!f) return;
+                    if (f.isTemp) {
+                        const inp = this.$el.querySelector('input[type="file"]');
+                        if (inp && inp.files && typeof DataTransfer !== 'undefined') {
+                            const dt = new DataTransfer();
+                            for (let i = 0; i < inp.files.length; i++) {
+                                if (inp.files[i].name !== f.name) dt.items.add(inp.files[i]);
+                            }
+                            inp.files = dt.files;
+                        }
+                    } else {
+                        this.deletedIds.push(String(f.id));
+                    }
+                    this.fileList.splice(this.activeIndex, 1);
+                    if (this.activeIndex >= this.fileList.length) this.activeIndex = Math.max(0, this.fileList.length - 1);
+                }
+            };
+        }
+        </script>
+
+        <label class="block text-sm font-medium text-slate-700 mb-2">夾檔附件 (可多選)</label>
+        <div x-data="irsFileViewer()" x-init="init()">
+            <input type="hidden" name="deleted_attachment_ids" :value="deletedIds.join(',')">
+            <label class="cursor-pointer inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 font-semibold text-sm rounded-md border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                選擇檔案...
+                <input type="file" name="new_attachments" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.odt,.ods" class="hidden" @change="handleFileSelect($event)">
+            </label>
+
+            <template x-if="fileList.length > 0">
+                <div class="mt-3 flex flex-col">
+                    <div class="flex items-center justify-between bg-white border border-b-0 border-slate-200 rounded-t-lg px-3 py-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span x-show="fileList.length > 1" class="text-xs text-slate-400 font-mono shrink-0" x-text="(activeIndex + 1) + ' / ' + fileList.length"></span>
+                            <span class="text-xs text-slate-600 font-medium truncate" x-text="fileList[activeIndex] ? fileList[activeIndex].name : ''"></span>
+                            <span x-show="fileList[activeIndex] && fileList[activeIndex].isTemp" class="text-xs text-amber-500 font-semibold shrink-0">(暫存)</span>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 ml-2">
+                            <template x-if="fileList[activeIndex] && !fileList[activeIndex].isTemp">
+                                <a :href="fileList[activeIndex].url" target="_blank" download class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold border border-indigo-200 rounded px-2 py-1 bg-indigo-50 hover:bg-indigo-100 transition-colors">下載</a>
+                            </template>
+                            <button type="button" @click="if(confirm('確定要移除此附件嗎？')) deleteActive()"
+                                    class="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-semibold border border-red-200 rounded px-2 py-1 bg-red-50 hover:bg-red-100 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                移除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative w-full bg-slate-100 rounded-b-lg overflow-hidden border border-slate-200 shadow-inner" style="min-height:260px;">
+                        <template x-for="(f, index) in fileList" :key="f.id">
+                            <div x-show="activeIndex === index" class="w-full flex items-center justify-center" style="min-height:260px;" x-transition.opacity.duration.200ms>
+                                <template x-if="f.isImage">
+                                    <img :src="f.url" class="max-w-full max-h-64 object-contain" alt="">
+                                </template>
+                                <template x-if="!f.isImage">
+                                    <div class="flex flex-col items-center justify-center gap-3 py-10 px-6">
+                                        <svg class="w-14 h-14 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                        <span class="text-sm font-semibold text-slate-700 text-center break-all" x-text="f.name"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <button type="button" x-show="fileList.length > 1" @click="activeIndex = activeIndex === 0 ? fileList.length - 1 : activeIndex - 1" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button type="button" x-show="fileList.length > 1" @click="activeIndex = activeIndex === fileList.length - 1 ? 0 : activeIndex + 1" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mt-2 overflow-x-auto pb-1 snap-x">
+                        <template x-for="(f, index) in fileList" :key="f.id">
+                            <button type="button" @click="activeIndex = index"
+                                    :class="activeIndex === index ? 'ring-2 ring-indigo-500 scale-105' : 'opacity-60 hover:opacity-100 border-slate-300'"
+                                    class="relative w-14 h-14 shrink-0 rounded overflow-hidden border transition-all snap-start bg-slate-200 flex items-center justify-center">
+                                <template x-if="f.isImage">
+                                    <img :src="f.url" class="object-cover w-full h-full" alt="">
+                                </template>
+                                <template x-if="!f.isImage">
+                                    <svg class="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                </template>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="fileList.length === 0">
+                <div class="mt-3 w-full flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 py-10 px-4">
+                    <svg class="w-10 h-10 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    <p class="text-sm text-slate-400">尚未上傳附件</p>
+                </div>
+            </template>
         </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -130,12 +258,12 @@
     
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">聯絡人</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">聯絡人 <span class="text-red-500">*</span></label>
             {{ form.irs_contact }}
             {{ form.irs_contact.errors }}
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">電話</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">電話 <span class="text-red-500">*</span></label>
             {{ form.irs_phone }}
             {{ form.irs_phone.errors }}
         </div>
@@ -148,7 +276,7 @@
             {{ form.irs_email.errors }}
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">國稅局轄區</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">國稅局轄區 <span class="text-red-500">*</span></label>
             {{ form.irs_district }}
             {{ form.irs_district.errors }}
         </div>

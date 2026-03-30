@@ -4,85 +4,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aura 客戶服務中心 | 登入</title>
+    <title>Aura 客戶服務中心 | 企業登入</title>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% load tailwind_tags %}
     {% tailwind_css %}
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-fade-in-down {
+            animation: fadeInDown 0.5s ease-out;
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -10px, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+    </style>
 </head>
-<body class="bg-indigo-900 font-sans antialiased min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+<body class="bg-slate-50 font-sans antialiased min-h-screen flex selection:bg-indigo-100 selection:text-indigo-900">
     
-    <!-- Background Decoration -->
-    <div class="absolute inset-0 z-0">
-        <svg class="absolute bottom-0 left-0 transform -translate-x-1/2 translate-y-1/2 opacity-20 w-[800px] h-[800px] text-indigo-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-        <svg class="absolute top-0 right-0 transform translate-x-1/3 -translate-y-1/3 opacity-10 w-[600px] h-[600px] text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-    </div>
-
-    <div class="max-w-md w-full relative z-10 bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <!-- Left Section: Branding & Graphics (Hidden on small screens) -->
+    <div class="hidden lg:flex lg:w-1/2 gradient-bg relative overflow-hidden items-center justify-center p-12">
+        <!-- Abstract Shapes -->
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-white opacity-10 animate-pulse"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-indigo-300 opacity-20 animate-float" style="animation-duration: 8s;"></div>
         
-        <div class="px-8 pt-10 pb-8 text-center bg-white">
-            <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+        <div class="relative z-10 text-white max-w-lg">
+            <div class="mb-8 inline-flex items-center justify-center p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10.496 2.132a1 1 0 00-.992 0l-7 4A1 1 0 003 8v7a2 2 0 002 2h10a2 2 0 002-2V8a1 1 0 00-.504-.868l-7-4zM6 9a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1zm3 1a1 1 0 012 0v3a1 1 0 11-2 0v-3zm5-1a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
             </div>
-            
-            <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Aura 稅務中心</h2>
-            <p class="text-sm text-slate-500">歡迎回來！請輸入您的統一編號與密碼以登入系統。</p>
-        </div>
-
-        <div class="bg-slate-50 px-8 py-8 border-t border-slate-100">
-            {% if form.errors %}
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-md">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-700">登入失敗，請確認統一編號與密碼是否正確。</p>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            <form method="post" action="{% url 'client_portal:login' %}" class="space-y-6">
-                {% csrf_token %}
-                
-                <div>
-                    <label for="id_username" class="block text-sm font-semibold text-slate-700 mb-1">統一編號</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        </div>
-                        <input id="id_username" name="username" type="text" required autofocus
-                            class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow"
-                            placeholder="請輸入公司統一編號">
-                    </div>
-                </div>
-
-                <div>
-                    <label for="id_password" class="block text-sm font-semibold text-slate-700 mb-1">營業人密碼</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z" /></svg>
-                        </div>
-                        <input id="id_password" name="password" type="password" required
-                            class="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-shadow"
-                            placeholder="請輸入營業人密碼">
-                    </div>
-                </div>
-
-                <div class="pt-2">
-                    <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                        安全登入
-                    </button>
-                </div>
-                
-                <p class="text-xs text-center text-slate-500 pt-4 border-t border-slate-200">
-                    如忘記密碼，請聯繫您的記帳專員
-                </p>
-            </form>
+            <h1 class="text-4xl lg:text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+                專業稅務服務<br>
+                <span class="text-indigo-200">一站式體驗</span>
+            </h1>
+            <p class="text-lg text-indigo-100 mb-8 leading-relaxed">
+                Aura 客戶服務中心提供您最安全、便捷的憑證上傳與稅務報表檢視體驗。隨時隨地掌握企業財務脈動。
+            </p>
+            <div class="flex items-center gap-4 text-sm font-medium text-indigo-100 bg-black/10 py-3 px-5 rounded-full inline-flex backdrop-blur-sm border border-white/10">
+                <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                高規格資料加密安全防護
+            </div>
         </div>
     </div>
+
+    <!-- Right Section: Login Form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24 relative bg-slate-50">
+        
+        <!-- Mobile Logo and Background -->
+        <div class="lg:hidden absolute top-0 left-0 w-full h-64 gradient-bg rounded-b-3xl"></div>
+        
+        <div class="w-full max-w-md relative z-10 text-slate-900">
+            <!-- Mobile Header -->
+            <div class="lg:hidden text-center mb-10 mt-8">
+                <div class="inline-flex items-center justify-center p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 shadow-lg mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.496 2.132a1 1 0 00-.992 0l-7 4A1 1 0 003 8v7a2 2 0 002 2h10a2 2 0 002-2V8a1 1 0 00-.504-.868l-7-4zM6 9a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1zm3 1a1 1 0 012 0v3a1 1 0 11-2 0v-3zm5-1a1 1 0 00-1 1v3a1 1 0 102 0v-3a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-extrabold text-white tracking-tight">Aura 稅務中心</h2>
+            </div>
+
+            <!-- Login Card -->
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-10 relative lg:glass-panel lg:border-none lg:shadow-2xl">
+                
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">企業登入</h3>
+                    <p class="text-slate-500 text-sm">請輸入您的統一編號與密碼</p>
+                </div>
+
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start animate-fade-in-down">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-red-800">登入失敗</p>
+                        <p class="text-sm text-red-600 mt-1">請確認您輸入的統一編號與密碼是否正確。</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'client_portal:login' %}" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-1">
+                        <label for="id_username" class="block text-sm font-semibold text-slate-700">統一編號</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600">
+                                <svg class="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            </div>
+                            <input id="id_username" name="username" type="text" required autofocus
+                                class="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm"
+                                placeholder="請輸入公司統編">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between">
+                            <label for="id_password" class="block text-sm font-semibold text-slate-700">營業人密碼</label>
+                            <a href="#" class="text-xs font-medium text-indigo-600 hover:text-indigo-500 transition-colors">忘記密碼？</a>
+                        </div>
+                        <div class="relative group" x-data="{ showPassword: false }">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-600">
+                                <svg class="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z" /></svg>
+                            </div>
+                            <input id="id_password" name="password" x-bind:type="showPassword ? 'text' : 'password'" required
+                                class="block w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm"
+                                placeholder="請輸入專屬密碼">
+                            
+                            <!-- Toggle Password Visibility -->
+                            <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
+                                <svg x-show="!showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                <svg x-show="showPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" x-cloak><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 transform hover:-translate-y-0.5">
+                            登入系統
+                            <svg class="ml-2 -mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <p class="text-center text-xs text-slate-500 mt-8 mb-4">
+                &copy; 2026 Aura 會計師事務所 保留所有權利。
+            </p>
+        </div>
+    </div>
+
+    <!-- Alpine.js x-cloak style -->
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </body>
 </html>

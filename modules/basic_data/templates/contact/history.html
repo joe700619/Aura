@@ -10,7 +10,7 @@
             <h3 class="text-lg font-bold text-slate-800">變更歷程</h3>
             <p class="text-sm text-slate-500">檢視此聯絡人的所有變更紀錄。</p>
         </div>
-        <a href="{% url 'contact_update' contact.pk %}"
+        <a href="{% url 'basic_data:contact_update' contact.pk %}"
             class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors border border-slate-300">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"

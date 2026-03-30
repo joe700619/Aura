@@ -16,7 +16,7 @@
         <form method="post">
             {% csrf_token %}
             <div class="flex justify-center space-x-4">
-                <a href="{% url 'customer_list' %}"
+                <a href="{% url 'basic_data:customer_list' %}"
                     class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
                     取消
                 </a>

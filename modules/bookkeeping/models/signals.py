@@ -28,7 +28,13 @@ def sync_client_portal_user(sender, instance, created, **kwargs):
     """
     from django.contrib.auth import get_user_model
     User = get_user_model()
-    
+
+    # 已軟刪除：停用關聯帳號並跳過
+    if instance.is_deleted:
+        if instance.user_id:
+            User.objects.filter(pk=instance.user_id, is_active=True).update(is_active=False)
+        return
+
     # Needs a tax ID and a business password to act as an account
     if not instance.tax_id or not instance.business_password:
         return

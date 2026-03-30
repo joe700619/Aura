@@ -5,17 +5,18 @@ from django.db import models
 class ModalSelectWidget(forms.TextInput):
     template_name = 'components/widgets/modal_select.html'
 
-    def __init__(self, search_url, label_model=None, *args, **kwargs):
+    def __init__(self, search_url, label_model=None, button_label=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.search_url = search_url
         self.label_model = label_model
+        self.button_label = button_label
 
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
         
         # Default label
-        label = "請選擇..."
-        
+        label = self.button_label or "請選擇..."
+
         # Try to fetch the label if value exists
         if value:
             if self.label_model:

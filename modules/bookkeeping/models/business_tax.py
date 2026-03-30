@@ -213,6 +213,9 @@ class TaxFilingPeriod(BaseModel):
         _('確認Token'), default=uuid.uuid4, unique=True, editable=False
     )
     
+    # ── 備註 ──
+    notes = models.TextField(_('備註'), blank=True, null=True, help_text=_('可存放計算紀錄或提醒事項'))
+    
     class Meta:
         verbose_name = _('營業稅申報明細')
         verbose_name_plural = _('營業稅申報明細')

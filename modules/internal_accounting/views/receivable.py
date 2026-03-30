@@ -8,6 +8,7 @@ import json
 from django.utils import timezone
 from ..models import Receivable, PaymentRecord, Voucher, VoucherDetail, Account, ReceivableFeeApportion
 from ..forms import ReceivableForm, PaymentRecordFormSet, ReceivableFeeApportionFormSet
+from core.mixins import PrevNextMixin
 
 def generate_voucher_for_receivable(receivable, user):
     """
@@ -117,7 +118,9 @@ class ReceivableListView(LoginRequiredMixin, ListView):
     model = Receivable
     template_name = 'receivable/list.html'
     context_object_name = 'receivables'
-    paginate_by = 20
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('collections')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -160,7 +163,7 @@ class ReceivableCreateView(LoginRequiredMixin, CreateView):
         else:
             return self.form_invalid(form)
 
-class ReceivableUpdateView(LoginRequiredMixin, UpdateView):
+class ReceivableUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     model = Receivable
     form_class = ReceivableForm
     template_name = 'receivable/form.html'
@@ -215,6 +218,18 @@ class ReceivableUpdateView(LoginRequiredMixin, UpdateView):
                             messages.success(self.request, f"應收帳款已更新，並成功產生傳票：{voucher.voucher_no}")
                         else:
                             messages.warning(self.request, "應收帳款已過帳，但無金額可產生傳票分錄。")
+
+                        # Outstanding balance is 0 at this point (cleared). Update source object.
+                        source_obj = self.object.source_object
+                        if source_obj:
+                            model_name = source_obj.__class__.__name__
+                            if model_name == 'ClientBill':
+                                source_obj.status = 'paid'
+                                source_obj.save(update_fields=['status'])
+                            elif model_name == 'Progress':
+                                source_obj.payment_status = 'paid'
+                                source_obj.save(update_fields=['payment_status'])
+
                     except ValueError as e:
                         self.object.is_posted = False
                         self.object.save(update_fields=['is_posted'])

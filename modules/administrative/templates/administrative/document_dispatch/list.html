@@ -23,9 +23,10 @@
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">發文日期</th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">發信方式</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="date">發文日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="method">發信方式 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">收件客戶數量</th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">代墊款拋轉</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
@@ -33,7 +34,9 @@
 {% for dispatch in dispatches %}
 <tr class="hover:bg-slate-50 transition duration-150 border-b border-slate-100 last:border-0"
     x-show="matches('ALL', '{{ dispatch.dispatch_method|escapejs }} {{ dispatch.date|date:"Y-m-d" }}')"
-    :class="selectedRows.includes({{ dispatch.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ dispatch.pk }}) ? 'bg-blue-50/30' : ''"
+    data-date="{{ dispatch.date|date:'Y-m-d' }}"
+    data-method="{{ dispatch.dispatch_method|escapejs }}">
     {% include "components/row_checkbox.html" with value=dispatch.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm font-mono text-slate-700">{{ dispatch.date|date:"Y-m-d" }}</span>
@@ -46,8 +49,31 @@
             {{ dispatch.items.count }} 筆
         </span>
     </td>
+    <td class="px-4 py-4 whitespace-nowrap text-center">
+        {% if dispatch.transferred_advance_payment_id %}
+        <a href="{% url 'administrative:advance_payment_update' dispatch.transferred_advance_payment_id %}"
+           class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded border border-slate-200 cursor-not-allowed" title="{{ dispatch.transferred_advance_payment.advance_no }}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            已拋轉
+        </a>
+        {% else %}
+        <form method="post" action="{% url 'administrative:document_dispatch_transfer' dispatch.pk %}"
+              class="inline" onsubmit="return confirm('確定要將此發文的「客戶吸收」郵資項目拋轉至代墊款？')">
+            {% csrf_token %}
+            <button type="submit"
+                class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded border border-amber-300 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                拋轉代墊款
+            </button>
+        </form>
+        {% endif %}
+    </td>
     <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
-        <div class="flex justify-center items-center space-x-4">
+        <div class="flex justify-center items-center space-x-3">
             <a href="{% url 'administrative:document_dispatch_update' dispatch.pk %}"
                class="text-blue-600 hover:text-blue-800 transition duration-200" title="編輯">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,7 +93,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
+    <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">
         目前尚無發文資料
     </td>
 </tr>
@@ -76,6 +102,10 @@
 
 {% block pagination_info %}
 顯示第 1 到 {{ dispatches|length }} 筆，共 {{ dispatches|length }} 筆資料
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
 {% endblock %}
 
 {% block metadata_json %}

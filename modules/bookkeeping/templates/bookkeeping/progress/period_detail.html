@@ -1,0 +1,763 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block header %}期別詳情 - {{ client.name }} {{ year_obj.year }}年{{ period.period_label }}{% endblock %}
+
+{% block content %}
+<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+
+    <!-- Toolbar -->
+    <div class="flex flex-wrap justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20 gap-3">
+        <a href="{% url 'bookkeeping:progress_detail' client.pk %}?year={{ year_obj.year }}"
+           class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            回年度概覽
+        </a>
+        <div class="flex items-center gap-2">
+            <!-- 執行專家診斷的額外表單 (因為 Toolbar 其他按鈕是為了儲存) -->
+            <form action="{% url 'bookkeeping:progress_run_expert' client.pk period.pk %}" method="POST" class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-amber-700 bg-amber-100 hover:bg-amber-200 shadow-sm focus:outline-none border border-amber-300 transition-colors"
+                        onclick="return confirm('要對此期別執行專家系統診斷嗎？');">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                    執行專家診斷
+                </button>
+            </form>
+
+            <button type="submit" form="period-detail-form"
+                class="inline-flex items-center px-5 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                儲存所有資料
+            </button>
+        </div>
+    </div>
+
+    <!-- Period Badge -->
+    <div class="mb-5 flex items-center gap-3">
+        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            {{ year_obj.year }} 年度・{{ period.period_label }}
+        </span>
+        <span class="text-sm font-medium
+            {% if period.account_status == 'completed' %}text-green-600
+            {% elif period.account_status == 'waiting_docs' %}text-yellow-600
+            {% elif period.account_status == 'not_started' %}text-slate-400
+            {% else %}text-blue-600{% endif %}">
+            ● 帳務：{{ period.get_account_status_display }}
+        </span>
+        <span class="text-sm font-medium text-slate-500">
+            / 
+        </span>
+        <span class="text-sm font-medium
+            {% if period.filing_status == 'filed' %}text-green-600
+            {% else %}text-slate-400{% endif %}">
+            ● 稅務：{{ period.get_filing_status_display }}
+        </span>
+    </div>
+
+    <!-- 專家系統警報顯示區塊 -->
+    {% if rule_alerts %}
+    <div class="mb-5 bg-red-50 border-l-4 border-red-500 rounded-r-md p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center">
+                <svg class="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 class="text-red-800 font-bold">系統自動診斷發現 {{ rule_alerts.count }} 項異常</h3>
+            </div>
+            <span class="text-xs text-red-600">{{ rule_alerts.first.created_at|date:'Y-m-d H:i' }} 執行</span>
+        </div>
+        <div class="space-y-2 mt-2">
+            {% for alert in rule_alerts %}
+            <div class="bg-white rounded-md p-3 border border-red-100 flex justify-between items-start">
+                <div>
+                    <span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded mr-2">{{ alert.rule_code }}</span>
+                    <span class="text-sm text-slate-800">{{ alert.alert_message }}</span>
+                </div>
+                <!-- 狀態顯示 -->
+                <span class="text-xs font-medium px-2 py-1 rounded 
+                    {% if alert.status == 'UNHANDLED' %}bg-red-100 text-red-700
+                    {% elif alert.status == 'NOTIFIED' %}bg-green-100 text-green-700
+                    {% else %}bg-slate-100 text-slate-600{% endif %}">
+                    {{ alert.get_status_display }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form id="period-detail-form" method="POST" action="">
+        {% csrf_token %}
+        {# 保留舊的記帳進度 VAT 欄位數值，避免儲存時被清空 #}
+        <input type="hidden" name="sales_amount" value="{{ form.sales_amount.value|default:'0' }}">
+        <input type="hidden" name="tax_amount" value="{{ form.tax_amount.value|default:'0' }}">
+        <input type="hidden" name="input_tax" value="{{ form.input_tax.value|default:'0' }}">
+        <input type="hidden" name="payable_tax" value="{{ form.payable_tax.value|default:'0' }}">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+            <!-- Card 1: 帳務資料 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
+                    <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+                    <h4 class="font-bold text-slate-800 text-sm">帳務資料</h4>
+                </div>
+                {% with sel="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" %}
+                <div>
+                    <label class="text-xs text-slate-500 block mb-0.5 font-medium">處理進度</label>
+                    <select name="account_status" class="{{ sel }}">
+                        {% for choice_val, choice_label in form.fields.account_status.choices %}
+                        <option value="{{ choice_val }}" {% if form.account_status.value == choice_val %}selected{% endif %}>{{ choice_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 block mb-0.5 font-medium">完成日期</label>
+                    <input type="date" name="accounting_date" value="{{ form.accounting_date.value|date:'Y-m-d'|default:'' }}"
+                        class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 block mb-0.5 font-medium">備註</label>
+                    <textarea name="notes" rows="4"
+                        class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white">{{ form.notes.value|default:'' }}</textarea>
+                </div>
+                {% endwith %}
+            </div>
+
+            <!-- Card 2: 累計營業稅資料 -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-1">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1 h-4 bg-green-600 rounded-full"></div>
+                        <h4 class="font-bold text-slate-800 text-sm">
+                            營業稅明細（累計至 {{ year_obj.year }} 年 {{ period.period_label }}）
+                        </h4>
+                    </div>
+                </div>
+
+                {% if vat_year_found %}
+                    {% if vat_periods_ytd %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
+                                    <th class="px-2 py-2 text-left border border-slate-200">期別</th>
+                                    <th class="px-2 py-2 text-right border border-slate-200">銷售額</th>
+                                    <th class="px-2 py-2 text-right border border-slate-200">銷項稅額</th>
+                                    <th class="px-2 py-2 text-right border border-slate-200">進項金額</th>
+                                    <th class="px-2 py-2 text-right border border-slate-200">進項稅額</th>
+                                    <th class="px-2 py-2 text-right border border-slate-200">應納(退)稅</th>
+                                    <th class="px-2 py-2 text-center border border-slate-200">申報</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vp in vat_periods_ytd %}
+                                <tr class="{% if vp.period_start_month == period.period_start_month %}bg-green-50 font-semibold{% else %}hover:bg-slate-50{% endif %} transition-colors">
+                                    <td class="px-2 py-1.5 border border-slate-200 text-slate-700">
+                                        {{ vp.period_label }}
+                                        {% if vp.period_start_month == period.period_start_month %}
+                                        <span class="ml-1 inline-block px-1 py-0.5 bg-green-200 text-green-800 text-[10px] rounded">本期</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-right font-mono">{{ vp.sales_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-right font-mono">{{ vp.tax_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-right font-mono">{{ vp.input_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-right font-mono">{{ vp.input_tax|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-right font-mono {% if vp.payable_tax < 0 %}text-green-700{% endif %}">
+                                        {{ vp.payable_tax|floatformat:0|intcomma }}
+                                    </td>
+                                    <td class="px-2 py-1.5 border border-slate-200 text-center">
+                                        {% if vp.is_filed %}
+                                        <span class="text-green-600 font-bold">✓</span>
+                                        {% else %}
+                                        <span class="text-slate-400">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <!-- 累計合計列 -->
+                            <tfoot>
+                                <tr class="bg-slate-100 font-bold text-slate-800 text-xs border-t-2 border-slate-300">
+                                    <td class="px-2 py-2 border border-slate-200">累計合計</td>
+                                    <td class="px-2 py-2 border border-slate-200 text-right font-mono">{{ vat_cumulative.sales_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-2 border border-slate-200 text-right font-mono">{{ vat_cumulative.tax_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-2 border border-slate-200 text-right font-mono">{{ vat_cumulative.input_amount|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-2 border border-slate-200 text-right font-mono">{{ vat_cumulative.input_tax|floatformat:0|intcomma }}</td>
+                                    <td class="px-2 py-2 border border-slate-200 text-right font-mono {% if vat_cumulative.payable_tax < 0 %}text-green-700{% endif %}">
+                                        {{ vat_cumulative.payable_tax|floatformat:0|intcomma }}
+                                    </td>
+                                    <td class="px-2 py-2 border border-slate-200"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-slate-400 text-sm">本期尚無營業稅資料</div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-6 text-slate-400 text-sm">
+                    <svg class="h-8 w-8 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    尚未建立 {{ year_obj.year }} 年度的營業稅申報資料
+                </div>
+                {% endif %}
+
+                <!-- 申報狀態（可編輯，屬於本表單) -->
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="text-xs text-slate-500 block mb-0.5 font-medium">本期記帳申報狀態</label>
+                    <select name="filing_status" class="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        {% for choice_val, choice_label in form.fields.filing_status.choices %}
+                        <option value="{{ choice_val }}" {% if form.filing_status.value == choice_val %}selected{% endif %}>{{ choice_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div><!-- end card 2 -->
+
+        </div><!-- end grid -->
+
+        <!-- Card 3: 營所稅試算表 (Mock Prototype) -->
+        <div class="mt-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4" x-data="taxCalculator()">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-1 h-4 bg-indigo-600 rounded-full"></div>
+                    <h4 class="font-bold text-slate-800 text-base">營所稅申報試算 (模擬測試)</h4>
+                </div>
+                <!-- Controls -->
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-4 text-sm flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <label class="font-medium text-slate-600">行業代號</label>
+                            <input type="text" x-model="industryCd" readonly placeholder="(由API帶入)" class="w-28 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-600 text-center font-mono cursor-not-allowed">
+                        </div>
+                        <div class="flex items-center gap-2 pr-4 border-r border-slate-200">
+                            <label class="font-medium text-slate-600">行業名稱</label>
+                            <input type="text" x-model="industryNm" readonly placeholder="(由API帶入)" class="w-56 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-slate-600 cursor-not-allowed">
+                        </div>
+                        <button type="button" @click="fetchIndustryRates()" :disabled="isFetchingRates"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-sky-700 bg-sky-100 hover:bg-sky-200 border border-sky-300 transition-colors shadow-sm disabled:opacity-50">
+                            <svg x-show="isFetchingRates" class="mr-1.5 h-3.5 w-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg x-show="!isFetchingRates" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span x-text="isFetchingRates ? '財政部查詢中...' : '自動取得同業利潤率'"></span>
+                        </button>
+                    </div>
+                    <!-- row 2: rate inputs + start calc button -->
+                    <div class="flex items-center gap-4 text-sm flex-wrap">
+                        <div class="flex items-center gap-2" x-show="ratesLoaded">
+                            <label class="font-medium text-slate-600">擴大書審純益率 (%)</label>
+                            <input type="number" x-model.number="profitRate" class="w-20 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 text-right" step="0.1" placeholder="-">
+                        </div>
+                        <div class="flex items-center gap-2" x-show="ratesLoaded">
+                            <label class="font-medium text-slate-600">所得額標準 (%)</label>
+                            <input type="number" x-model.number="incomeStandardRate" class="w-20 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 text-right" step="0.1" placeholder="-">
+                        </div>
+                        <div class="flex items-center gap-2" x-show="ratesLoaded">
+                            <label class="font-medium text-slate-600">同業淨利率 (%)</label>
+                            <input type="number" x-model.number="netProfitRate" class="w-20 px-2 py-1 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 text-right" step="0.1" placeholder="-">
+                        </div>
+                        <!-- 開始試算 button -->
+                        <button type="button" @click="showResults = true"
+                                :disabled="!canCalculate"
+                                :class="canCalculate
+                                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 cursor-pointer'
+                                    : 'bg-slate-100 text-slate-400 border-slate-300 cursor-not-allowed'"
+                                class="inline-flex items-center px-4 py-1.5 text-xs font-bold rounded-md border transition-colors shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span x-show="!canCalculate">請先取得利率及匯入試算表</span>
+                            <span x-show="canCalculate">開始試算</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="ml-4 flex items-center gap-2">
+                    <input type="file" x-ref="excelInput" class="hidden" accept=".xlsx,.xls" @change="importExcel">
+                    <button type="button" @click="$refs.excelInput.click()" :disabled="isImporting" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none transition-colors border border-emerald-300">
+                        <svg x-show="isImporting" class="mr-1 h-3.5 w-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg x-show="!isImporting" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="mr-1 w-3.5 h-3.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <span x-text="isImporting ? '匯入中...' : '匯入試算表'"></span>
+                    </button>
+                    <button type="button" @click="saveToServer" :disabled="isSaving" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 border border-indigo-600">
+                        <span x-show="!isSaving">儲存試算</span>
+                        <span x-show="isSaving">儲存中...</span>
+                    </button>
+                    <span x-show="saveSuccess" class="text-green-600 text-xs font-bold" x-transition.duration.500ms>已儲存!</span>
+                </div>
+            </div>
+
+            <!-- table hidden until user clicks 開始試算 -->
+            <div x-show="showResults" x-transition class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <!-- 帳列數 (3 cols) -->
+                            <th colspan="3" class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold max-w-[50%]">帳列數 (試算表/損益表)</th>
+                            <!-- 查帳申報 (2 cols) -->
+                            <th colspan="2" class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold w-[25%]">查帳申報</th>
+                            <!-- 書審申報 (1 col) -->
+                            <th class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold w-[15%]">書審申報</th>
+                        </tr>
+                        <tr class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold max-w-[50%]">
+                            <th class="py-1.5 px-2 border border-gray-200 w-16">科目代碼</th>
+                            <th class="py-1.5 px-2 border border-gray-200 text-left">科目名稱</th>
+                            <th class="py-1.5 px-2 border border-gray-200 text-right">帳列金額</th>
+                            
+                            <th class="py-1.5 px-2 border border-gray-200 text-center">帳外剔除 (-/+)</th>
+                            <th class="py-1.5 px-2 border border-gray-200 text-right">申報數</th>
+                            
+                            <th class="py-1.5 px-2 border border-gray-200 text-right">書審申報金額</th>
+                        </tr>
+                    </thead>
+                    <!-- 4字頭：營業收入 -->
+                    <tbody x-data="{ expanded: false }" class="border-b border-gray-200">
+                        <!-- 收入合計 (Header) -->
+                        <tr @click="expanded = !expanded" class="bg-gray-100 hover:bg-gray-200 cursor-pointer text-sm font-bold text-gray-800 transition-colors">
+                            <td colspan="2" class="py-2 px-2 text-left border border-gray-200">
+                                <div class="flex items-center">
+                                    <svg :class="{'rotate-90': expanded}" class="w-3.5 h-3.5 mr-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    收入合計
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookRevenue)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditRevenue)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditRevenue)"></td>
+                        </tr>
+                        <!-- 收入明細 -->
+                        <template x-for="item in revenueItems" :key="item.code">
+                            <tr x-show="expanded" class="hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-2 border border-gray-200 text-center font-mono text-gray-500" x-text="item.code"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-gray-700" x-text="item.name"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-medium" x-text="formatNumber(item.book)"></td>
+                                <td class="py-1 px-2 border border-gray-200">
+                                    <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
+                                </td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right text-gray-700 font-medium" x-text="formatNumber(item.book - item.exclude)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                    <!-- 5字頭：營業成本 -->
+                    <tbody x-data="{ expanded: false }" class="border-b border-gray-200">
+                        <!-- 成本合計 (Header) -->
+                        <tr @click="expanded = !expanded" class="bg-gray-100 hover:bg-gray-200 cursor-pointer text-sm font-bold text-gray-800 transition-colors">
+                            <td colspan="2" class="py-2 px-2 text-left border border-gray-200">
+                                <div class="flex items-center">
+                                    <svg :class="{'rotate-90': expanded}" class="w-3.5 h-3.5 mr-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    成本合計
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookCost)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditCost)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                        </tr>
+                        <!-- 成本明細 -->
+                        <template x-for="item in costItems" :key="item.code">
+                            <tr x-show="expanded" class="hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-2 border border-gray-200 text-center font-mono text-gray-500" x-text="item.code"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-gray-700" x-text="item.name"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-medium" x-text="formatNumber(item.book)"></td>
+                                <td class="py-1 px-2 border border-gray-200">
+                                    <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
+                                </td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-center text-gray-400">-</td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                    <!-- 小計：營業毛利 -->
+                    <tbody>
+                        <tr class="bg-gray-100 text-sm font-bold border-y-2 border-gray-300">
+                            <td colspan="2" class="py-2 px-2 text-center border border-gray-200 text-gray-800">營業毛利</td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookGrossProfit)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditGrossProfit)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                        </tr>
+                    </tbody>
+
+                    <!-- 6字頭：營業費用 -->
+                    <tbody x-data="{ expanded: false }" class="border-b border-gray-200">
+                        <!-- 費用合計 (Header) -->
+                        <tr @click="expanded = !expanded" class="bg-gray-100 hover:bg-gray-200 cursor-pointer text-sm font-bold text-gray-800 transition-colors">
+                            <td colspan="2" class="py-2 px-2 text-left border border-gray-200">
+                                <div class="flex items-center">
+                                    <svg :class="{'rotate-90': expanded}" class="w-3.5 h-3.5 mr-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    費用合計
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookExpense)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditExpense)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                        </tr>
+                        <!-- 費用明細 -->
+                        <template x-for="item in expenseItems" :key="item.code">
+                            <tr x-show="expanded" class="hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-2 border border-gray-200 text-center font-mono text-gray-500" x-text="item.code"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-gray-700" x-text="item.name"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-medium" x-text="formatNumber(item.book)"></td>
+                                <td class="py-1 px-2 border border-gray-200">
+                                    <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
+                                </td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-center text-gray-400">-</td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                    <!-- 小計：營業利益 -->
+                    <tbody>
+                        <tr class="bg-gray-100 text-sm font-bold border-y-2 border-gray-300">
+                            <td colspan="2" class="py-2 px-2 text-center border border-gray-200 text-gray-800">營業利益</td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookOpIncome)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditOpIncome)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                        </tr>
+                    </tbody>
+
+                    <!-- 7字頭：業外收入 -->
+                    <tbody x-data="{ expanded: false }" class="border-b border-gray-200">
+                        <!-- 業外收入合計 (Header) -->
+                        <tr @click="expanded = !expanded" class="bg-gray-100 hover:bg-gray-200 cursor-pointer text-sm font-bold text-gray-800 transition-colors">
+                            <td colspan="2" class="py-2 px-2 text-left border border-gray-200">
+                                <div class="flex items-center">
+                                    <svg :class="{'rotate-90': expanded}" class="w-3.5 h-3.5 mr-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    業外收入合計
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookNonOpRev)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditNonOpRev)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditNonOpRev)"></td>
+                        </tr>
+                        <!-- 業外收入明細 -->
+                        <template x-for="item in nonOpRevItems" :key="item.code">
+                            <tr x-show="expanded" class="hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-2 border border-gray-200 text-center font-mono text-gray-500" x-text="item.code"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-gray-700" x-text="item.name"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-medium" x-text="formatNumber(item.book)"></td>
+                                <td class="py-1 px-2 border border-gray-200">
+                                    <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
+                                </td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right text-gray-700 font-medium" x-text="formatNumber(item.book - item.exclude)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                    <!-- 8字頭：業外支出 -->
+                    <tbody x-data="{ expanded: false }" class="border-b border-gray-200">
+                        <!-- 業外支出合計 (Header) -->
+                        <tr @click="expanded = !expanded" class="bg-gray-100 hover:bg-gray-200 cursor-pointer text-sm font-bold text-gray-800 transition-colors">
+                            <td colspan="2" class="py-2 px-2 text-left border border-gray-200">
+                                <div class="flex items-center">
+                                    <svg :class="{'rotate-90': expanded}" class="w-3.5 h-3.5 mr-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    業外支出合計
+                                </div>
+                            </td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookNonOpExp)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditNonOpExp)"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                        </tr>
+                        <!-- 業外支出明細 -->
+                        <template x-for="item in nonOpExpItems" :key="item.code">
+                            <tr x-show="expanded" class="hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-2 border border-gray-200 text-center font-mono text-gray-500" x-text="item.code"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-gray-700" x-text="item.name"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-medium" x-text="formatNumber(item.book)"></td>
+                                <td class="py-1 px-2 border border-gray-200">
+                                    <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
+                                </td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-center text-gray-400">-</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <!-- Summary Footer -->
+                    <tfoot class="bg-white text-sm font-bold border-t border-gray-300">
+                        <!-- 所得額 (淨利) -->
+                        <tr class="bg-gray-100 border-b-2 border-gray-300">
+                            <td colspan="2" class="py-2 px-2 text-center border border-gray-200 text-gray-900">全年所得額</td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookNetIncome)"></td>
+                            <td class="py-2 px-2 border border-gray-200"></td>
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800 text-sm border-b-2 border-b-gray-400" x-text="formatNumber(auditNetIncome)"></td>
+                            
+                            <!-- 書審所得額 = (本業收入*純益率) + 業外收入 -->
+                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-800 text-sm border-b-2 border-b-gray-400">
+                                <span class="block text-[10px] text-gray-500 font-normal leading-tight mb-0.5">營業收入 × 纯益率 + 業外收入</span>
+                                <span x-text="formatNumber(reviewIncome)"></span>
+                            </td>
+                        </tr>
+                        <!-- 應納稅額 -->
+                        <tr class="bg-gray-50 text-sm">
+                            <td colspan="4" class="py-3 px-2 text-right border border-gray-200 text-gray-800">應納稅額 (所得額 × 20%)</td>
+                            
+                            <!-- 查帳稅額 -->
+                            <td class="py-3 px-2 text-right border border-gray-200 bg-gray-100 text-gray-900 text-lg shadow-inner" x-text="formatNumber(auditTax)"></td>
+                            
+                            <!-- 書審稅額 -->
+                            <td class="py-3 px-2 text-right border border-gray-200 bg-gray-100 text-gray-900 text-lg shadow-inner" x-text="formatNumber(reviewTax)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Validation/Explanation Box -->
+            <div class="mt-4 p-3 bg-gray-50 text-gray-700 rounded flex gap-2 text-sm border border-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="space-y-1">
+                    <p><strong>說明：</strong> <span class="text-green-600 font-semibold text-xs ml-1">💡已連線至資料庫</span></p>
+                    <ul class="list-disc pl-4 text-xs space-y-0.5 text-gray-600">
+                        <li><strong>科目代碼規則：</strong> 4=營業收入，5=營業成本，6=營業費用，7=業外收入，8=業外支出</li>
+                        <li><strong>查帳申報：</strong> 淨利 = 營業利益 (4-5-6) + 業外收入 (7) - 業外支出 (8)</li>
+                        <li><strong>書審申報所得額：</strong> (營業收入 × 純益率) + 業外收入 <span class="text-gray-500">(預設使用「查帳申報數」作為計算基礎)</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function taxCalculator() {
+                return {
+                    yearId: parseInt("{{ year_obj.id }}", 10) || null,
+                    taxId: "{{ client.tax_id|escapejs }}",
+                    year: parseInt("{{ year_obj.year }}", 10) || new Date().getFullYear(),
+                    profitRate: null,
+                    incomeStandardRate: null,
+                    netProfitRate: null,
+                    industryCd: "",
+                    industryNm: "",
+                    taxRate: 20,
+                    items: [],
+                    isSaving: false,
+                    isImporting: false,
+                    isFetchingRates: false,
+                    saveSuccess: false,
+                    showResults: false,
+                    ratesLoaded: false,
+                    excelLoaded: false,
+
+                    init() {
+                        this.fetchData();
+                    },
+
+                    async fetchData() {
+                        try {
+                            const response = await fetch(`/bookkeeping/api/corporate-tax/${this.yearId}/`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                this.profitRate = data.profitRate;
+                                this.incomeStandardRate = data.incomeStandardRate;
+                                this.netProfitRate = data.netProfitRate;
+                                this.taxRate = data.taxRate;
+                                this.items = data.items;
+                                if (data.items && data.items.length > 0) {
+                                    this.ratesLoaded = !!(this.profitRate);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to fetch tax data', e);
+                        }
+                    },
+
+                    get canCalculate() {
+                        return this.ratesLoaded && this.excelLoaded;
+                    },
+
+                    async fetchIndustryRates() {
+                        if (!this.taxId) {
+                            alert('此客戶未設定統一編號，無法查詢。');
+                            return;
+                        }
+                        this.isFetchingRates = true;
+                        try {
+                            const res = await fetch(`/bookkeeping/api/industry-rates/fetch/?tax_id=${this.taxId}&year=${this.year}`);
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.error) {
+                                    alert('查詢失敗：' + data.error);
+                                } else {
+                                    this.industryCd = data.industry_code || '';
+                                    this.industryNm = data.industry_name || '';
+                                    if (data.book_review_profit_rate !== undefined) this.profitRate = data.book_review_profit_rate;
+                                    if (data.net_profit_rate !== undefined) this.netProfitRate = data.net_profit_rate;
+                                    if (data.income_standard !== undefined) this.incomeStandardRate = data.income_standard;
+                                    this.ratesLoaded = true;
+                                    this.showResults = false; // reset result so user clicks again
+                                }
+                            } else {
+                                alert('伺服器回應錯誤');
+                            }
+                        } catch (e) {
+                            console.error('API Error:', e);
+                            alert('網路遠端請求發生錯誤');
+                        } finally {
+                            this.isFetchingRates = false;
+                        }
+                    },
+
+                    async saveToServer() {
+                        if (this.isSaving) return;
+                        this.isSaving = true;
+                        
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                        const payload = {
+                            profitRate: this.profitRate,
+                            incomeStandardRate: this.incomeStandardRate,
+                            netProfitRate: this.netProfitRate,
+                            items: this.items
+                        };
+
+                        try {
+                            const response = await fetch(`/bookkeeping/api/corporate-tax/${this.yearId}/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            if (response.ok) {
+                                this.saveSuccess = true;
+                                setTimeout(() => this.saveSuccess = false, 3000);
+                            } else {
+                                alert("儲存失敗，請稍後再試。");
+                            }
+                        } catch (e) {
+                            console.error('Error saving tax data', e);
+                            alert("網路錯誤，無法儲存。");
+                        } finally {
+                            this.isSaving = false;
+                        }
+                    },
+
+                    async importExcel(e) {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        if (this.isImporting) return;
+                        this.isImporting = true;
+                        
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+                        try {
+                            const response = await fetch(`/bookkeeping/api/corporate-tax/${this.yearId}/import/`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: formData
+                            });
+                            
+                            const data = await response.json();
+                            if (response.ok && data.success) {
+                                this.excelLoaded = true;
+                                this.showResults = false; // require user to press 開始試算 again
+                                alert("匯入成功！");
+                                // 重新抓取最新資料更新畫面
+                                await this.fetchData();
+                            } else {
+                                alert(data.error || "匯入失敗，請確認檔案格式是否正確。");
+                            }
+                        } catch (err) {
+                            console.error('Import error', err);
+                            alert("網路錯誤，無法匯入。");
+                        } finally {
+                            this.isImporting = false;
+                            e.target.value = null; // reset input
+                        }
+                    },
+
+                    formatNumber(num) {
+                        return new Intl.NumberFormat('en-US').format(num);
+                    },
+
+                    // 依據字首分類抓取 items
+                    get revenueItems() { return this.items.filter(i => i.code.startsWith('4')); },
+                    get costItems() { return this.items.filter(i => i.code.startsWith('5')); },
+                    get expenseItems() { return this.items.filter(i => i.code.startsWith('6')); },
+                    get nonOpRevItems() { return this.items.filter(i => i.code.startsWith('7')); },
+                    get nonOpExpItems() { return this.items.filter(i => i.code.startsWith('8')); },
+
+                    // 計算單一代碼開頭的群組總計
+                    sumPrefix(prefix, mode) {
+                        return this.items
+                            .filter(i => i.code.startsWith(prefix))
+                            .reduce((sum, i) => {
+                                let val = mode === 'book' ? i.book : (i.book - i.exclude);
+                                return sum + val;
+                            }, 0);
+                    },
+
+                    // 各項合計
+                    get bookRevenue() { return this.sumPrefix('4', 'book'); },
+                    get auditRevenue() { return this.sumPrefix('4', 'audit'); },
+                    
+                    get bookCost() { return this.sumPrefix('5', 'book'); },
+                    get auditCost() { return this.sumPrefix('5', 'audit'); },
+                    
+                    get bookExpense() { return this.sumPrefix('6', 'book'); },
+                    get auditExpense() { return this.sumPrefix('6', 'audit'); },
+                    
+                    get bookNonOpRev() { return this.sumPrefix('7', 'book'); },
+                    get auditNonOpRev() { return this.sumPrefix('7', 'audit'); },
+                    
+                    get bookNonOpExp() { return this.sumPrefix('8', 'book'); },
+                    get auditNonOpExp() { return this.sumPrefix('8', 'audit'); },
+
+                    // --- 帳列數計算 ---
+                    get bookGrossProfit() { return this.bookRevenue - this.bookCost; },
+                    get bookOpIncome() { return this.bookGrossProfit - this.bookExpense; },
+                    get bookNetIncome() { return this.bookOpIncome + this.bookNonOpRev - this.bookNonOpExp; },
+
+                    // --- 查帳申報計算 ---
+                    get auditGrossProfit() { return this.auditRevenue - this.auditCost; },
+                    get auditOpIncome() { return this.auditGrossProfit - this.auditExpense; },
+                    get auditNetIncome() { return this.auditOpIncome + this.auditNonOpRev - this.auditNonOpExp; },
+                    get auditTax() { return Math.max(0, Math.round(this.auditNetIncome * (this.taxRate / 100))); },
+
+                    // --- 書審申報計算 ---
+                    // 先抓取營業收入 (4開頭)，乘上純益率，再加上業外收入(7開頭)
+                    get reviewIncome() {
+                        const operatingRevenue = this.sumPrefix('4', 'audit'); // 使用申報數為基準
+                        const nonOpRevenue = this.sumPrefix('7', 'audit');
+                        return Math.round(operatingRevenue * (this.profitRate / 100)) + nonOpRevenue;
+                    },
+                    get reviewTax() { 
+                        return Math.max(0, Math.round(this.reviewIncome * (this.taxRate / 100))); 
+                    }
+                }
+            }
+        </script>
+
+    </form><!-- end main form -->
+</div>
+{% endblock %}

@@ -12,6 +12,12 @@ from .income_tax import (
     DividendTax, ShareholderDividend,
     IncomeTaxFiling,
 )
+from .corporate_tax import CorporateTaxFiling, TaxAdjustmentEntry
+from .billing import ServiceFee, ClientBill, ClientBillItem
+
+from .expert_system import ClientRuleSetting, RuleAlert
+from .industry_tax_rate import IndustryTaxRate
+
 
 __all__ = [
     'BookkeepingClient',
@@ -29,5 +35,15 @@ __all__ = [
     'DividendTax',
     'ShareholderDividend',
     'IncomeTaxFiling',
+    'BookkeepingSetting',
+    'BookkeepingYear',
+    'BookkeepingPeriod',
+    'ServiceFee',
+    'ClientBill',
+    'ClientBillItem',
+    'CorporateTaxFiling',
+    'TaxAdjustmentEntry',
+    'ClientRuleSetting',
+    'RuleAlert',
+    'IndustryTaxRate',
 ]
-

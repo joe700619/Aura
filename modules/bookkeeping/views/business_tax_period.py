@@ -20,6 +20,7 @@ class TaxFilingPeriodDetailView(LoginRequiredMixin, UpdateView):
         'is_filed', 'filing_date',
         'tax_deadline', 'period_payment_method',
         'filing_status', 'reply_time', 'reply_method',
+        'notes',
     ]
 
     def get_object(self, queryset=None):
@@ -30,12 +31,13 @@ class TaxFilingPeriodDetailView(LoginRequiredMixin, UpdateView):
         )
 
     def get_success_url(self):
-        client_pk = self.kwargs['client_pk']
-        year = self.object.year_record.year
-        return (
-            reverse('bookkeeping:business_tax_detail', kwargs={'pk': client_pk})
-            + f'?year={year}'
-        )
+        # 存檔後留在同一頁，並顯示成功訊息
+        from django.contrib import messages
+        messages.success(self.request, '資料已成功儲存。')
+        return reverse('bookkeeping:business_tax_period_detail', kwargs={
+            'client_pk': self.kwargs['client_pk'],
+            'pk': self.object.pk
+        })
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

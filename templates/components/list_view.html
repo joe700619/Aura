@@ -167,10 +167,11 @@
             <div class="flex items-center text-sm text-slate-600 order-2 md:order-1">
                 <span>每頁顯示</span>
                 <select
-                    class="mx-2 border-slate-200 rounded-md py-1 px-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm cursor-pointer">
-                    <option>10</option>
-                    <option>25</option>
-                    <option>50</option>
+                    class="mx-2 border-slate-200 rounded-md py-1 px-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm cursor-pointer"
+                    onchange="(function(v){ var p=new URLSearchParams(window.location.search); p.set('per_page',v); p.delete('page'); window.location.href='?'+p.toString(); })(this.value)">
+                    <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if current_per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if current_per_page == 50 %}selected{% endif %}>50</option>
                 </select>
                 <span>筆數據</span>
             </div>
@@ -237,19 +238,78 @@
                 {% endif %}
                 {% endblock %}
             </span>
+            {% if is_paginated %}
             <div class="flex items-center space-x-2">
-                <button class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 disabled:opacity-50"
-                    disabled>上一頁</button>
-                <button class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium">1</button>
-                <button
-                    class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</button>
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                    class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">上一頁</a>
+                {% else %}
+                <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">上一頁</span>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium">{{ num }}</span>
+                    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                    <a href="?page={{ num }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                        class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                    class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</a>
+                {% else %}
+                <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">下一頁</span>
+                {% endif %}
             </div>
+            {% endif %}
         </div>
     </div>
     <script id="list-metadata" type="application/json">
         {% block metadata_json %}[]{% endblock %}
     </script>
 </div>
+
+<script>
+(function () {
+    function initTableSort(table) {
+        const headers = table.querySelectorAll('thead th[data-sort]');
+        if (!headers.length) return;
+        const tbody = table.querySelector('tbody');
+        let currentCol = null, asc = true;
+
+        headers.forEach(function (th) {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', function () {
+                const col = th.dataset.sort;
+                asc = (currentCol === col) ? !asc : true;
+                currentCol = col;
+
+                headers.forEach(function (h) {
+                    const icon = h.querySelector('.sort-icon');
+                    if (icon) icon.textContent = '↕';
+                });
+                const icon = th.querySelector('.sort-icon');
+                if (icon) icon.textContent = asc ? '↑' : '↓';
+
+                const rows = Array.from(tbody.querySelectorAll('tr[data-' + col + ']'));
+                rows.sort(function (a, b) {
+                    const av = a.dataset[col] || '';
+                    const bv = b.dataset[col] || '';
+                    return asc ? av.localeCompare(bv, 'zh-TW', { numeric: true }) : bv.localeCompare(av, 'zh-TW', { numeric: true });
+                });
+                rows.forEach(function (r) { tbody.appendChild(r); });
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = document.querySelector('table.min-w-full');
+        if (table) initTableSort(table);
+    });
+})();
+</script>
 {% endblock %}
 
 {% block overlays %}{% endblock %}

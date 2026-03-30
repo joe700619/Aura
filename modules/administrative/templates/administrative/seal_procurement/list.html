@@ -23,12 +23,18 @@
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">建立日期</th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">公司名稱</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="date">
+    建立日期 <span class="sort-icon text-slate-400 ml-1">↕</span>
+</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="name">
+    公司名稱 <span class="sort-icon text-slate-400 ml-1">↕</span>
+</th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">統一編號</th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">費用小計</th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">已付款</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right" data-sort="amount">
+    費用小計 <span class="sort-icon text-slate-400 ml-1">↕</span>
+</th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">庫存</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">代墊款</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
@@ -36,7 +42,10 @@
 {% for item in items %}
 <tr class="hover:bg-slate-50 transition duration-150 border-b border-slate-100 last:border-0"
     x-show="matches('ALL', '{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }}')"
-    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''"
+    data-date="{{ item.created_at|date:"Y-m-d" }}"
+    data-name="{{ item.company_name|escapejs }}"
+    data-amount="{{ item.seal_cost_subtotal }}">
     {% include "components/row_checkbox.html" with value=item.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm font-mono text-slate-700">{{ item.created_at|date:"Y-m-d" }}</span>
@@ -51,15 +60,15 @@
         <span class="text-sm font-mono text-slate-800">${{ item.seal_cost_subtotal|floatformat:0 }}</span>
     </td>
     <td class="px-4 py-4 whitespace-nowrap text-center">
-        {% if item.is_paid %}
-        <span class="text-green-600"><svg class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg></span>
+        {% if item.transfer_to_inventory %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">是</span>
         {% else %}
         <span class="text-slate-300">-</span>
         {% endif %}
     </td>
     <td class="px-4 py-4 whitespace-nowrap text-center">
-        {% if item.transfer_to_inventory %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">是</span>
+        {% if item.is_advance_transferred %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">已拋轉</span>
         {% else %}
         <span class="text-slate-300">-</span>
         {% endif %}
@@ -102,4 +111,8 @@
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
 {% endblock %}

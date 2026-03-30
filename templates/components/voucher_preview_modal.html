@@ -36,6 +36,10 @@
             this.generateReceivableEntries(companyVat);
         } else if (mode === 'progress') {
             this.generateProgressEntries(companyVat);
+        } else if (mode === 'billing') {
+            this.generateBillingEntries(companyVat);
+        } else if (mode === 'advance_payment') {
+            this.generateAdvancePaymentEntries();
         }
     },
     
@@ -94,6 +98,81 @@
         } catch (e) {
             console.error('Failed to parse quotation data', e);
             this.errorMessage = '解析報價單資料發生錯誤。';
+        }
+    },
+    
+    generateBillingEntries(companyVat) {
+        const quotationInput = document.getElementById('id_quotation_data');
+        const advanceInput = document.getElementById('id_advance_payment_data');
+        const costSharingInput = document.getElementById('id_cost_sharing_data');
+        
+        let serviceFeeTotal = 0;
+        let advancePaymentTotal = 0;
+        let costSharingTotal = 0;
+        
+        try {
+            /* Parse Service Fees */
+            if (quotationInput) {
+                const quotationData = JSON.parse(quotationInput.value || '[]');
+                quotationData.forEach(item => {
+                    const amount = parseFloat(item.amount) || 0;
+                    const serviceName = (item.service_name || '').trim();
+                    if (amount > 0 && !serviceName.startsWith('8') && !serviceName.startsWith('9')) {
+                         serviceFeeTotal += amount;
+                    }
+                });
+            }
+            
+            /* Parse Advance Payments */
+            if (advanceInput) {
+               const advanceData = JSON.parse(advanceInput.value || '[]');
+               advanceData.forEach(item => {
+                    const amount = parseFloat(item.amount) || 0;
+                    if (amount > 0) {
+                        advancePaymentTotal += amount;
+                    }
+               });
+            }
+
+            /* Cross-check Cost Sharing vs Service Fee */
+            if (costSharingInput) {
+                const costSharingData = JSON.parse(costSharingInput.value || '[]');
+                costSharingData.forEach(item => {
+                    const amount = parseFloat(item.amount) || 0;
+                    if (amount > 0) costSharingTotal += amount;
+                });
+                
+                if (costSharingTotal > 0 && Math.abs(costSharingTotal - serviceFeeTotal) > 0.1) {
+                    this.errorMessage = `公費分攤合計 (${costSharingTotal}) 與服務費用合計 (${serviceFeeTotal}) 不符，無法產生分錄。`;
+                    return;
+                }
+            }
+
+            if (serviceFeeTotal === 0 && advancePaymentTotal === 0) {
+                this.errorMessage = '帳單無任何費用，無法產生傳票。';
+                return;
+            }
+            
+            /* Generate Entries */
+            if (serviceFeeTotal > 0) {
+                this.addGeneratedEntry('credit', '400002', '記帳收入', serviceFeeTotal, '服務費用合計', companyVat);
+            }
+            
+            if (advancePaymentTotal > 0) {
+                this.addGeneratedEntry('credit', '613202', '發票及郵資', advancePaymentTotal, '代墊款合計', companyVat);
+            }
+            
+            const uncollectedTotal = serviceFeeTotal + advancePaymentTotal;
+            if (uncollectedTotal > 0) {
+                this.addGeneratedEntry('debit', '1123', '應收帳款', uncollectedTotal, '未收款合計', companyVat);
+            }
+            
+            if (this.entries.length === 0) {
+                this.addEntry();
+            }
+        } catch (e) {
+            console.error('Failed to parse billing data', e);
+            this.errorMessage = '解析帳單資料發生錯誤。';
         }
     },
     
@@ -184,6 +263,54 @@
         }
     },
     
+    generateAdvancePaymentEntries() {
+        const tbody = document.querySelector('#details-table tbody');
+        if (!tbody) {
+            this.errorMessage = '找不到明細資料，請確認明細表已正確載入。';
+            return;
+        }
+
+        const paymentTypeMap = {
+            'POSTAGE':               { code: '613202', name: '郵資及快遞' },
+            'GROUP_INVOICE':         { code: '613203', name: '發票費用' },
+            'TAX':                   { code: '1141',   name: '代墊稅款及保費' },
+            'SUPPLEMENTARY_PREMIUM': { code: '1141',   name: '代墊稅款及保費' },
+            'GOV_FEE':               { code: '1142',   name: '代墊政府規費' },
+            'RETAIL_INVOICE':        { code: '613203', name: '發票費用' },
+            'SEAL':                  { code: '613204', name: '印章費用' },
+        };
+
+        let total = 0;
+        tbody.querySelectorAll('tr.detail-row').forEach(row => {
+            const deleteCheckbox = row.querySelector('.delete-wrapper input');
+            if (deleteCheckbox && deleteCheckbox.checked) return;
+
+            const amountInput = row.querySelector('.amount-input');
+            const amount = parseFloat(amountInput ? amountInput.value : 0) || 0;
+            if (amount <= 0) return;
+
+            const ubnInput = row.querySelector('.ubn-input');
+            const ubn = ubnInput ? ubnInput.value.trim() : '';
+
+            const reasonInput = row.querySelector('.reason-input');
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+
+            const paymentTypeSelect = row.querySelector('.payment-type-select');
+            const paymentType = paymentTypeSelect ? paymentTypeSelect.value : '';
+            const account = paymentTypeMap[paymentType] || { code: '6132', name: '代墊費用' };
+
+            this.addGeneratedEntry('debit', account.code, account.name, amount, reason, ubn);
+            total += amount;
+        });
+
+        if (total <= 0) {
+            this.errorMessage = '明細金額合計為 0，無法產生傳票。';
+            return;
+        }
+
+        this.addGeneratedEntry('credit', '111401', '國泰世華', total, '代墊款合計', '');
+    },
+
     addGeneratedEntry(type, code, name, amount, remark, company_id = '') {
         this.entries.push({
             account_code: code,
@@ -302,8 +429,8 @@ class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="d
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            style="display: inline-block; vertical-align: bottom; background-color: white; border-radius: 0.5rem; text-align: left; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translate(0, 0); transition-property: all; margin-top: 2rem; margin-bottom: 2rem; max-width: 64rem; width: 100%; position: relative; z-index: 51;"
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl w-full">
+            style="display: inline-block; vertical-align: bottom; background-color: white; border-radius: 0.5rem; text-align: left; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translate(0, 0); transition-property: all; margin-top: 2rem; margin-bottom: 2rem; max-width: 90rem; width: 100%; position: relative; z-index: 51;"
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-7xl w-full">
             
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
@@ -368,13 +495,13 @@ class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="d
                                 <table class="min-w-full divide-y divide-slate-200">
                                     <thead class="bg-slate-50">
                                         <tr>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/12">操作</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">會計代碼</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">會計科目</th>
-                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">借方金額</th>
-                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">貸方金額</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">對象(統編)</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-3/12">備註/摘要</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-8">操作</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">會計代碼</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-32">會計科目</th>
+                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-28">借方金額</th>
+                                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-28">貸方金額</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-28">對象(統編)</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">備註/摘要</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-200">
@@ -402,8 +529,8 @@ class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="d
                                                 <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
                                                     <input type="text" x-model="entry.company_id" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="統一編號">
                                                 </td>
-                                                <td class="px-3 py-2 whitespace-nowrap text-sm text-slate-900">
-                                                    <input type="text" x-model="entry.remark" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="備註/摘要">
+                                                <td class="px-3 py-2 text-sm text-slate-900 min-w-[16rem]">
+                                                    <textarea x-model="entry.remark" rows="2" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm resize-none" placeholder="備註/摘要"></textarea>
                                                 </td>
                                             </tr>
                                         </template>
@@ -425,8 +552,8 @@ class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="d
             
             <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse border-t border-gray-200">
                 <button type="button" @click="confirmPost()"
-                    :disabled="hasOutstandingBalance || !isBalanced"
-                    :class="(hasOutstandingBalance || !isBalanced) ? 'bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 border-transparent'"
+                    :disabled="hasOutstandingBalance || !isBalanced || !!errorMessage || entries.length === 0"
+                    :class="(hasOutstandingBalance || !isBalanced || !!errorMessage || entries.length === 0) ? 'bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 border-transparent'"
                     class="ml-3 inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm transition-colors duration-200">
                     確定並過帳
                 </button>

@@ -1,0 +1,58 @@
+{% extends 'client_portal/portal_base.html' %}
+
+{% block page_title %}財務分析{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="sm:flex sm:justify-between sm:items-center mb-2">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">企業財務分析報表</h1>
+            <p class="text-sm text-gray-500 mt-1">此區塊模組正在陸續開放中</p>
+        </div>
+    </div>
+
+    <!-- Analysis Widgets Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- 401 Widget -->
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
+            <div class="absolute inset-x-0 top-0 h-1 bg-blue-500"></div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 mb-4 group-hover:bg-blue-100 transition-colors">
+                <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">401申報統計</h3>
+            <p class="text-sm text-gray-500">視覺化呈現各期營業稅申報銷售額、稅額之趨勢分析。</p>
+            <span class="inline-block mt-4 text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">建置中</span>
+        </div>
+
+        <!-- Profit/Loss Widget -->
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
+            <div class="absolute inset-x-0 top-0 h-1 bg-emerald-500"></div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 mb-4 group-hover:bg-emerald-100 transition-colors">
+                <svg class="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">損益分析</h3>
+            <p class="text-sm text-gray-500">年度結算與期中損益狀況視覺化，輕鬆掌握營運績效。</p>
+            <span class="inline-block mt-4 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">建置中</span>
+        </div>
+
+        <!-- Tax Amount Widget -->
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
+            <div class="absolute inset-x-0 top-0 h-1 bg-purple-500"></div>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-50 mb-4 group-hover:bg-purple-100 transition-colors">
+                <svg class="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">應納稅額分析</h3>
+            <p class="text-sm text-gray-500">預估營所稅與各項稅金負擔，提早做好資金規劃準備。</p>
+            <span class="inline-block mt-4 text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">建置中</span>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

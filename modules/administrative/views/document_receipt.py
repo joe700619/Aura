@@ -1,22 +1,26 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib import messages
 from django.views import View
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from core.mixins import ListActionMixin
-from ..models import DocumentReceipt
+from django.shortcuts import get_object_or_404, redirect
+from django.db import transaction
+from core.mixins import ListActionMixin, CopyMixin, PrevNextMixin, SoftDeleteMixin
+from ..models import DocumentReceipt, DocumentReceiptAttachment
 from ..forms import DocumentReceiptForm
 from core.notifications.services import LineService
 
-class DocumentReceiptListView(LoginRequiredMixin, ListActionMixin, ListView):
+class DocumentReceiptListView(ListActionMixin, LoginRequiredMixin, ListView):
     model = DocumentReceipt
     template_name = 'administrative/document_receipt/list.html'
     context_object_name = 'receipts'
+    paginate_by = 10
     create_button_label = '新增收文'
     
+    def get_queryset(self):
+        return DocumentReceipt.objects.filter(is_deleted=False)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '收文系統'
@@ -26,31 +30,72 @@ class DocumentReceiptListView(LoginRequiredMixin, ListActionMixin, ListView):
         ]
         return context
 
-class DocumentReceiptCreateView(LoginRequiredMixin, CreateView):
+class DocumentReceiptCreateView(CopyMixin, LoginRequiredMixin, CreateView):
     model = DocumentReceipt
     form_class = DocumentReceiptForm
     template_name = 'administrative/document_receipt/form.html'
-    success_url = reverse_lazy('administrative:document_receipt_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['attachments'] = []
+        return context
 
     def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+            for f in self.request.FILES.getlist('new_attachments'):
+                DocumentReceiptAttachment.objects.create(receipt=self.object, file=f)
         messages.success(self.request, '新增收文紀錄成功。')
-        return super().form_valid(form)
+        return redirect('administrative:document_receipt_update', pk=self.object.pk)
 
-class DocumentReceiptUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    def get_success_url(self):
+        return reverse_lazy('administrative:document_receipt_update', kwargs={'pk': self.object.pk})
+
+class DocumentReceiptUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     model = DocumentReceipt
     form_class = DocumentReceiptForm
     template_name = 'administrative/document_receipt/form.html'
-    success_url = reverse_lazy('administrative:document_receipt_list')
-    success_message = "收文紀錄已成功更新"
+    prev_next_order_field = 'receipt_date'
 
-class DocumentReceiptDeleteView(LoginRequiredMixin, DeleteView):
+    def form_valid(self, form):
+        with transaction.atomic():
+            self.object = form.save()
+
+            deleted_ids_str = self.request.POST.get('deleted_attachment_ids', '')
+            if deleted_ids_str:
+                id_list = [i.strip() for i in deleted_ids_str.split(',') if i.strip().isdigit()]
+                if id_list:
+                    DocumentReceiptAttachment.objects.filter(id__in=id_list, receipt=self.object).delete()
+
+            for f in self.request.FILES.getlist('new_attachments'):
+                DocumentReceiptAttachment.objects.create(receipt=self.object, file=f)
+
+        messages.success(self.request, '收文紀錄已成功更新。')
+        return redirect('administrative:document_receipt_update', pk=self.object.pk)
+
+    def get_success_url(self):
+        return reverse_lazy('administrative:document_receipt_update', kwargs={'pk': self.object.pk})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.object:
+            context['attachments'] = self.object.attachments.all()
+        if self.object and hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or "資料變更",
+                })
+            context['history'] = history_list
+        return context
+
+class DocumentReceiptDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
     model = DocumentReceipt
     template_name = 'administrative/document_receipt/confirm_delete.html'
     success_url = reverse_lazy('administrative:document_receipt_list')
-
-    def form_valid(self, form):
-        messages.success(self.request, '收文紀錄已成功刪除。')
-        return super().form_valid(form)
 
 class SendDocumentReceiptLineView(LoginRequiredMixin, View):
     def post(self, request, pk):

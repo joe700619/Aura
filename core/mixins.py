@@ -1,4 +1,27 @@
 from django.db.models import Min, Max
+from django.http import HttpResponseRedirect
+from django.contrib import messages
+
+class SoftDeleteMixin:
+    """
+    Mixin for DeleteView to perform a soft delete instead of hard delete.
+    Requires the model to have an `is_deleted` boolean field.
+    Compatible with Django 4.0+ where DeleteView uses form_valid() instead of delete().
+    """
+    def form_valid(self, _form):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+
+        if hasattr(self.object, 'is_deleted'):
+            self.object.is_deleted = True
+            self.object.save(update_fields=['is_deleted', 'updated_at'])
+            messages.success(self.request, f"「{self.object}」已成功刪除（移至資源回收桶）。")
+        else:
+            # 如果沒有 is_deleted 欄位，退回原始寫法（硬刪除）
+            messages.warning(self.request, f"「{self.object}」已永久刪除。")
+            self.object.delete()
+
+        return HttpResponseRedirect(success_url)
 
 class PrevNextMixin:
     """
@@ -94,26 +117,35 @@ class ListActionMixin:
     """
     Mixin for ListView to provide model metadata for list actions.
     Automatically adds model_app_label, model_name, and model_class to context.
-    
+    Supports ?per_page= query parameter to override paginate_by at runtime.
+
     Usage in ListView:
         class MyModelListView(ListActionMixin, ListView):
             model = MyModel
             template_name = 'myapp/list.html'
     """
-    
+
     # Optional: Override to customize the create button label
     create_button_label = None
-    
+    _ALLOWED_PAGE_SIZES = {10, 25, 50}
+
+    def get_paginate_by(self, queryset):
+        per_page = self.request.GET.get('per_page')
+        if per_page and per_page.isdigit() and int(per_page) in self._ALLOWED_PAGE_SIZES:
+            return int(per_page)
+        return super().get_paginate_by(queryset)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['model_app_label'] = self.model._meta.app_label
         context['model_name'] = self.model._meta.model_name
         context['model_class'] = self.model
-        
+        context['current_per_page'] = self.get_paginate_by(self.get_queryset())
+
         # Add custom create button label if set
         if self.create_button_label:
             context['create_button_label'] = self.create_button_label
-        
+
         return context
 
 

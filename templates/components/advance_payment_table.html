@@ -1,0 +1,136 @@
+<div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm" x-data="{
+    advancePayments: [],
+    init() {
+        const initialData = document.getElementById('id_advance_payment_data').value;
+        try {
+            if (initialData) {
+                this.advancePayments = JSON.parse(initialData);
+            }
+        } catch(e) {
+            console.error('Failed to parse advance payment data', e);
+            this.advancePayments = [];
+        }
+        
+        this.$watch('advancePayments', value => {
+            document.getElementById('id_advance_payment_data').value = JSON.stringify(value);
+            if (typeof updateBillTotals === 'function') {
+                updateBillTotals();
+            }
+        });
+    },
+    async importAdvancePayments() {
+        const clientId = document.getElementById('id_client').value;
+        if (!clientId) {
+            alert('請先選擇記帳客戶！');
+            return;
+        }
+        try {
+            const response = await fetch(`/bookkeeping/api/unbilled-advance-payments/${clientId}/`);
+            if (!response.ok) throw new Error('API 請求失敗');
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                alert('該客戶目前沒有尚未發單的代墊款明細。');
+                return;
+            }
+            
+            // Filter out already imported items to avoid duplicates
+            const existingIds = this.advancePayments.map(item => item.id);
+            const newItems = data.filter(item => !existingIds.includes(item.id));
+            
+            if (newItems.length === 0) {
+                alert('所有目前的代墊款明細均已匯入。');
+                return;
+            }
+            
+            const importedAmount = newItems.reduce((sum, item) => sum + (parseInt(item.amount) || 0), 0);
+            this.advancePayments = [...this.advancePayments, ...newItems];
+            
+            if (importedAmount > 0) {
+                window.dispatchEvent(new CustomEvent('import-advance-payment', {
+                    detail: { amount: importedAmount }
+                }));
+                // Show a brief success message
+                alert(`成功匯入 ${newItems.length} 筆代墊款，已自動加至帳單明細中`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('無法匯入代墊款，請稍後再試。');
+        }
+    },
+    removeAdvancePayment(index) {
+        const removedAmount = this.advancePayments[index].amount;
+        
+        // Reassign the array to trigger Alpine's reactivity
+        this.advancePayments = this.advancePayments.filter((_, i) => i !== index);
+        
+        if (removedAmount > 0) {
+            window.dispatchEvent(new CustomEvent('import-advance-payment', {
+                detail: { amount: -parseInt(removedAmount) }
+            }));
+        }
+    },
+    get advancePaymentTotal() {
+        return this.advancePayments.reduce((sum, item) => sum + (parseInt(item.amount) || 0), 0);
+    }
+}">
+    <div class="bg-white px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+        <h4 class="text-sm font-semibold text-slate-800">代墊款明細</h4>
+        <button type="button" @click="importAdvancePayments()" class="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md text-sm font-medium transition shadow-sm flex items-center">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            匯入代墊款
+        </button>
+    </div>
+    
+    <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+            <tr>
+                <th scope="col" class="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase">日期</th>
+                <th scope="col" class="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase">代墊款單號</th>
+                <th scope="col" class="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase">事由</th>
+                <th scope="col" class="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase">代墊類型</th>
+                <th scope="col" class="px-3 py-3 text-right text-xs font-semibold text-slate-500 uppercase">代墊費用</th>
+                <th scope="col" class="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase">是否已發單</th>
+                <th scope="col" class="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase">連結</th>
+                <th scope="col" class="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase">移除</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-slate-100">
+            <template x-for="(item, index) in advancePayments" :key="item.id + '-' + index">
+                <tr class="hover:bg-slate-50/50 transition duration-150">
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-slate-700 font-mono" x-text="item.date"></td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-blue-600 font-medium font-mono" x-text="item.advance_no"></td>
+                    <td class="px-3 py-3 text-sm text-slate-700" x-text="item.reason || '-'"></td>
+                    <td class="px-3 py-3 text-sm text-slate-600">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800" x-text="item.payment_type"></span>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm font-semibold text-slate-800 text-right" x-text="'$' + parseInt(item.amount).toLocaleString()"></td>
+                    <td class="px-3 py-3 whitespace-nowrap text-center text-sm">
+                        <span x-show="item.is_billed" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">是</span>
+                        <span x-show="!item.is_billed" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">否</span>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-center text-sm">
+                        <a :href="item.url" target="_blank" class="text-blue-600 hover:text-blue-800 transition" title="前往代墊款記錄">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </a>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-center">
+                        <button type="button" @click.prevent="removeAdvancePayment(index)" class="text-red-400 hover:text-red-600 transition p-1" title="移除">
+                            <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                </tr>
+            </template>
+            <tr x-show="advancePayments.length === 0">
+                <td colspan="8" class="px-3 py-8 text-center text-slate-500 text-sm">目前沒有代墊款明細，請點擊「匯入代墊款」加入。</td>
+            </tr>
+        </tbody>
+        <tfoot class="bg-indigo-50/50 border-t-2 border-slate-200" x-show="advancePayments.length > 0">
+            <tr>
+                <td colspan="4" class="px-3 py-3 text-right text-sm font-bold text-slate-700">代墊款合計：</td>
+                <td class="px-3 py-3 text-right text-sm font-bold text-indigo-700" x-text="'$' + advancePaymentTotal.toLocaleString()"></td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>

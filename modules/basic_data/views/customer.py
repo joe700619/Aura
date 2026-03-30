@@ -1,27 +1,40 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from modules.basic_data.models import Customer
-from core.mixins import ListActionMixin
+from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin, SoftDeleteMixin
+from ..models import Customer
+from ..forms import ContactInlineFormSet, CustomerForm
 
-class CustomerListView(ListActionMixin, ListView):
+class CustomerListView(ListActionMixin, LoginRequiredMixin, ListView):
     model = Customer
     template_name = 'customer/list.html'
     context_object_name = 'customers'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        # 預設不顯示已軟刪除的資料
+        qs = super().get_queryset()
+        if hasattr(self.model, 'is_deleted'):
+            qs = qs.filter(is_deleted=False)
+        return qs
     create_button_label = '新增客戶'  # Customize create button label
 
-from django.db import transaction
-from ..forms import ContactInlineFormSet
-from core.mixins import CopyMixin
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['custom_create_url'] = reverse_lazy('basic_data:customer_create')
+        return context
 
-class CustomerCreateView(CopyMixin, CreateView):
+
+class CustomerCreateView(CopyMixin, LoginRequiredMixin, CreateView):
     model = Customer
+    form_class = CustomerForm
     template_name = 'customer/form.html'
-    fields = [
-        'tax_id', 'name', 'email', 'phone', 'mobile', 'source', 'line_id', 'room_id',
-        'registered_zip', 'registered_address', 'correspondence_zip', 'correspondence_address',
-        'bank_account_last5', 'labor_ins_code', 'health_ins_code', 'contact_person'
-    ]
-    success_url = reverse_lazy('customer_list')
+
+    def get_success_url(self):
+        messages.success(self.request, f"客戶「{self.object.name}」已新增成功！")
+        return reverse_lazy('basic_data:customer_update', kwargs={'pk': self.object.pk})
     
     def get_copy_exclude_fields(self):
         """Exclude unique fields from being copied"""
@@ -70,17 +83,16 @@ class CustomerCreateView(CopyMixin, CreateView):
                 return self.form_invalid(form)
         return super().form_valid(form)
 
-from core.mixins import PrevNextMixin
 
-class CustomerUpdateView(PrevNextMixin, UpdateView):
+class CustomerUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     model = Customer
+    form_class = CustomerForm
     template_name = 'customer/form.html'
-    fields = [
-        'tax_id', 'name', 'email', 'phone', 'mobile', 'source', 'line_id', 'room_id',
-        'registered_zip', 'registered_address', 'correspondence_zip', 'correspondence_address',
-        'bank_account_last5', 'labor_ins_code', 'health_ins_code', 'contact_person'
-    ]
-    success_url = reverse_lazy('customer_list')
+    prev_next_order_field = 'created_at'
+
+    def get_success_url(self):
+        messages.success(self.request, f"客戶「{self.object.name}」已更新成功！")
+        return reverse_lazy('basic_data:customer_update', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -130,7 +142,7 @@ class CustomerUpdateView(PrevNextMixin, UpdateView):
         return super().form_valid(form)
 
 
-class CustomerDeleteView(DeleteView):
+class CustomerDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
     model = Customer
     template_name = 'customer/confirm_delete.html'
-    success_url = reverse_lazy('customer_list')
+    success_url = reverse_lazy('basic_data:customer_list')

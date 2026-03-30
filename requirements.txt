@@ -11,3 +11,4 @@ requests
 Pillow
 docxtpl
 docx2pdf
+django-import-export

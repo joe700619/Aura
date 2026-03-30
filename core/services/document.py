@@ -105,6 +105,23 @@ class DocumentService:
             context['total_shares'] = sum(tx['share_count'] for tx in tx_list)
             context['total_amount'] = sum(tx['total_amount'] for tx in tx_list)
 
+        # SealProcurement: items
+        if hasattr(obj, 'items') and hasattr(obj, 'seal_cost_subtotal'):
+            items_list = []
+            for item in obj.items.filter(is_deleted=False):
+                items_list.append({
+                    'movement_type': item.movement_type,
+                    'movement_type_display': item.get_movement_type_display(),
+                    'seal_type': item.seal_type,
+                    'seal_type_display': item.get_seal_type_display(),
+                    'quantity': item.quantity,
+                    'name_or_address': item.name_or_address,
+                    'unit_price': int(item.unit_price),
+                    'subtotal': int(item.subtotal),
+                    'is_absorbed_by_customer': item.is_absorbed_by_customer,
+                })
+            context['items'] = items_list
+
         # ShareholderRegister: directors
         if hasattr(obj, 'directors'):
             director_list = []
