@@ -504,7 +504,7 @@ class AdvancePayment(BaseModel):
         return f"{self.employee.name} - {self.date_applied} ({self.amount})"
 
     def get_absolute_url(self):
-        return reverse('hr:advance_payment_list')
+        return reverse('hr:advance_payment_update', kwargs={'pk': self.pk})
 
     def get_approval_request(self):
         """取得關聯的簽核單"""

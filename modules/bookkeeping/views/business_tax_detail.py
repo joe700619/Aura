@@ -1,5 +1,5 @@
 from django.views.generic import DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.urls import reverse_lazy, reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
@@ -9,7 +9,7 @@ from django.forms import modelformset_factory, FileInput
 
 from ..models import BookkeepingClient, TaxFilingYear, TaxFilingPeriod, TaxFilingSetting
 
-class BusinessTaxDetailView(LoginRequiredMixin, DetailView):
+class BusinessTaxDetailView(BusinessRequiredMixin, DetailView):
     """
     營業稅申報維護介面
     顯示特定客戶某個年度下所有的期別資料，讓記帳人員可以一覽並批次編輯
@@ -85,7 +85,7 @@ class BusinessTaxDetailView(LoginRequiredMixin, DetailView):
         return self.render_to_response(context)
 
 
-class AddBusinessTaxYearView(LoginRequiredMixin, View):
+class AddBusinessTaxYearView(BusinessRequiredMixin, View):
     """快速建立申報年度及對應期數的 API/Action"""
     
     def post(self, request, pk):
@@ -133,7 +133,7 @@ class AddBusinessTaxYearView(LoginRequiredMixin, View):
         return HttpResponseRedirect(f"{url}?year={year_val}")
 
 
-class SaveTaxSettingsView(LoginRequiredMixin, View):
+class SaveTaxSettingsView(BusinessRequiredMixin, View):
     """儲存申報設定卡片的設定值 (notification_method, payment_method, filing_frequency)"""
 
     def post(self, request, pk):

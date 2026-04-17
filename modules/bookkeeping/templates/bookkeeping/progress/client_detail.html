@@ -4,7 +4,7 @@
 {% block header %}記帳進度表維護 - {{ client.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12" x-data="{ globalSubmitting: false }">
+<div class="max-w-full px-4 sm:px-6 lg:px-8 pb-12" x-data="{ globalSubmitting: false, showYearInput: false, newYear: '' }">
 
     <!-- Sticky Toolbar -->
     <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20">
@@ -19,11 +19,28 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <!-- Year Add Form -->
-            <form id="add-year-form" action="{% url 'bookkeeping:progress_add_year' client.pk %}" method="POST" class="inline-flex m-0 p-0">
+            <form id="add-year-form" action="{% url 'bookkeeping:progress_add_year' client.pk %}" method="POST" class="inline-flex items-center gap-1 m-0 p-0">
                 {% csrf_token %}
-                <input type="number" id="new-year-input" name="year" class="hidden" required>
+                <template x-if="showYearInput">
+                    <span class="inline-flex items-center gap-1">
+                        <input type="number" name="year" x-model="newYear" placeholder="民國年" min="100" max="200"
+                            class="w-20 px-2 py-1.5 border border-green-400 rounded-md text-sm focus:ring-green-500 focus:border-green-500 text-center"
+                            @keydown.enter.prevent="newYear > 0 && $el.closest('form').submit()"
+                            @keydown.escape="showYearInput = false; newYear = ''"
+                            x-init="$nextTick(() => $el.focus())">
+                        <button type="submit" :disabled="!newYear || newYear <= 0"
+                            class="px-2.5 py-1.5 rounded-md text-sm font-bold bg-green-600 hover:bg-green-700 text-white disabled:opacity-40 transition-colors">
+                            確認
+                        </button>
+                        <button type="button" @click="showYearInput = false; newYear = ''"
+                            class="px-2 py-1.5 rounded-md text-sm text-slate-500 hover:bg-slate-100 transition-colors">
+                            取消
+                        </button>
+                    </span>
+                </template>
             </form>
-            <button type="button" onclick="promptAddYear()"
+            <button type="button" @click="showYearInput = !showYearInput; newYear = ''"
+                x-show="!showYearInput"
                 class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -313,7 +330,10 @@
                             {# 隱藏欄位保留數值 #}
                             {{ form.sales_amount.as_hidden }}
                             {{ form.tax_amount.as_hidden }}
+                            {{ form.input_tax.as_hidden }}
+                            {{ form.payable_tax.as_hidden }}
                             {{ form.filing_status.as_hidden }}
+                            {{ form.notes.as_hidden }}
                             <td class="px-2 py-3 text-center">
                                 <a href="{% url 'bookkeeping:progress_period_detail' client.pk form.instance.pk %}"
                                    class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
@@ -340,15 +360,4 @@
 
 </div>
 
-<script>
-    function promptAddYear() {
-        const today = new Date();
-        const currentYear = today.getFullYear() - 1911;
-        const year = prompt("請輸入要建立的記帳年度（民國年）\n系統會自動為您產生本年度 6 期資料表", currentYear);
-        if (year && !isNaN(year) && parseInt(year) > 0) {
-            document.getElementById('new-year-input').value = parseInt(year, 10);
-            document.getElementById('add-year-form').submit();
-        }
-    }
-</script>
 {% endblock %}

@@ -163,6 +163,12 @@
             <div class="border-t border-slate-100 pt-3 space-y-3">
                 {% with sel="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" %}
                 <div>
+                    <label class="text-xs text-slate-500 block mb-1 font-medium">繳稅截止日</label>
+                    <input type="date" name="tax_deadline"
+                        value="{{ withholding.tax_deadline|date:'Y-m-d'|default:'' }}"
+                        class="{{ sel }}">
+                </div>
+                <div>
                     <label class="text-xs text-slate-500 block mb-1 font-medium">繳稅方式</label>
                     <select name="payment_method" class="{{ sel }}">
                         <option value="">-- 請選擇 --</option>
@@ -186,7 +192,7 @@
             <div class="border-t border-slate-100 pt-3">
                 <button type="button"
                     class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none shadow-sm transition-colors"
-                    @click="alert('通知功能將於後續階段實作');">
+                    onclick="sendWithholdingNotification()">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
@@ -213,7 +219,7 @@
             {# ── Add button ── #}
             <div class="flex flex-wrap items-end gap-3 mb-4">
                 <button type="button" @click="addDetail()"
-                    class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 shadow-sm focus:outline-none">
+                    class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md text-amber-800 bg-amber-100 border border-amber-300 hover:bg-amber-200 shadow-sm focus:outline-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
@@ -226,12 +232,10 @@
                 <table class="w-full text-xs border-collapse">
                     <thead>
                         <tr class="bg-slate-100 text-slate-600">
-                            <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[70px]">證號</th>
                             <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[80px]">姓名</th>
                             <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[100px]">身分證字號</th>
                             <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[120px]">地址</th>
                             <th class="px-2 py-2 text-center font-semibold border border-slate-200 min-w-[80px]">類別</th>
-                            <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[80px]">類別名稱</th>
                             <th class="px-2 py-2 text-left font-semibold border border-slate-200 min-w-[70px]">租賃編號</th>
                             <th class="px-2 py-2 text-right font-semibold border border-slate-200 min-w-[90px]">申報總額</th>
                             <th class="px-2 py-2 text-right font-semibold border border-slate-200 min-w-[80px]">扣繳稅額</th>
@@ -242,10 +246,6 @@
                         <template x-for="(dt, idx) in details" :key="idx">
                             <tr class="hover:bg-amber-50/30 transition-colors">
                                 <input type="hidden" :name="'dt_'+idx+'_id'" :value="dt.id || ''">
-                                <td class="px-1 py-1 border border-slate-200">
-                                    <input type="text" :name="'dt_'+idx+'_certificate_no'" x-model="dt.certificate_no"
-                                        class="w-full px-1 py-0.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-400">
-                                </td>
                                 <td class="px-1 py-1 border border-slate-200">
                                     <input type="text" :name="'dt_'+idx+'_recipient_name'" x-model="dt.recipient_name"
                                         class="w-full px-1 py-0.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-400">
@@ -269,11 +269,9 @@
                                     </select>
                                 </td>
                                 <td class="px-1 py-1 border border-slate-200">
-                                    <input type="text" :name="'dt_'+idx+'_category_name'" x-model="dt.category_name"
-                                        class="w-full px-1 py-0.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-400">
-                                </td>
-                                <td class="px-1 py-1 border border-slate-200">
                                     <input type="text" :name="'dt_'+idx+'_lease_no'" x-model="dt.lease_no"
+                                        :disabled="dt.income_category !== 'rental'"
+                                        :class="dt.income_category !== 'rental' ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : ''"
                                         class="w-full px-1 py-0.5 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-400">
                                 </td>
                                 <td class="px-1 py-1 border border-slate-200">
@@ -440,6 +438,27 @@
 </div>
 
 <script>
+function sendWithholdingNotification() {
+    if (!confirm('確定要發送扣繳申報通知給 {{ client.name|escapejs }} 嗎？')) return;
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const url = "{% url 'bookkeeping:withholding_tax_send_notification' client.pk withholding.pk %}";
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+        body: new URLSearchParams({ csrfmiddlewaretoken: csrfToken }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success_channels && data.success_channels.length > 0) {
+            alert('已透過 ' + data.success_channels.join('、') + ' 發送通知，等待客戶回覆。');
+            location.reload();
+        } else {
+            alert('發送失敗：' + data.error_channels.join('、'));
+        }
+    })
+    .catch(() => alert('發送時發生錯誤，請稍後再試。'));
+}
+
 function withholdingPage() {
     var d = JSON.parse(document.getElementById('page-data').textContent);
     return {

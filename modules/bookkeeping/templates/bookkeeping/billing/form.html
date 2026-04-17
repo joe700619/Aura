@@ -49,6 +49,13 @@
         <input type="hidden" name="{{ form.client.name }}" id="id_client" value="{{ form.client.value|default:'' }}">
         {% if form.client.errors %}<p class="text-sm text-red-600 mt-1">{{ form.client.errors|join:", " }}</p>{% endif %}
     </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
+        <input type="text" id="display_tax_id" readonly
+            value="{% if object.client %}{{ object.client.tax_id|default:'' }}{% endif %}"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm font-mono"
+            placeholder="選擇客戶後自動帶入">
+    </div>
 
     <div class="grid grid-cols-2 gap-4">
         <div>
@@ -77,13 +84,14 @@
 
     <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">開立日期</label>
-            <input type="date" name="{{ form.bill_date.name }}" value="{{ form.bill_date.value|date:'Y-m-d'|default:'' }}"
-                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <label class="block text-sm font-medium text-slate-700 mb-1">開立日期 <span class="text-red-500">*</span></label>
+            <input type="date" id="id_bill_date" name="{{ form.bill_date.name }}" value="{{ form.bill_date.value|date:'Y-m-d'|default:'' }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                onchange="syncDueDate(this.value)">
         </div>
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">應繳日期</label>
-            <input type="date" name="{{ form.due_date.name }}" value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}"
+            <input type="date" id="id_due_date" name="{{ form.due_date.name }}" value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}"
                 class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
         </div>
     </div>
@@ -98,15 +106,7 @@
         <input type="hidden" name="{{ form.status.name }}" value="{{ form.status.value|default:'draft' }}">
     </div>
 
-    <div class="pt-3 border-t border-slate-100">
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">合計金額</span>
-            <span class="text-2xl font-bold text-emerald-700">NT$ <span id="display_total_amount">{{ object.total_amount|default:0|floatformat:0 }}</span></span>
-            <input type="hidden" name="total_amount" id="id_total_amount" value="{{ object.total_amount|default:0 }}">
-        </div>
-    </div>
-    
-    <div class="pt-4 mt-6 border-t-2 border-slate-200">
+    <div class="pt-4 mt-2 border-t-2 border-slate-200">
         <label for="{{ form.is_posted.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-2">傳票與應收帳款過帳</label>
         
         {% if object.pk %}
@@ -145,6 +145,91 @@
             </div>
         {% endif %}
     </div>
+
+    {% if object.pk %}
+    <!-- 傳票科目對照表 -->
+    <div x-data="{ open: false }" class="mt-4 pt-4 border-t border-slate-100">
+        <button type="button" @click="open = !open"
+            class="flex items-center gap-2 text-sm font-bold text-blue-400 hover:text-blue-500 transition-colors">
+            <svg class="w-4 h-4 transform transition-transform duration-200" :class="open ? 'rotate-90' : ''"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            傳票科目對照表
+        </button>
+        <div x-show="open" x-collapse class="mt-3 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+            <div class="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">依代墊類型自動判斷貸方科目（同科目加總後產生一筆）</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-white border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">項目</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 w-24">會計代碼</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">科目名稱</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 w-16">借貸</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-50">
+                        <tr class="bg-blue-50/30">
+                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費用合計</td>
+                            <td class="px-4 py-2 font-mono font-semibold text-slate-800">400002</td>
+                            <td class="px-4 py-2 text-slate-600 font-semibold">記帳收入</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-700">代墊：郵資及快遞</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">613202</td>
+                            <td class="px-4 py-2 text-slate-600">郵資及快遞</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-700">代墊：統購發票 / 零買發票</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">613203</td>
+                            <td class="px-4 py-2 text-slate-600">發票費用</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-700">代墊：稅款 / 補充保費</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">1141</td>
+                            <td class="px-4 py-2 text-slate-600">代墊稅款及保費</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-700">代墊：政府規費</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">1142</td>
+                            <td class="px-4 py-2 text-slate-600">代墊政府規費</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-700">代墊：印章</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">613204</td>
+                            <td class="px-4 py-2 text-slate-600">印章費用</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 text-slate-400 italic">代墊：其他 / 未選擇</td>
+                            <td class="px-4 py-2 font-mono text-slate-800">6132</td>
+                            <td class="px-4 py-2 text-slate-600">代墊費用</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="bg-red-50/30 border-t-2 border-red-100">
+                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費 + 所有代墊款 合計</td>
+                            <td class="px-4 py-2 font-mono font-semibold text-slate-800">1123</td>
+                            <td class="px-4 py-2 text-slate-600 font-semibold">應收帳款</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700">借</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-white px-4 py-3 border-t border-slate-100 text-xs text-slate-500 space-y-1 leading-relaxed">
+                <p><span class="font-semibold text-slate-600">相同科目代碼的代墊款</span>會先加總，再產生一筆貸方分錄，避免分錄過於分散。</p>
+                <p><span class="font-semibold text-slate-600">借方（1123 應收帳款）</span>固定為服務費用與所有代墊款的總和，確保借貸平衡。</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -156,6 +241,7 @@
         <h4 class="font-bold text-slate-800 text-sm">其他</h4>
         <span class="text-xs text-slate-400 italic ml-1">選擇客戶後自動帶入</span>
     </div>
+
     <div class="grid grid-cols-2 gap-6">
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">記帳助理</label>
@@ -169,21 +255,156 @@
             <input type="text" id="display_group_assistant" readonly
                 value="{% if object.client.group_assistant %}{{ object.client.group_assistant.name }}{% endif %}"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
-        </div>       
+        </div>
     </div>
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-3 gap-4">
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">收費週期</label>
             <input type="text" id="display_billing_cycle" readonly
                 value="{% if client_service_fee %}{{ client_service_fee.get_billing_cycle_display }}{% endif %}"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
         </div>
-
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">服務費用</label>
             <input type="text" id="display_service_fee" readonly
                 value="{% if client_service_fee %}NT$ {{ client_service_fee.service_fee|floatformat:0 }}{% endif %}"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">帳簿費用</label>
+            <input type="text" id="display_ledger_fee" readonly
+                value="{% if client_service_fee and client_service_fee.ledger_fee %}NT$ {{ client_service_fee.ledger_fee|floatformat:0 }}{% endif %}"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 cursor-not-allowed text-sm">
+        </div>
+    </div>
+    <!-- 隱藏的原始數值，供 JS 計算用 -->
+    <input type="hidden" id="raw_service_fee" value="{{ client_service_fee.service_fee|default:0 }}">
+    <input type="hidden" id="raw_ledger_fee" value="{{ client_service_fee.ledger_fee|default:0 }}">
+    <input type="hidden" id="raw_billing_cycle" value="{{ client_service_fee.billing_cycle|default:'' }}">
+
+    <!-- 計算摘要區 -->
+    <div class="pt-3 border-t border-slate-100 space-y-3" x-data="{
+        annualBill: 'no',
+        rawServiceFee: 0,
+        rawLedgerFee: 0,
+        rawBillingCycle: '',
+        advancePaymentTotal: 0,
+        init() {
+            this.rawServiceFee = parseInt(document.getElementById('raw_service_fee')?.value || '0');
+            this.rawLedgerFee = parseInt(document.getElementById('raw_ledger_fee')?.value || '0');
+            this.rawBillingCycle = document.getElementById('raw_billing_cycle')?.value || '';
+            this.quantity = this.cycleQty(this.rawBillingCycle);
+            window.addEventListener('prefill-service-fee', (e) => {
+                this.rawServiceFee = e.detail.service_fee || 0;
+                this.rawLedgerFee = e.detail.ledger_fee || 0;
+                this.rawBillingCycle = e.detail.billing_cycle || '';
+                this.quantity = this.cycleQty(this.rawBillingCycle);
+            });
+            window.addEventListener('advance-total-changed', (e) => {
+                this.advancePaymentTotal = e.detail.total || 0;
+            });
+            // 初始化時讀一次代墊款合計
+            this.$nextTick(() => {
+                try {
+                    const d = JSON.parse(document.getElementById('id_advance_payment_data')?.value || '[]');
+                    this.advancePaymentTotal = d.reduce((s, i) => s + (parseInt(i.amount) || 0), 0);
+                } catch(e) {}
+            });
+        },
+        quantity: 1,
+        cycleQty(cycle) {
+            const m = { monthly:1, bimonthly:2, semi_annual:3, annual:12, bimonthly_auto:2, semi_annual_prepaid:6 };
+            return m[cycle] || 1;
+        },
+        get serviceFeeSubtotal() {
+            const qty = parseInt(this.quantity) || 1;
+            const add = this.annualBill === 'yes' ? this.rawServiceFee : 0;
+            return this.rawServiceFee * qty + add;
+        },
+        get ledgerFeeSubtotal() {
+            return this.annualBill === 'yes' ? this.rawLedgerFee : 0;
+        },
+        get serviceFeeTotal() {
+            return this.serviceFeeSubtotal + this.ledgerFeeSubtotal;
+        },
+        fmt(n) { return n.toLocaleString('en-US'); }
+    }">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">年度發單</label>
+                <div class="flex rounded-md border border-slate-300 overflow-hidden text-sm">
+                    <button type="button" @click="annualBill = 'yes'"
+                        :class="annualBill === 'yes' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                        class="flex-1 py-2 font-medium transition-colors">Yes</button>
+                    <button type="button" @click="annualBill = 'no'"
+                        :class="annualBill === 'no' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                        class="flex-1 py-2 font-medium transition-colors border-l border-slate-300">No</button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">數量</label>
+                <input type="number" min="1" x-model.number="quantity"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-semibold">
+                <p class="text-xs text-slate-400 mt-1" x-show="annualBill === 'yes'">年度發單另加 1 次費用</p>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">費用小計</label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 text-xs">
+                    服務費：NT$ <span x-text="fmt(serviceFeeSubtotal)"></span>
+                </div>
+                <div class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-600 text-xs" x-show="rawLedgerFee > 0 && annualBill === 'yes'">
+                    帳簿費：NT$ <span x-text="fmt(ledgerFeeSubtotal)"></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-700 text-sm font-semibold">合計 NT$ <span x-text="fmt(serviceFeeTotal)"></span></div>
+                <button type="button"
+                    @click="
+                        const year = parseInt(document.getElementById('id_year')?.value) || new Date().getFullYear();
+                        const month = parseInt(document.getElementById('id_month')?.value) || 1;
+                        const remark = annualBill === 'yes'
+                            ? year + '年' + month + '月會計費用及年度所得稅申報'
+                            : year + '年' + month + '月會計服務費用';
+                        window.dispatchEvent(new CustomEvent('import-service-fee-row', { detail: {
+                            service_code: '',
+                            service_name: '2.1會計服務費',
+                            amount: serviceFeeSubtotal,
+                            remark: remark,
+                            is_company_law_22_1: false,
+                            is_money_laundering_check: false,
+                            is_business_entity_change: false,
+                            is_shareholder_list_change: false
+                        }}));
+                        if (rawLedgerFee > 0 && annualBill === 'yes') {
+                            window.dispatchEvent(new CustomEvent('import-service-fee-row', { detail: {
+                                service_code: '',
+                                service_name: '2.2帳簿費',
+                                amount: ledgerFeeSubtotal,
+                                remark: year + '年' + month + '月帳簿費',
+                                is_company_law_22_1: false,
+                                is_money_laundering_check: false,
+                                is_business_entity_change: false,
+                                is_shareholder_list_change: false
+                            }}));
+                        }
+                    "
+                    class="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors whitespace-nowrap">
+                    匯入費用
+                </button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">代墊款合計</label>
+            <div class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-slate-700 text-sm font-semibold">NT$ <span x-text="fmt(advancePaymentTotal)"></span></div>
+        </div>
+        <div class="pt-2 border-t border-slate-200">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-slate-500 font-medium">合計金額</span>
+                <span class="text-2xl font-bold text-emerald-700">NT$ <span id="display_total_amount">{{ object.total_amount|default:0|floatformat:0 }}</span></span>
+            </div>
+            <input type="hidden" name="total_amount" id="id_total_amount" value="{{ object.total_amount|default:0 }}">
         </div>
     </div>
 
@@ -276,6 +497,21 @@
 </div>
 
 <script>
+    function syncDueDate(billDateVal) {
+        const dueDateEl = document.getElementById('id_due_date');
+        if (!dueDateEl || dueDateEl.value) return; // 已有值就不覆蓋
+        if (!billDateVal) return;
+        const d = new Date(billDateVal);
+        d.setDate(d.getDate() + 30);
+        dueDateEl.value = d.toISOString().slice(0, 10);
+    }
+
+    // 頁面載入時，若應繳日期為空且開立日期有值，自動補 +30 天
+    document.addEventListener('DOMContentLoaded', () => {
+        const billDateEl = document.getElementById('id_bill_date');
+        if (billDateEl && billDateEl.value) syncDueDate(billDateEl.value);
+    });
+
     function updateBillTotals() {
         let rootTotal = 0;
         
@@ -290,7 +526,8 @@
             const aData = JSON.parse(document.getElementById('id_advance_payment_data').value || '[]');
             aTotal = aData.reduce((sum, item) => sum + (parseInt(item.amount) || 0), 0);
         } catch(e) {}
-        
+        window.dispatchEvent(new CustomEvent('advance-total-changed', { detail: { total: aTotal } }));
+
         rootTotal = qTotal + aTotal;
         
         const rootTotalInput = document.getElementById('id_total_amount');
@@ -379,10 +616,19 @@
         if (vatScript) vatScript.textContent = JSON.stringify(client.tax_id || '');
 
         const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        setVal('display_tax_id', client.tax_id);
         setVal('display_bookkeeping_assistant', client.bookkeeping_assistant_name);
         setVal('display_group_assistant', client.group_assistant_name);
         setVal('display_billing_cycle', client.billing_cycle_display);
         setVal('display_service_fee', client.service_fee > 0 ? 'NT$ ' + client.service_fee.toLocaleString() : '');
+        setVal('display_ledger_fee', client.ledger_fee > 0 ? 'NT$ ' + client.ledger_fee.toLocaleString() : '');
+        setVal('raw_service_fee', client.service_fee || 0);
+        setVal('raw_ledger_fee', client.ledger_fee || 0);
+        setVal('raw_billing_cycle', client.billing_cycle || '');
+
+        window.dispatchEvent(new CustomEvent('prefill-service-fee', {
+            detail: { service_fee: client.service_fee || 0, ledger_fee: client.ledger_fee || 0, billing_cycle: client.billing_cycle || '' }
+        }));
 
         this.isOpen = false;
     }

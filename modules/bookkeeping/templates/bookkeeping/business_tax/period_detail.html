@@ -178,9 +178,10 @@
                 </div>
                 {% with sel="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" %}
                 <div>
-                    <label class="text-xs text-slate-500 block mb-1 font-medium">繳稅截止日</label>
+
+                    <label class="text-xs text-slate-500 block mb-1 font-medium">繳稅截止日 <span class="text-red-500">*</span></label>
                     <input type="date" name="tax_deadline" value="{{ form.tax_deadline.value|date:'Y-m-d'|default:'' }}"
-                        class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400">
+                        class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400" required>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -231,6 +232,7 @@
                 </button>
                 {% endwith %}
 
+
                 <!-- Send Notification Section -->
                 <div class="border-t border-slate-100 pt-4 mt-2 space-y-3">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">發送通知</p>
@@ -277,24 +279,29 @@
                             取得未收餘額
                         </button>
                         
-                        <form method="POST"
-                              action="{% url 'bookkeeping:vat_send_notification' client.pk period.pk %}"
-                              onsubmit="return confirm('確定要發送繳稅通知給 {{ client.name }} 嗎？')"
-                              id="notification-form">
-                            {% csrf_token %}
-                            <!-- Copy the hidden input value into the form before submit -->
-                            <input type="hidden" name="outstanding_balance" id="form_outstanding_balance" value="0">
-                            <button type="submit"
+                        <div>
+                            {% if period.filing_status == 'not_notified' %}
+                            <button type="button"
                                 class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none shadow-sm transition-colors
                                     {% if not client.tax_setting.notification_method %}opacity-50 cursor-not-allowed{% endif %}"
                                 {% if not client.tax_setting.notification_method %}disabled{% endif %}
-                                onclick="document.getElementById('form_outstanding_balance').value = document.getElementById('outstanding_balance_input').value;">
+                                onclick="submitVatNotification(false)">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                 </svg>
                                 發送繳稅通知
                             </button>
-                        </form>
+                            {% else %}
+                            <button type="button"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none shadow-sm transition-colors"
+                                onclick="submitVatNotification(true)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                已發送通知（重新發送）
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Receivables Table Container (Hidden by default) -->
@@ -551,6 +558,30 @@ document.addEventListener("DOMContentLoaded", function() {
             });
     });
 });
+
+function submitVatNotification(isResend) {
+    if (!isResend) {
+        const isFiled = document.getElementById('is_filed').checked;
+        const taxDeadline = document.querySelector('input[name="tax_deadline"]').value;
+        const errs = [];
+        if (!isFiled) errs.push('・尚未勾選「已完成申報」');
+        if (!taxDeadline) errs.push('・尚未填寫「繳稅截止日」');
+        if (errs.length > 0) {
+            alert('⚠ 無法發送繳稅通知\n\n' + errs.join('\n') + '\n\n請先勾選「已完成申報」並填寫「繳稅截止日」後儲存，再發送通知。');
+            return;
+        }
+        if (!confirm('確定要發送繳稅通知給 {{ client.name }} 嗎？')) return;
+    } else {
+        if (!confirm('已發送過通知，確定要重新發送給 {{ client.name }} 嗎？')) return;
+    }
+    const outstanding = document.getElementById('outstanding_balance_input').value || '0';
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const url = "{% url 'bookkeeping:vat_send_notification' client.pk period.pk %}";
+    const body = new URLSearchParams({ outstanding_balance: outstanding, csrfmiddlewaretoken: csrfToken });
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken }, body: body })
+        .then(() => window.location.reload())
+        .catch(() => alert('發送失敗，請稍後再試。'));
+}
 </script>
 
 {% endblock %}

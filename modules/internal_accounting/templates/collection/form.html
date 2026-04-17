@@ -26,7 +26,7 @@
     unified_business_no: '{{ prefilled_receivable.unified_business_no|escapejs }}',
     address: '{{ prefilled_receivable.address|escapejs }}',
     outstanding_balance: '{{ prefilled_receivable.outstanding_balance|escapejs }}'
-});{% endif %}" @modal-select-item.window="if($event.detail.targetId === '{{ form.search_receivable.id_for_label }}') fillData($event.detail.item)" class="space-y-4">
+});{% endif %}" @modal-select-item.window="if($event.detail.targetId === 'search_receivable') fillData($event.detail.item)" class="space-y-4">
     <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
         <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
         <h4 class="font-bold text-slate-800 text-sm">基本資料</h4>
@@ -34,9 +34,9 @@
     <div class="space-y-4">
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">選擇應收帳款 (可搜尋編號/公司/統編)</label>
-            <div id="search_receivable_container" 
+            <div id="search_receivable_container"
                  {% if prefilled_receivable %}
-                 x-init="$nextTick(() => { 
+                 x-init="$nextTick(() => {
                     const widget = $el.querySelector('[x-data]');
                     if (widget) {
                         widget.__x.$data.selectedLabel = '{{ prefilled_receivable.receivable_no }} {{ prefilled_receivable.company_name }}';
@@ -52,19 +52,19 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">應收帳款編號</label>
                 <input type="text" x-ref="receivable_no" readonly value="{{ form.instance.receivable.receivable_no|default:'' }}"
-                    class="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    class="w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-slate-500 cursor-not-allowed text-sm">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">公司名稱</label>
                 <input type="text" x-ref="company_name" readonly value="{{ form.instance.receivable.company_name|default:'' }}"
-                    class="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    class="w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-slate-500 cursor-not-allowed text-sm">
             </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">地址</label>
                 <input type="text" x-ref="address" readonly value="{{ form.instance.receivable.address|default:'' }}"
-                    class="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    class="w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-slate-500 cursor-not-allowed text-sm">
             </div>
             <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
                 <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">未收餘額</label>
@@ -109,7 +109,7 @@
         <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="text-slate-600 font-medium">收款合計 (自動計算)</div>
             <div class="text-3xl font-bold text-blue-700">
-                $<span x-text="total.toLocaleString('zh-TW', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                $<span x-text="total.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0})"></span>
                 <input type="hidden" name="total" :value="total">
             </div>
         </div>
@@ -129,15 +129,47 @@
             <label for="{{ form.is_correction_needed.id_for_label }}" class="font-bold text-slate-700">是否需補扣</label>
         </div>
         {% include "components/form_field.html" with field=form.reporting_amount %}
-        <div class="flex items-center justify-end p-3 bg-slate-50 rounded-lg border border-slate-200 mt-4">
-            <button type="button" 
-                onclick="window.dispatchEvent(new CustomEvent('open-voucher-modal'))"
-                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition duration-200">
-                確定過帳?
-            </button>
-        </div>
-        <div class="pt-2">
-            {% include "components/form_field.html" with field=form.is_posted %}
+
+        <!-- 過帳狀態區塊 -->
+        <div class="mt-4 p-4 rounded-lg border {% if form.instance.is_posted %}bg-green-50 border-green-200{% else %}bg-slate-50 border-slate-200{% endif %}">
+            {% if form.instance.is_posted %}
+            <!-- 已過帳 -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-sm font-bold text-green-700">此筆收款已過帳</span>
+                </div>
+                {% if form.instance.voucher %}
+                <a href="{% url 'internal_accounting:voucher_edit' form.instance.voucher.pk %}"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    {{ form.instance.voucher.voucher_no }}
+                </a>
+                {% endif %}
+            </div>
+            <p class="text-xs text-green-600 mt-1">已過帳的收款不可修改金額，如需修改請先刪除此筆後重新建立。</p>
+            {% elif form.instance.pk %}
+            <!-- 未過帳，有 pk -->
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-slate-600">尚未過帳</span>
+                <button type="button"
+                        @click="$dispatch('open-collection-post-modal')"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    確定過帳
+                </button>
+            </div>
+            {% else %}
+            <!-- 新增模式，尚無 pk -->
+            <p class="text-xs text-slate-400 italic">請先儲存後，再執行過帳。</p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -155,5 +187,134 @@
 
 {% block overlays %}
 {{ block.super }}
-{% include "components/voucher_preview_modal.html" %}
+{% if form.instance.pk and not form.instance.is_posted %}
+<!-- Collection Voucher Preview Modal -->
+<div x-data="{
+    isOpen: false,
+    entries: [],
+    methodMap: {
+        'bank':  { code: '111401', name: '國泰世華' },
+        'ecpay': { code: '111403', name: '綠界' },
+        'cash':  { code: '1110',   name: '現金' },
+        'notes': { code: '1124',   name: '應收票據' },
+    },
+    open() {
+        this.generateEntries();
+        this.isOpen = true;
+    },
+    generateEntries() {
+        this.entries = [];
+        const method    = document.querySelector('[name=method]')?.value || 'bank';
+        const amount    = parseFloat(document.querySelector('[name=amount]')?.value) || 0;
+        const tax       = parseFloat(document.querySelector('[name=tax]')?.value) || 0;
+        const fee       = parseFloat(document.querySelector('[name=fee]')?.value) || 0;
+        const allowance = parseFloat(document.querySelector('[name=allowance]')?.value) || 0;
+        const m = this.methodMap[method] || { code: '111401', name: '銀行存款' };
+        let totalDebit = 0;
+        if (amount > 0)    { this.entries.push({ side: '借', code: m.code,    name: m.name,      amount, remark: '收款 - ' + m.name }); totalDebit += amount; }
+        if (tax > 0)       { this.entries.push({ side: '借', code: '1149',    name: '扣繳稅款',  amount: tax,       remark: '扣繳稅款' }); totalDebit += tax; }
+        if (fee > 0)       { this.entries.push({ side: '借', code: '613201',  name: '手續費',    amount: fee,       remark: '手續費' }); totalDebit += fee; }
+        if (allowance > 0) { this.entries.push({ side: '借', code: '6123',    name: '呆帳損失',  amount: allowance, remark: '壞帳或折讓' }); totalDebit += allowance; }
+        if (totalDebit > 0) { this.entries.push({ side: '貸', code: '1123', name: '應收帳款', amount: totalDebit, remark: '應收帳款沖帳' }); }
+    },
+    get totalDebit()  { return this.entries.filter(e => e.side === '借').reduce((s, e) => s + e.amount, 0); },
+    get totalCredit() { return this.entries.filter(e => e.side === '貸').reduce((s, e) => s + e.amount, 0); },
+    get isBalanced()  { return this.totalDebit > 0 && this.totalDebit === this.totalCredit; },
+}"
+@open-collection-post-modal.window="open()"
+x-show="isOpen" x-cloak
+style="display:none; position:fixed; inset:0; z-index:50; overflow-y:auto;">
+
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <!-- Backdrop -->
+        <div x-show="isOpen"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="isOpen = false"></div>
+
+        <!-- Panel -->
+        <div x-show="isOpen"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl z-10">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center h-9 w-9 rounded-full bg-blue-100">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">預覽傳票分錄</h3>
+                        <p class="text-xs text-slate-500">確認分錄無誤後再過帳</p>
+                    </div>
+                </div>
+                <button type="button" @click="isOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Entries Table -->
+            <div class="px-6 py-4">
+                <div class="overflow-hidden rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase w-12">借/貸</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase w-24">科目代碼</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">科目名稱</th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase w-32">金額</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">摘要</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            <template x-for="(entry, i) in entries" :key="i">
+                                <tr :class="entry.side === '貸' ? 'bg-blue-50/40' : ''">
+                                    <td class="px-4 py-2 font-bold" :class="entry.side === '借' ? 'text-slate-700' : 'text-blue-700'" x-text="entry.side"></td>
+                                    <td class="px-4 py-2 font-mono text-slate-600" x-text="entry.code"></td>
+                                    <td class="px-4 py-2 text-slate-800" x-text="entry.name"></td>
+                                    <td class="px-4 py-2 text-right font-mono text-slate-800" x-text="entry.amount.toLocaleString()"></td>
+                                    <td class="px-4 py-2 text-slate-500" x-text="entry.remark"></td>
+                                </tr>
+                            </template>
+                            <template x-if="entries.length === 0">
+                                <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 text-sm">金額均為 0，無法過帳</td></tr>
+                            </template>
+                        </tbody>
+                        <tfoot class="bg-slate-50 border-t border-slate-200">
+                            <tr class="font-bold text-sm">
+                                <td colspan="3" class="px-4 py-2 text-right text-slate-700">合計：</td>
+                                <td class="px-4 py-2 text-right font-mono" :class="isBalanced ? 'text-green-700' : 'text-red-600'" x-text="totalDebit.toLocaleString()"></td>
+                                <td class="px-4 py-2 text-xs font-medium" :class="isBalanced ? 'text-green-600' : 'text-red-600'" x-text="isBalanced ? '借貸平衡 ✓' : '借貸不平！'"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">※ 傳票將以「草稿」狀態建立，日期為收款日期（{{ form.instance.date|date:"Y-m-d" }}）。</p>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
+                <button type="button" @click="isOpen = false"
+                        class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    取消
+                </button>
+                <form method="post" action="{% url 'internal_accounting:collection_post' form.instance.pk %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            :disabled="!isBalanced"
+                            :class="isBalanced ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                            class="px-5 py-2 text-sm font-bold rounded-lg shadow-sm transition-colors">
+                        確認過帳
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

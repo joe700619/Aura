@@ -1,11 +1,12 @@
 from django.views.generic import TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.db.models import Sum
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.core.paginator import Paginator
 import pandas as pd
 from io import BytesIO
 from collections import defaultdict
@@ -13,6 +14,15 @@ from django.db.models import Q
 from ..models import Collection
 from core.notifications.models import EmailTemplate
 from core.notifications.services import EmailService
+
+_SORT_MAP = {
+    'tax_no':          'receivable__unified_business_no',
+    'company_name':    'receivable__company_name',
+    'email':           'receivable__email',
+    'total_amount':    'total_amount',
+    'total_tax':       'total_tax',
+    'total_reporting': 'total_reporting_amount',
+}
 
 def get_withholding_summary_queryset(year, q=None, tax_status=None):
     qs = Collection.objects.filter(
@@ -43,13 +53,12 @@ def get_withholding_summary_queryset(year, q=None, tax_status=None):
         
     return qs.order_by('receivable__unified_business_no')
 
-class WithholdingTaxSummaryView(LoginRequiredMixin, TemplateView):
+class WithholdingTaxSummaryView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/withholding_tax.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Get year from request, default to current year
+
         current_year = timezone.now().year
         year = self.request.GET.get('year')
         try:
@@ -57,53 +66,127 @@ class WithholdingTaxSummaryView(LoginRequiredMixin, TemplateView):
         except ValueError:
             year = current_year
 
-        # Get available years from database
         year_dates = Collection.objects.exclude(date__isnull=True).dates('date', 'year')
-        available_years = list(set([d.year for d in year_dates]))
+        available_years = sorted(set(d.year for d in year_dates), reverse=True)
         if not available_years:
             available_years = [current_year]
         if year not in available_years:
-            available_years.append(year)
-        available_years.sort(reverse=True)
-
-        q = self.request.GET.get('q', '')
-        tax_status = self.request.GET.get('tax_status', 'all')
-
-        # Query collections for the selected year
-        summary_data = get_withholding_summary_queryset(year, q, tax_status)
-        
-        # Convert to list and attach details
-        summary_list = list(summary_data)
-        
-        detailed_collections = Collection.objects.filter(
-            date__year=year,
-            receivable__unified_business_no__isnull=False
-        ).exclude(
-            receivable__unified_business_no=''
-        ).select_related('receivable').order_by('receivable__unified_business_no', 'date', 'collection_no')
-        
-        details_map = defaultdict(list)
-        for c in detailed_collections:
-            details_map[c.receivable.unified_business_no].append(c)
-            
-        for item in summary_list:
-            item['details'] = details_map[item['receivable__unified_business_no']]
+            available_years = sorted(available_years + [year], reverse=True)
 
         context['year'] = year
-        context['q'] = q
-        context['tax_status'] = tax_status
+        context['q'] = self.request.GET.get('q', '')
+        context['tax_status'] = self.request.GET.get('tax_status', 'all')
         context['available_years'] = available_years
-        context['summary_data'] = summary_list
         context['email_templates'] = EmailTemplate.objects.filter(is_active=True).order_by('name')
-
-        # Calculate totals
-        context['grand_total_amount'] = sum(item['total_amount'] for item in summary_list if item['total_amount'])
-        context['grand_total_tax'] = sum(item['total_tax'] for item in summary_list if item['total_tax'])
-        context['grand_total_reporting'] = sum(item['total_reporting_amount'] for item in summary_list if item['total_reporting_amount'])
-
         return context
 
-class WithholdingTaxExportView(LoginRequiredMixin, View):
+
+class WithholdingTaxDataView(BusinessRequiredMixin, View):
+    """AJAX endpoint：分頁 + 排序 + 快速篩選，回傳 JSON"""
+
+    def get(self, request):
+        current_year = timezone.now().year
+        try:
+            year = int(request.GET.get('year', current_year))
+        except (ValueError, TypeError):
+            year = current_year
+
+        q          = request.GET.get('q', '')
+        tax_status = request.GET.get('tax_status', 'all')
+        tax_filter = request.GET.get('tax_filter', 'all')
+        sort_field = request.GET.get('sort_field', '')
+        sort_dir   = request.GET.get('sort_dir', 'asc')
+        try:
+            page      = max(1, int(request.GET.get('page', 1)))
+            page_size = min(100, max(10, int(request.GET.get('page_size', 25))))
+        except (ValueError, TypeError):
+            page, page_size = 1, 25
+
+        # Base queryset（form 條件）
+        base_qs = get_withholding_summary_queryset(year, q, tax_status)
+
+        # 快速篩選按鈕的計數（不受 tax_filter 影響）
+        counts = {
+            'all':     base_qs.count(),
+            'has_tax': base_qs.filter(total_tax__gt=0).count(),
+            'no_tax':  base_qs.exclude(total_tax__gt=0).count(),
+        }
+
+        # 套用快速篩選
+        qs = base_qs
+        if tax_filter == 'has_tax':
+            qs = qs.filter(total_tax__gt=0)
+        elif tax_filter == 'no_tax':
+            qs = qs.exclude(total_tax__gt=0)
+
+        # 全頁合計（分頁前）
+        agg = qs.aggregate(
+            gt_amount=Sum('total_amount'),
+            gt_tax=Sum('total_tax'),
+            gt_reporting=Sum('total_reporting_amount'),
+        )
+        grand_totals = {
+            'total_amount':    int(agg['gt_amount'] or 0),
+            'total_tax':       int(agg['gt_tax'] or 0),
+            'total_reporting': int(agg['gt_reporting'] or 0),
+        }
+
+        # 排序
+        order_field = _SORT_MAP.get(sort_field, 'receivable__unified_business_no')
+        if sort_dir == 'desc':
+            order_field = f'-{order_field}'
+        qs = qs.order_by(order_field)
+
+        # 分頁
+        paginator = Paginator(qs, page_size)
+        page_obj  = paginator.get_page(page)
+        page_list = list(page_obj.object_list)
+
+        # 撈當頁明細
+        tax_nos = [item['receivable__unified_business_no'] for item in page_list]
+        detail_qs = (
+            Collection.objects
+            .filter(date__year=year, receivable__unified_business_no__in=tax_nos)
+            .select_related('receivable')
+            .order_by('receivable__unified_business_no', 'date', 'collection_no')
+        )
+        details_map = defaultdict(list)
+        for c in detail_qs:
+            details_map[c.receivable.unified_business_no].append({
+                'id':                c.pk,
+                'collection_no':     c.collection_no or '',
+                'date':              c.date.strftime('%Y-%m-%d') if c.date else '',
+                'amount':            int(c.amount or 0),
+                'tax':               int(c.tax or 0),
+                'reporting_amount':  int(c.reporting_amount or 0),
+            })
+
+        items = [
+            {
+                'tax_no':          item['receivable__unified_business_no'] or '',
+                'company_name':    item['receivable__company_name'] or '',
+                'email':           item['receivable__email'] or '',
+                'total_amount':    int(item['total_amount'] or 0),
+                'total_tax':       int(item['total_tax'] or 0),
+                'total_reporting': int(item['total_reporting_amount'] or 0),
+                'details':         details_map.get(item['receivable__unified_business_no'], []),
+            }
+            for item in page_list
+        ]
+
+        return JsonResponse({
+            'items':        items,
+            'page':         page_obj.number,
+            'page_size':    page_size,
+            'total_pages':  paginator.num_pages,
+            'total_count':  paginator.count,
+            'has_previous': page_obj.has_previous(),
+            'has_next':     page_obj.has_next(),
+            'counts':       counts,
+            'grand_totals': grand_totals,
+        })
+
+class WithholdingTaxExportView(BusinessRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         current_year = timezone.now().year
         year = request.GET.get('year')
@@ -219,7 +302,7 @@ class WithholdingTaxExportView(LoginRequiredMixin, View):
 
         return response
 
-class WithholdingTaxSendEmailView(LoginRequiredMixin, View):
+class WithholdingTaxSendEmailView(BusinessRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         current_year = timezone.now().year
         year = request.POST.get('year')
@@ -238,6 +321,14 @@ class WithholdingTaxSendEmailView(LoginRequiredMixin, View):
         tax_status = request.POST.get('tax_status', 'all')
 
         summary_data = get_withholding_summary_queryset(year, q, tax_status)
+
+        # 限定已勾選的公司（逗號分隔的統編清單）
+        selected_raw = request.POST.get('selected_tax_nos', '')
+        selected_tax_nos = [t.strip() for t in selected_raw.split(',') if t.strip()]
+        if selected_tax_nos:
+            summary_data = summary_data.filter(
+                receivable__unified_business_no__in=selected_tax_nos
+            )
 
         success_count = 0
         error_count = 0

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block header %}申報書媒體檔 - {{ client.name }} {{ year_obj.year }}年度{% endblock %}
+
+{% block content %}
+<div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+
+    {# ── Toolbar ── #}
+    <div class="flex flex-wrap justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-0 z-20 gap-3">
+        <a href="{% url 'bookkeeping:income_tax_detail' client.pk %}?year={{ year_obj.year }}"
+           class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 flex items-center transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            回年度概覽
+        </a>
+    </div>
+
+    {# ── Period Badge ── #}
+    <div class="mb-5 flex items-center gap-3">
+        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold bg-sky-50 text-sky-800 border border-sky-200">
+            {{ year_obj.year }} 年度・申報書媒體檔
+        </span>
+        {% if media_data.is_parsed %}
+        <span class="text-sm font-medium text-green-600">● 已解析</span>
+        {% else %}
+        <span class="text-sm font-medium text-slate-400">● 尚未解析</span>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2
+            {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+            {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+            {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            {% if message.tags == 'success' %}
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+
+        {# ── Card 1: 上傳 001 檔 ── #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
+                <div class="w-1 h-4 bg-sky-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">上傳 001 媒體檔</h4>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data"
+                  action="{% url 'bookkeeping:income_tax_media_upload' client_pk=client.pk pk=media_data.pk %}">
+                {% csrf_token %}
+                <div class="space-y-3">
+                    {% if media_data.raw_file %}
+                    <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <p class="text-xs font-medium text-green-700 mb-1">目前檔案</p>
+                        <a href="{{ media_data.raw_file.url }}" target="_blank"
+                           class="text-xs text-green-600 hover:underline flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            {{ media_data.raw_file.name|truncatechars:40 }}
+                        </a>
+                        {% if media_data.parsed_at %}
+                        <p class="text-xs text-slate-400 mt-1">解析時間：{{ media_data.parsed_at|date:"Y-m-d H:i" }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-1 font-medium">
+                            {% if media_data.raw_file %}重新上傳{% else %}選擇檔案{% endif %}
+                        </label>
+                        <input type="file" name="raw_file" accept=".001,.txt"
+                            class="w-full text-xs text-slate-600 file:cursor-pointer file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-sky-600 file:text-white hover:file:bg-sky-700">
+                    </div>
+
+                    <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none shadow-sm transition-colors">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        上傳並解析
+                    </button>
+                </div>
+            </form>
+
+            <div class="border-t border-slate-100 pt-3">
+                <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <h5 class="text-xs font-bold text-amber-800 mb-1">說明</h5>
+                    <ul class="text-xs text-amber-700 space-y-1 list-disc list-inside">
+                        <li>請上傳國稅局所得稅申報書 001 格式媒體檔</li>
+                        <li>檔案為純文字格式（.001 或 .txt）</li>
+                        <li>上傳後系統將自動解析並擷取關鍵資料</li>
+                        <li>重新上傳將覆蓋先前的解析結果</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# ── Card 2: 基本資訊 ── #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
+                <div class="w-1 h-4 bg-indigo-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">基本資訊</h4>
+            </div>
+            {% with ro="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-slate-700 cursor-default focus:outline-none" %}
+            <div>
+                <label class="text-xs text-slate-400 block mb-0.5">公司名稱</label>
+                <input type="text" value="{{ client.name }}" readonly class="{{ ro }} font-semibold">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">統一編號</label>
+                    <input type="text" value="{{ client.tax_id|default:'' }}" readonly class="{{ ro }}">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">年度</label>
+                    <input type="text" value="{{ year_obj.year }}" readonly class="{{ ro }}">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">行業代號</label>
+                    <input type="text" value="{{ media_data.industry_code|default:'-' }}" readonly class="{{ ro }}">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-0.5">行業名稱</label>
+                    <input type="text" value="{{ media_data.industry_name|default:'-' }}" readonly class="{{ ro }}">
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+
+        {# ── Card 3: 解析狀態 ── #}
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
+                <div class="w-1 h-4 bg-emerald-600 rounded-full"></div>
+                <h4 class="font-bold text-slate-800 text-sm">解析狀態</h4>
+            </div>
+            {% if media_data.is_parsed %}
+            <div class="text-center py-4">
+                <div class="w-12 h-12 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-2">
+                    <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-green-700">解析完成</p>
+                <p class="text-xs text-slate-400 mt-1">{{ media_data.parsed_at|date:"Y-m-d H:i" }}</p>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-slate-500">尚未上傳或解析</p>
+                <p class="text-xs text-slate-400 mt-1">請上傳 001 檔案以擷取資料</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    {# ══════════════ 解析結果詳情 ══════════════ #}
+    {% if media_data.is_parsed %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <h3 class="text-base font-bold text-slate-800">解析結果</h3>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+                {# ── 損益資料 ── #}
+                <div class="rounded-lg border border-slate-200 p-4 space-y-2">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">損益資料</h5>
+                    {% with ro="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-right text-slate-700 cursor-default focus:outline-none" %}
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業收入淨額</label>
+                        <input type="text" value="{{ media_data.gross_revenue|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業成本</label>
+                        <input type="text" value="{{ media_data.cost_of_goods|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業毛利</label>
+                        <input type="text" value="{{ media_data.gross_profit|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業費用</label>
+                        <input type="text" value="{{ media_data.operating_expenses|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業淨利</label>
+                        <input type="text" value="{{ media_data.net_operating_income|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold text-blue-700">
+                    </div>
+                    {% endwith %}
+                </div>
+
+                {# ── 營業外損益 ── #}
+                <div class="rounded-lg border border-slate-200 p-4 space-y-2">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">營業外損益 & 稅前</h5>
+                    {% with ro="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-right text-slate-700 cursor-default focus:outline-none" %}
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業外收入</label>
+                        <input type="text" value="{{ media_data.non_operating_income|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">營業外支出</label>
+                        <input type="text" value="{{ media_data.non_operating_expense|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">稅前淨利</label>
+                        <input type="text" value="{{ media_data.pre_tax_income|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold text-emerald-700">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">課稅所得額</label>
+                        <input type="text" value="{{ media_data.taxable_income|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold">
+                    </div>
+                    {% endwith %}
+                </div>
+
+                {# ── 稅額計算 ── #}
+                <div class="rounded-lg border border-slate-200 p-4 space-y-2">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-2">稅額計算</h5>
+                    {% with ro="w-full px-2 py-1.5 border border-slate-200 rounded bg-slate-50 text-sm text-right text-slate-700 cursor-default focus:outline-none" %}
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">應納稅額</label>
+                        <input type="text" value="{{ media_data.annual_tax|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold text-rose-600">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">暫繳稅額</label>
+                        <input type="text" value="{{ media_data.provisional_paid|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">扣繳稅額</label>
+                        <input type="text" value="{{ media_data.withholding_paid|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">應自行繳納稅額</label>
+                        <input type="text" value="{{ media_data.self_pay|floatformat:0|default:'0' }}" readonly class="{{ ro }} font-bold text-rose-700">
+                    </div>
+                    <div class="border-t border-slate-100 pt-2">
+                        <label class="text-xs text-slate-400 block mb-0.5">未分配盈餘</label>
+                        <input type="text" value="{{ media_data.undistributed_earnings|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-0.5">未分配盈餘加徵</label>
+                        <input type="text" value="{{ media_data.undistributed_surtax|floatformat:0|default:'0' }}" readonly class="{{ ro }}">
+                    </div>
+                    {% endwith %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}代墊款明細查詢{% endblock %}
+{% block header_title %}代墊款明細查詢{% endblock %}
+{% block header_description %}查詢與過濾所有代墊款的明細項目{% endblock %}
+
+{% block filters %}
+{# 客戶吸收篩選 #}
+<a href="?absorbed=YES&billed={{ current_billed }}{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_absorbed == 'YES' %}bg-green-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    客戶吸收 <span class="ml-1 text-xs opacity-75">({{ count_absorbed_yes }})</span>
+</a>
+<a href="?absorbed=NO&billed={{ current_billed }}{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_absorbed == 'NO' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    非吸收 <span class="ml-1 text-xs opacity-75">({{ count_absorbed_no }})</span>
+</a>
+<a href="?absorbed=ALL&billed={{ current_billed }}{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_absorbed == 'ALL' %}bg-slate-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 <span class="ml-1 text-xs opacity-75">({{ count_absorbed_all }})</span>
+</a>
+<span class="mx-1 border-l border-slate-300 self-stretch"></span>
+{# 發單狀態篩選 #}
+<a href="?absorbed={{ current_absorbed }}&billed=UNBILLED{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_billed == 'UNBILLED' %}bg-amber-400 text-amber-900 shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    尚未發單 <span class="ml-1 text-xs opacity-75">({{ count_billed_unbilled }})</span>
+</a>
+<a href="?absorbed={{ current_absorbed }}&billed=BILLED{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_billed == 'BILLED' %}bg-indigo-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    已發單 <span class="ml-1 text-xs opacity-75">({{ count_billed_billed }})</span>
+</a>
+<a href="?absorbed={{ current_absorbed }}&billed=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_billed == 'ALL' %}bg-slate-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 <span class="ml-1 text-xs opacity-75">({{ count_billed_all }})</span>
+</a>
+{% endblock %}
+
+{% block extra_pagination_params %}&absorbed={{ current_absorbed }}&billed={{ current_billed }}{% endblock %}
+{% block extra_pagination_params_num %}&absorbed={{ current_absorbed }}&billed={{ current_billed }}{% endblock %}
+{% block extra_pagination_params_next %}&absorbed={{ current_absorbed }}&billed={{ current_billed }}{% endblock %}
+
+{% block actions %}
+<a href="{% url 'administrative:advance_payment_list' %}"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-colors shadow-sm">
+    返回代墊款列表
+</a>
+{% endblock %}
+
+{% block table_headers %}
+<th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="no">代墊單號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="date">日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="customer">費用歸屬 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-left">統一編號</th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-left">事由</th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-left">代墊類型</th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="amount">金額 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-center">客戶吸收</th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-center">已發單</th>
+<th class="px-4 py-3 font-semibold text-slate-700 text-center w-12">連結</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for detail in details %}
+<tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+    x-show="matches('ALL', '{{ detail.advance_payment.advance_no|escapejs }} {{ detail.customer.name|default:''|escapejs }} {{ detail.unified_business_no|default:''|escapejs }} {{ detail.reason|default:''|escapejs }}')"
+    :class="selectedRows.includes({{ detail.pk }}) ? 'bg-blue-50/30' : ''"
+    data-no="{{ detail.advance_payment.advance_no|escapejs }}"
+    data-date="{{ detail.advance_payment.date|date:'Y-m-d' }}"
+    data-customer="{{ detail.customer.name|default:''|escapejs }}"
+    data-amount="{{ detail.amount }}">
+    {% include "components/row_checkbox.html" with value=detail.pk %}
+    <td class="px-4 py-3 whitespace-nowrap font-mono text-slate-800 text-sm font-medium">
+        {{ detail.advance_payment.advance_no }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap font-mono text-slate-600 text-sm">
+        {{ detail.advance_payment.date|date:"Y-m-d" }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-slate-700">
+        {{ detail.customer.name|default:"-" }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-slate-600 font-mono text-sm">
+        {{ detail.unified_business_no|default:"-" }}
+    </td>
+    <td class="px-4 py-3 text-slate-600 truncate max-w-[200px]" title="{{ detail.reason }}">
+        {{ detail.reason|default:"-" }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-slate-600 text-sm">
+        {{ detail.get_payment_type_display|default:"-" }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap font-mono text-right text-slate-800">
+        ${{ detail.amount|floatformat:0 }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-center">
+        {% if detail.is_customer_absorbed %}
+        <span class="text-green-600 flex justify-center">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+        {% else %}
+        <span class="text-slate-300">-</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-center">
+        {% if detail.is_billed %}
+        <span class="text-blue-600 flex justify-center">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+        {% else %}
+        <span class="text-slate-300">-</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap text-center">
+        <a href="{% url 'administrative:advance_payment_update' detail.advance_payment.pk %}"
+           class="text-blue-500 hover:text-blue-700 transition-colors" title="查看原始表單">
+            <svg class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+        </a>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="11" class="px-4 py-12 text-center text-slate-500 bg-white rounded-b-lg">
+        <div class="flex flex-col items-center justify-center">
+            <p>目前沒有任何代墊款明細紀錄</p>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for detail in details %}
+    {
+        "id": {{ detail.pk }},
+        "category": "ALL",
+        "content": "{{ detail.advance_payment.advance_no|escapejs }} {{ detail.customer.name|default:''|escapejs }} {{ detail.unified_business_no|default:''|escapejs }} {{ detail.reason|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

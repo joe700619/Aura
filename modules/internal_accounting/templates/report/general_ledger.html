@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load humanize %}
 
+{% block page_title %}總分類帳{% endblock %}
+
 {% block content %}
 <div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
     <!-- Page header -->
@@ -48,6 +50,14 @@
     </div>
 
     <!-- Grouped Tables -->
+    {% if not submitted %}
+    <div class="bg-white px-4 py-16 rounded-sm border border-slate-200 shadow-sm text-center mb-8">
+        <svg class="mx-auto h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="text-slate-400 font-medium">請設定篩選條件後按「查詢」以顯示總分類帳資料</p>
+    </div>
+    {% else %}
     {% for group in account_groups %}
     <div x-data="{ expanded: true }" class="bg-white shadow-lg rounded-sm border border-slate-200 relative mb-8">
         
@@ -127,6 +137,7 @@
         <span class="text-slate-500 font-medium">沒有找到符合條件的總分類帳紀錄</span>
     </div>
     {% endfor %}
+    {% endif %}{# end submitted #}
 </div>
 
 <style>

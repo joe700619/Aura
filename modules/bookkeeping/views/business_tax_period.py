@@ -1,12 +1,12 @@
 from django.views.generic import UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
 from ..models import TaxFilingPeriod, BookkeepingClient
 
 
-class TaxFilingPeriodDetailView(LoginRequiredMixin, UpdateView):
+class TaxFilingPeriodDetailView(BusinessRequiredMixin, UpdateView):
     """
     期別詳情頁：顯示並編輯單一期的完整申報資料
     URL: /bookkeeping/business-tax/<client_pk>/period/<pk>/

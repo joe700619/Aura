@@ -5,13 +5,17 @@
         detail: { 
             value: '{{ customer.id }}', 
             label: '{{ customer.name|escapejs }}', 
-            extra: { 
+            extra: {
+                'company_name': '{{ customer.name|escapejs }}',
+                'unified_business_no': '{{ customer.tax_id|escapejs }}',
                 'tax_id': '{{ customer.tax_id|escapejs }}',
+                'line_id': '{{ customer.line_id|default:''|escapejs }}',
+                'room_id': '{{ customer.room_id|default:''|escapejs }}',
                 'main_contact': '{{ customer.main_contact|escapejs }}',
                 'mobile': '{{ customer.mobile|escapejs }}',
                 'phone': '{{ customer.phone|escapejs }}',
                 'address': '{{ customer.address|escapejs }}'
-            } 
+            }
         } 
     }))">
     <td class="px-6 py-3 whitespace-nowrap">

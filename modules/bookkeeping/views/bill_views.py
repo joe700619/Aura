@@ -1,21 +1,121 @@
-from django.http import HttpResponseRedirect
+from datetime import date, datetime, timedelta
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models as db_models
 from django.db import transaction
 from django.forms import ModelForm, HiddenInput
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.http import JsonResponse
-from core.mixins import ListActionMixin
+from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, SearchMixin, PrevNextMixin, SoftDeleteMixin
 from ..models import BookkeepingClient, ClientBill
 from modules.administrative.models import AdvancePaymentDetail
 from modules.internal_accounting.services import ReceivableTransferService
 
+# ── 批次產帳輔助常數 ──────────────────────────────────────────────
+# 各收費週期對應的發單月份
+_BILLING_MONTHS = {
+    'monthly':              list(range(1, 13)),
+    'bimonthly':            [1, 3, 5, 7, 9, 11],
+    'bimonthly_auto':       [1, 3, 5, 7, 9, 11],
+    'semi_annual':          [6, 12],
+    'semi_annual_prepaid':  [6, 12],
+    'annual':               [1],
+}
+# 各收費週期的年度發單月（加帳簿費的月份）
+_ANNUAL_BILL_MONTH = {
+    'monthly':              5,
+    'bimonthly':            5,
+    'bimonthly_auto':       5,
+    'semi_annual':          6,
+    'semi_annual_prepaid':  6,
+    'annual':               1,
+}
+# 各收費週期對應的數量（計算服務費時用）
+_CYCLE_QTY = {
+    'monthly':              1,
+    'bimonthly':            2,
+    'bimonthly_auto':       2,
+    'semi_annual':          3,
+    'semi_annual_prepaid':  6,
+    'annual':               12,
+}
 
-class BookkeepingClientSearchView(LoginRequiredMixin, View):
+
+def _get_clients_for_batch(month):
+    """
+    回傳本月應開帳單的客戶清單（list of dict）。
+    Step 1: 依 billing_cycle 判斷本月是否發單。
+    Step 2: 判斷是否為年度發單月。
+    """
+    clients = (
+        BookkeepingClient.objects
+        .filter(is_deleted=False, billing_status='billing')
+        .prefetch_related('service_fees')
+        .select_related('bookkeeping_assistant')
+        .order_by('name')
+    )
+    today = date.today()
+    result = []
+    for client in clients:
+        active_fee = (
+            client.service_fees
+            .filter(
+                db_models.Q(end_date__isnull=True) | db_models.Q(end_date__gte=today)
+            )
+            .order_by('-effective_date')
+            .first()
+        )
+        if not active_fee:
+            continue
+        cycle = active_fee.billing_cycle
+        if month not in _BILLING_MONTHS.get(cycle, []):
+            continue
+        result.append({
+            'client':     client,
+            'active_fee': active_fee,
+            'is_annual':  (_ANNUAL_BILL_MONTH.get(cycle) == month),
+        })
+    return result
+
+
+def _build_quotation_data(active_fee, year, month, is_annual):
+    """依服務費資料組建 quotation_data（list of row dicts）。"""
+    qty          = _CYCLE_QTY.get(active_fee.billing_cycle, 1)
+    service_fee  = active_fee.service_fee
+    ledger_fee   = active_fee.ledger_fee
+    service_amt  = service_fee * qty + (service_fee if is_annual else 0)
+    remark = (
+        f'{year}年{month}月會計費用及年度所得稅申報'
+        if is_annual else
+        f'{year}年{month}月會計服務費用'
+    )
+    rows = [{
+        'service_code': '',
+        'service_name': '2.1會計服務費',
+        'amount': service_amt,
+        'remark': remark,
+        'is_company_law_22_1': False,
+        'is_money_laundering_check': False,
+        'is_business_entity_change': False,
+        'is_shareholder_list_change': False,
+    }]
+    if is_annual and ledger_fee > 0:
+        rows.append({
+            'service_code': '',
+            'service_name': '2.2帳簿費',
+            'amount': ledger_fee,
+            'remark': f'{year}年{month}月帳簿費',
+            'is_company_law_22_1': False,
+            'is_money_laundering_check': False,
+            'is_business_entity_change': False,
+            'is_shareholder_list_change': False,
+        })
+    return rows
+
+
+class BookkeepingClientSearchView(BusinessRequiredMixin, View):
     """API: 搜尋記帳客戶，回傳 JSON 供帳單選客戶 modal 使用"""
 
     def get(self, request):
@@ -50,6 +150,7 @@ class BookkeepingClientSearchView(LoginRequiredMixin, View):
                 'group_assistant_name': (
                     client.group_assistant.name if client.group_assistant else ''
                 ),
+                'billing_cycle': active_fee.billing_cycle if active_fee else '',
                 'billing_cycle_display': (
                     active_fee.get_billing_cycle_display() if active_fee else ''
                 ),
@@ -70,7 +171,7 @@ class ClientBillForm(ModelForm):
         }
 
 
-class FetchUnbilledAdvancePaymentsView(LoginRequiredMixin, View):
+class FetchUnbilledAdvancePaymentsView(BusinessRequiredMixin, View):
     def get(self, request, client_pk):
         from django.http import JsonResponse
         from modules.administrative.models import AdvancePaymentDetail
@@ -100,25 +201,168 @@ class FetchUnbilledAdvancePaymentsView(LoginRequiredMixin, View):
         return JsonResponse(data, safe=False)
 
 
-class ClientBillListView(ListActionMixin, LoginRequiredMixin, ListView):
+class BillBatchPreviewView(BusinessRequiredMixin, View):
+    """
+    AJAX: 預覽本月將產生的帳單清單（不實際建立）。
+    POST params: year, month, annual_override ('yes'|'no'|'')
+    """
+    def post(self, request):
+        try:
+            year  = int(request.POST.get('year', 0))
+            month = int(request.POST.get('month', 0))
+        except (ValueError, TypeError):
+            return JsonResponse({'error': '無效的年度或月份'}, status=400)
+        if not (1 <= month <= 12) or not year:
+            return JsonResponse({'error': '月份必須介於 1-12'}, status=400)
+
+        annual_override = request.POST.get('annual_override', '')
+        candidates = _get_clients_for_batch(month)
+        if annual_override == 'yes':
+            for c in candidates: c['is_annual'] = True
+        elif annual_override == 'no':
+            for c in candidates: c['is_annual'] = False
+
+        existing = set(
+            ClientBill.objects.filter(year=year, month=month)
+            .values_list('client_id', flat=True)
+        )
+
+        items = []
+        for c in candidates:
+            active_fee = c['active_fee']
+            is_annual  = c['is_annual']
+            rows       = _build_quotation_data(active_fee, year, month, is_annual)
+            total      = sum(r['amount'] for r in rows)
+            items.append({
+                'client_id':      c['client'].pk,
+                'client_name':    c['client'].name,
+                'tax_id':         c['client'].tax_id or '',
+                'billing_cycle':  active_fee.get_billing_cycle_display(),
+                'is_annual':      is_annual,
+                'service_fee':    active_fee.service_fee,
+                'ledger_fee':     active_fee.ledger_fee if is_annual else 0,
+                'total':          total,
+                'already_exists': c['client'].pk in existing,
+            })
+
+        return JsonResponse({
+            'items':      items,
+            'new_count':  sum(1 for i in items if not i['already_exists']),
+            'skip_count': sum(1 for i in items if i['already_exists']),
+        })
+
+
+class BillBatchGenerateView(BusinessRequiredMixin, View):
+    """
+    POST: 批次建立帳單（已存在的跳過）。
+    POST params: year, month, bill_date, due_date, annual_override
+    """
+    def post(self, request):
+        try:
+            year  = int(request.POST.get('year', 0))
+            month = int(request.POST.get('month', 0))
+        except (ValueError, TypeError):
+            return JsonResponse({'error': '無效的年度或月份'}, status=400)
+        if not (1 <= month <= 12) or not year:
+            return JsonResponse({'error': '月份必須介於 1-12'}, status=400)
+
+        try:
+            bill_date_str = request.POST.get('bill_date', '')
+            due_date_str  = request.POST.get('due_date', '')
+            bill_date = (
+                datetime.strptime(bill_date_str, '%Y-%m-%d').date()
+                if bill_date_str else date.today()
+            )
+            due_date = (
+                datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                if due_date_str else date.today() + timedelta(days=30)
+            )
+        except ValueError:
+            return JsonResponse({'error': '無效的日期格式'}, status=400)
+
+        annual_override = request.POST.get('annual_override', '')
+        candidates = _get_clients_for_batch(month)
+        if annual_override == 'yes':
+            for c in candidates: c['is_annual'] = True
+        elif annual_override == 'no':
+            for c in candidates: c['is_annual'] = False
+
+        created_count = skipped_count = 0
+        with transaction.atomic():
+            for c in candidates:
+                active_fee     = c['active_fee']
+                is_annual      = c['is_annual']
+                quotation_data = _build_quotation_data(active_fee, year, month, is_annual)
+                total          = sum(r['amount'] for r in quotation_data)
+
+                _, created = ClientBill.objects.get_or_create(
+                    client=c['client'],
+                    year=year,
+                    month=month,
+                    defaults={
+                        'bill_date':      bill_date,
+                        'due_date':       due_date,
+                        'status':         ClientBill.BillStatus.DRAFT,
+                        'quotation_data': quotation_data,
+                        'cost_sharing_data': c['client'].cost_sharing_data or [],
+                        'total_amount':   total,
+                    },
+                )
+                if created:
+                    created_count += 1
+                else:
+                    skipped_count += 1
+
+        return JsonResponse({
+            'success':  True,
+            'created':  created_count,
+            'skipped':  skipped_count,
+            'message':  f'批次產帳完成：新建 {created_count} 筆，跳過 {skipped_count} 筆（已存在）',
+        })
+
+
+class ClientBillListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = ClientBill
     template_name = 'bookkeeping/billing/list.html'
     context_object_name = 'bills'
     create_button_label = '新增帳單'
+    paginate_by = 25
+    search_fields = ['bill_no', 'client__name', 'client__tax_id']
+    filter_choices = {
+        'draft':   {'status': 'draft'},
+        'issued':  {'status': 'issued'},
+        'paid':    {'status': 'paid'},
+        'overdue': {'status': 'overdue'},
+        'void':    {'status': 'void'},
+    }
 
-    def get_queryset(self):
-        return super().get_queryset().filter(
+    def get_base_queryset(self):
+        return super().get_base_queryset().filter(
             is_deleted=False
         ).select_related('client')
 
+    def _base_qs_for_counts(self):
+        return ClientBill.objects.filter(is_deleted=False)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Supply custom_create_url because model_name 'clientbill' doesn't match 'bill_create' URL
         context['custom_create_url'] = reverse_lazy('bookkeeping:bill_create')
+        fc = context['filter_counts']
+        context['count_draft']   = fc['draft']
+        context['count_issued']  = fc['issued']
+        context['count_paid']    = fc['paid']
+        context['count_overdue'] = fc['overdue']
+        context['count_void']    = fc['void']
+        from django.urls import reverse
+        context['today']                  = date.today()
+        context['today_str']              = date.today().strftime('%Y-%m-%d')
+        context['due_date_default_str']   = (date.today() + timedelta(days=30)).strftime('%Y-%m-%d')
+        context['bill_batch_preview_url'] = reverse('bookkeeping:bill_batch_preview')
+        context['bill_batch_generate_url'] = reverse('bookkeeping:bill_batch_generate')
         return context
 
 
-class ClientBillCreateView(LoginRequiredMixin, CreateView):
+class ClientBillCreateView(BusinessRequiredMixin, CreateView):
     model = ClientBill
     form_class = ClientBillForm
     template_name = 'bookkeeping/billing/form.html'
@@ -164,7 +408,7 @@ class ClientBillCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class ClientBillUpdateView(LoginRequiredMixin, UpdateView):
+class ClientBillUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = ClientBill
     form_class = ClientBillForm
     template_name = 'bookkeeping/billing/form.html'
@@ -176,6 +420,17 @@ class ClientBillUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['status_choices'] = ClientBill.BillStatus.choices
+        context['line_requires_posting'] = True
+        if self.object and hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         if self.object and self.object.client_id:
             active_fee = (
                 self.object.client.service_fees
@@ -259,6 +514,32 @@ class ClientBillUpdateView(LoginRequiredMixin, UpdateView):
                         messages.success(self.request, f"成功拋轉應收帳款並產生傳票 ({voucher.voucher_no})！")
                     else:
                         messages.success(self.request, "成功拋轉應收帳款，但無收費項目可產生傳票。")
+
+                    # 4. 自動產生第三方支付連結（若金額 > 0 且尚未建立）
+                    if self.object.total_amount and self.object.total_amount > 0:
+                        try:
+                            import random
+                            from modules.payment.models import PaymentTransaction
+                            already_exists = PaymentTransaction.objects.filter(
+                                related_app='bookkeeping',
+                                related_model='ClientBill',
+                                related_id=str(self.object.pk),
+                            ).exists()
+                            if not already_exists:
+                                random_suffix = f"{random.randint(0, 9999):04d}"
+                                merchant_trade_no = f"{self.object.bill_no}{random_suffix}"[:20]
+                                PaymentTransaction.objects.create(
+                                    merchant_trade_no=merchant_trade_no,
+                                    total_amount=int(self.object.total_amount),
+                                    trade_desc=f"帳單 {self.object.bill_no}",
+                                    item_name=f"記帳服務費 ({self.object.client.name})"[:200],
+                                    payment_type=PaymentTransaction.PaymentType.ECPAY,
+                                    related_app='bookkeeping',
+                                    related_model='ClientBill',
+                                    related_id=str(self.object.pk),
+                                )
+                        except Exception:
+                            pass  # 支付連結產生失敗不影響主流程
                 except Exception as e:
                     import traceback
                     traceback.print_exc()
@@ -274,20 +555,13 @@ class ClientBillUpdateView(LoginRequiredMixin, UpdateView):
         return redirect(self.get_success_url())
 
 
-class ClientBillDeleteView(LoginRequiredMixin, DeleteView):
+class ClientBillDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = ClientBill
     template_name = 'bookkeeping/billing/confirm_delete.html'
     success_url = reverse_lazy('bookkeeping:bill_list')
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.is_deleted = True
-        self.object.save()
-        messages.success(self.request, '帳單已成功刪除。')
-        return HttpResponseRedirect(self.get_success_url())
 
-
-class GenerateBillPaymentLinkView(LoginRequiredMixin, View):
+class GenerateBillPaymentLinkView(BusinessRequiredMixin, View):
     """產生客戶帳單的第三方支付連結"""
 
     def post(self, request, pk):
@@ -318,7 +592,7 @@ class GenerateBillPaymentLinkView(LoginRequiredMixin, View):
         return JsonResponse({'url': pay_url})
 
 
-class ClientBillTransferView(LoginRequiredMixin, View):
+class ClientBillTransferView(BusinessRequiredMixin, View):
     """拋轉帳單至應收帳款"""
 
     def post(self, request, pk):

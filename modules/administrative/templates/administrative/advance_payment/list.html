@@ -10,11 +10,33 @@
     {
         "id": {{ obj.pk }},
         "category": "ALL",
-        "content": "{{ obj.advance_no|escapejs }} {{ obj.description|default:''|escapejs }}"
+        "content": "{{ obj.advance_no|escapejs }} {{ obj.description|default:''|escapejs }} {% if obj.applicant %}{{ obj.applicant.username|escapejs }}{% endif %}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
 {% endblock %}
+
+{% block filters %}
+<a href="?filter=unposted{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'unposted' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    未過帳
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.unposted|default:0 }})</span>
+</a>
+<a href="?filter=posted{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'posted' %}bg-green-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    已過帳
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.posted|default:0 }})</span>
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-slate-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.ALL|default:0 }})</span>
+</a>
+{% endblock %}
+
+{% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}
 
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="no">代墊單號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
@@ -29,7 +51,7 @@
 {% block table_rows %}
 {% for obj in advance_payments %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('ALL', '{{ obj.advance_no|escapejs }} {{ obj.description|default:''|escapejs }}')"
+    x-show="matches('ALL', '{{ obj.advance_no|escapejs }} {{ obj.description|default:''|escapejs }} {% if obj.applicant %}{{ obj.applicant.username|escapejs }}{% endif %}')"
     :class="selectedRows.includes({{ obj.pk }}) ? 'bg-blue-50/30' : ''"
     data-no="{{ obj.advance_no|escapejs }}"
     data-date="{{ obj.date|date:"Y-m-d" }}"
@@ -54,6 +76,13 @@
 {% empty %}
 <tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">目前沒有代墊款紀錄</td></tr>
 {% endfor %}
+{% endblock %}
+
+{% block extra_header_buttons %}
+<a href="{% url 'administrative:advance_payment_detail_list' %}"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-colors shadow-sm">
+    明細查詢
+</a>
 {% endblock %}
 
 {% block overlays %}

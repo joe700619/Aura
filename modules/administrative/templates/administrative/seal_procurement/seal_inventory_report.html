@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block content %}
-<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+<div class="px-4 py-8 w-full">
     <!-- Page header -->
     <div class="sm:flex sm:justify-between sm:items-center mb-8">
         <div class="mb-4 sm:mb-0">
@@ -148,6 +148,39 @@
             </table>
         </div>
     </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mt-4">
+        <span class="text-sm text-slate-500">
+            顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 家公司
+        </span>
+        <div class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}"
+               class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">上一頁</a>
+            {% else %}
+            <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">上一頁</span>
+            {% endif %}
+
+            {% for num in paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-1 bg-indigo-600 text-white rounded-md text-sm font-medium">{{ num }}</span>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}"
+                   class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}"
+               class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</a>
+            {% else %}
+            <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">下一頁</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>

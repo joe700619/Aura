@@ -1,12 +1,11 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.db import transaction
 from django.db.models import Sum
 from django.contrib import messages
 from django.utils import timezone
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
 from ..models import SealProcurement
 from ..forms import SealProcurementForm, SealProcurementItemFormSet
 
@@ -54,14 +53,22 @@ def _transfer_seal_to_advance_payment(procurement, user):
     return ap
 
 
-class SealProcurementListView(ListActionMixin, LoginRequiredMixin, ListView):
+class SealProcurementListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = SealProcurement
     template_name = 'administrative/seal_procurement/list.html'
     context_object_name = 'items'
     paginate_by = 25
+    search_fields = ['company_name', 'unified_business_no', 'main_contact']
+    filter_choices = {
+        'inventory':    {'transfer_to_inventory': True},
+        'no_inventory': {'transfer_to_inventory': False},
+    }
 
-    def get_queryset(self):
-        return SealProcurement.objects.filter(is_deleted=False)
+    def get_base_queryset(self):
+        return super().get_base_queryset()
+
+    def _base_qs_for_counts(self):
+        return self.model.objects.filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -69,7 +76,7 @@ class SealProcurementListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class SealProcurementCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class SealProcurementCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = SealProcurement
     form_class = SealProcurementForm
     template_name = 'administrative/seal_procurement/form.html'
@@ -110,7 +117,7 @@ class SealProcurementCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class SealProcurementUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class SealProcurementUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = SealProcurement
     form_class = SealProcurementForm
     template_name = 'administrative/seal_procurement/form.html'
@@ -161,7 +168,7 @@ class SealProcurementUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('administrative:seal_procurement_update', pk=self.object.pk)
 
 
-class SealProcurementDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class SealProcurementDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = SealProcurement
     template_name = 'administrative/seal_procurement/confirm_delete.html'
     success_url = reverse_lazy('administrative:seal_procurement_list')

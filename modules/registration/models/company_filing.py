@@ -1,8 +1,9 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from core.models import BaseModel
 
-class CompanyFiling(models.Model):
+class CompanyFiling(BaseModel):
     class FilingMethod(models.TextChoices):
         OFFICE = 'OFFICE', _('本所申報')
         SELF = 'SELF', _('自行申報')
@@ -29,9 +30,6 @@ class CompanyFiling(models.Model):
 
     # 4. Note
     note = models.TextField(_('備註'), blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('公司法22-1申報')

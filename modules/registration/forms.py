@@ -58,6 +58,11 @@ class ProgressForm(forms.ModelForm):
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name
+
     def clean_case_type(self):
         return self.cleaned_data['case_type']
 
@@ -112,7 +117,8 @@ class ClientAssessmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        pass
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name
 
 class CaseAssessmentForm(forms.ModelForm):
     class Meta:
@@ -219,6 +225,8 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
         self.fields['is_accepted'].required = False
         self.fields['is_completed'].required = False
         self.fields['needs_reporting'].required = False
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name
 
 class ShareholderForm(forms.ModelForm):
     class Meta:
@@ -315,7 +323,7 @@ class EquityTransactionForm(forms.ModelForm):
             'total_amount': forms.NumberInput(attrs={'id': 'id_total_amount', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50', 'step': '0.01', 'readonly': 'readonly'}),
 
             'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
-            'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
+            'is_completed': forms.Select(choices=[('False', '待處理'), ('True', '已完成')], attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
 
@@ -323,6 +331,8 @@ class EquityTransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['shareholder_register'].required = True
         self.fields['is_completed'].required = False
+        if self.instance and self.instance.pk and self.instance.shareholder_name:
+            self.fields['search_shareholder'].widget.button_label = self.instance.shareholder_name
 
 EquityTransactionFormSet = forms.inlineformset_factory(
     ShareholderRegister,
@@ -352,6 +362,11 @@ class ShareholderRegisterForm(forms.ModelForm):
             'service_status': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'completion_status': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name
 
 class CompanyFilingForm(forms.ModelForm):
     search_customer = forms.CharField(
@@ -435,7 +450,7 @@ class VATEntityChangeForm(forms.ModelForm):
         fields = [
             'unified_business_no', 'company_name', 'tax_id', 'registered_address',
             'assistant_name', 'email',
-            'case_types', 'registration_no', 'is_completed',
+            'case_types', 'registration_no', 'is_completed', 'closed_at',
             'note'
         ]
         widgets = {
@@ -447,6 +462,7 @@ class VATEntityChangeForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 text-sm', 'readonly': 'readonly'}),
             'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
+            'closed_at': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
 
@@ -454,3 +470,5 @@ class VATEntityChangeForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['is_completed'].required = False
         self.fields['registration_no'].required = False
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name

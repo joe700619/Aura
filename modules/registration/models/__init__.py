@@ -1,4 +1,5 @@
 from .progress import Progress
+from .payment_request import ProgressPaymentRequest
 from .client_assessment import ClientAssessment
 from .case_assessment import CaseAssessment
 from .shareholder import Shareholder

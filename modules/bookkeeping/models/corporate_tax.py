@@ -12,6 +12,9 @@ class CorporateTaxFiling(BaseModel):
         verbose_name=_('所屬年度')
     )
     
+    industry_code = models.CharField(_('行業代號'), max_length=20, blank=True, default='')
+    industry_name = models.CharField(_('行業名稱'), max_length=100, blank=True, default='')
+
     industry_profit_rate = models.DecimalField(_('擴大書審純益率 (%)'), max_digits=5, decimal_places=2, default=6.00)
     income_standard_rate = models.DecimalField(_('所得額標準 (%)'), max_digits=5, decimal_places=2, default=8.00)
     net_profit_rate = models.DecimalField(_('同業利潤標準淨利率 (%)'), max_digits=5, decimal_places=2, default=10.00)

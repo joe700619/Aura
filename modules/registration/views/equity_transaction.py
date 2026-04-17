@@ -1,42 +1,33 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
-from core.mixins import ListActionMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, FilterMixin, SearchMixin, SoftDeleteMixin, SortMixin
 from ..models import EquityTransaction
 from ..forms import EquityTransactionForm
 
-class EquityTransactionListView(LoginRequiredMixin, ListActionMixin, ListView):
+class EquityTransactionListView(SortMixin, FilterMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = EquityTransaction
     template_name = 'equity_transaction/list.html'
     context_object_name = 'transactions'
-    paginate_by = 20
+    paginate_by = 25
+    search_fields = ['shareholder_name', 'shareholder_register__company_name', 'shareholder_register__unified_business_no', 'registration_no']
+    filter_choices = {
+        'LTD':  {'organization_type': 'LTD'},
+        'CORP': {'organization_type': 'CORP'},
+    }
+    allowed_sort_fields = ['registration_no', 'transaction_date', 'shareholder_name', 'transaction_reason', 'stock_type', 'share_count', 'unit_price', 'total_amount', 'is_completed']
+    default_sort = ['-transaction_date']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        # Organization Type Filter
-        org_type = self.request.GET.get('org_type', 'ALL')
-        if org_type in ['LTD', 'CORP']:
-            queryset = queryset.filter(organization_type=org_type)
-        
-        # Search
-        q = self.request.GET.get('q')
-        if q:
-            queryset = queryset.filter(
-                Q(company_name__icontains=q) |
-                Q(unified_business_no__icontains=q) |
-                Q(shareholder_name__icontains=q)
-            )
-            
-        return queryset
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['current_org_type'] = self.request.GET.get('org_type', 'ALL')
+        context['count_all']  = context['filter_counts']['ALL']
+        context['count_ltd']  = context['filter_counts']['LTD']
+        context['count_corp'] = context['filter_counts']['CORP']
         return context
 
-class EquityTransactionCreateView(LoginRequiredMixin, CreateView):
+class EquityTransactionCreateView(BusinessRequiredMixin, CreateView):
     model = EquityTransaction
     form_class = EquityTransactionForm
     template_name = 'equity_transaction/form.html'
@@ -70,11 +61,11 @@ class EquityTransactionCreateView(LoginRequiredMixin, CreateView):
             form.instance.shareholder_register_id = register_id
         return super().form_valid(form)
 
-class EquityTransactionUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView):
+class EquityTransactionUpdateView(BusinessRequiredMixin, PrevNextMixin, UpdateView):
     model = EquityTransaction
     form_class = EquityTransactionForm
     template_name = 'equity_transaction/form.html'
-    
+
     def get_success_url(self):
         if self.object.shareholder_register:
             return reverse_lazy('registration:shareholder_register_update', kwargs={'pk': self.object.shareholder_register.pk})
@@ -90,9 +81,22 @@ class EquityTransactionUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView)
             context['cancel_url'] = reverse_lazy('registration:shareholder_register_update', kwargs={'pk': self.object.shareholder_register.pk})
         else:
             context['cancel_url'] = reverse_lazy('registration:equity_transaction_list')
+
+        # 編修紀錄
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
+
         return context
 
-class EquityTransactionDeleteView(LoginRequiredMixin, DeleteView):
+class EquityTransactionDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = EquityTransaction
     template_name = 'equity_transaction/confirm_delete.html'
     
@@ -101,11 +105,3 @@ class EquityTransactionDeleteView(LoginRequiredMixin, DeleteView):
             return reverse_lazy('registration:shareholder_register_update', kwargs={'pk': self.object.shareholder_register.pk})
         return reverse_lazy('registration:equity_transaction_list')
 
-from django.views.generic import TemplateView
-class TestRenderView(TemplateView):
-    template_name = 'test_render.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['test_variable'] = 'HELLO WORLD'
-        return context

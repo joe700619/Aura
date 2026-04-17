@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.http import HttpResponse
@@ -9,7 +9,7 @@ from ..models.receivable import ReceivableFeeApportion, Receivable
 from modules.hr.models.employee import Employee
 
 
-class FeeApportionReportView(LoginRequiredMixin, TemplateView):
+class FeeApportionReportView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/fee_apportion_report.html'
 
     def get_context_data(self, **kwargs):
@@ -44,11 +44,11 @@ class FeeApportionReportView(LoginRequiredMixin, TemplateView):
                 Q(task_description__icontains=q)
             )
 
-        # Filter by is_posted
+        # Filter by is_posted (is_posted lives on Collection, not Receivable)
         if is_posted == 'yes':
-            qs = qs.filter(receivable__is_posted=True)
+            qs = qs.filter(receivable__collections__is_posted=True).distinct()
         elif is_posted == 'no':
-            qs = qs.filter(receivable__is_posted=False)
+            qs = qs.exclude(receivable__collections__is_posted=True).distinct()
 
         # Summary by employee
         summary_qs = qs.values(
@@ -92,7 +92,7 @@ class FeeApportionReportView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class FeeApportionExportView(LoginRequiredMixin, View):
+class FeeApportionExportView(BusinessRequiredMixin, View):
     def get(self, request):
         import openpyxl
         from openpyxl.styles import Font, Alignment, Border, Side, PatternFill

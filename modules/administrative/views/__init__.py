@@ -32,6 +32,7 @@ from .bulletin import (
 from .advance_payment import (
     AdvancePaymentListView, AdvancePaymentCreateView,
     AdvancePaymentUpdateView, AdvancePaymentDeleteView,
+    AdvancePaymentDetailListView,
     advance_payment_submit_approval,
     advance_payment_approve,
     advance_payment_reject,
@@ -80,6 +81,7 @@ __all__ = [
     'AdvancePaymentCreateView',
     'AdvancePaymentUpdateView',
     'AdvancePaymentDeleteView',
+    'AdvancePaymentDetailListView',
     'advance_payment_submit_approval',
     'advance_payment_approve',
     'advance_payment_reject',

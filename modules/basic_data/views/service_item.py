@@ -1,19 +1,26 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from core.mixins import ListActionMixin, CopyMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, CopyMixin, PrevNextMixin, FilterMixin
 from ..models import ServiceItem
 from ..forms import ServiceItemForm
 
-class ServiceItemListView(ListActionMixin, LoginRequiredMixin, ListView):
+class ServiceItemListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = ServiceItem
     template_name = 'service_items/list.html'
     context_object_name = 'service_items'
     paginate_by = 20
     create_button_label = '新增服務項目'
+    search_fields = ['service_id', 'name', 'remark']
+    filter_choices = {
+        'visa':           {'department': ServiceItem.Department.VISA},
+        'bookkeeping':    {'department': ServiceItem.Department.BOOKKEEPING},
+        'registration':   {'department': ServiceItem.Department.REGISTRATION},
+        'advance':        {'department': ServiceItem.Department.ADVANCE_PAYMENT},
+        'pre_collection': {'department': ServiceItem.Department.PRE_COLLECTION},
+    }
 
-class ServiceItemCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class ServiceItemCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = ServiceItem
     form_class = ServiceItemForm
     template_name = 'service_items/form.html'
@@ -22,7 +29,7 @@ class ServiceItemCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         messages.success(self.request, f"服務項目「{self.object.name}」已新增成功！")
         return reverse_lazy('basic_data:service_item_update', kwargs={'pk': self.object.pk})
 
-class ServiceItemUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class ServiceItemUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = ServiceItem
     form_class = ServiceItemForm
     template_name = 'service_items/form.html'
@@ -46,7 +53,7 @@ class ServiceItemUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             context['history'] = history_list
         return context
 
-class ServiceItemDeleteView(LoginRequiredMixin, DeleteView):
+class ServiceItemDeleteView(BusinessRequiredMixin, DeleteView):
     model = ServiceItem
     success_url = reverse_lazy('basic_data:service_item_list')
     template_name = 'service_items/confirm_delete.html'

@@ -5,67 +5,59 @@
 {% block header_title %}所得稅申報清單{% endblock %}
 {% block header_description %}管理與查看所得稅申報客戶{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for client in clients %}
-    {
-        "id": {{ client.pk }},
-        "category": "{{ client.income_tax_setting.filing_method|escapejs }}",
-        "content": "{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
+{% block actions %}
+<a href="{% url 'bookkeeping:income_tax_progress' %}"
+   class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+    申報進度表
+</a>
 {% endblock %}
 
 {% block filters %}
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    全部
-</button>
-<button @click="filter = 'book_review'"
-    :class="filter === 'book_review' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    書審
-</button>
-<button @click="filter = 'standard'"
-    :class="filter === 'standard' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    所標
-</button>
-<button @click="filter = 'industry_profit'"
-    :class="filter === 'industry_profit' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    同業利潤
-</button>
-<button @click="filter = 'cpa_certified'"
-    :class="filter === 'cpa_certified' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    簽證
-</button>
-<button @click="filter = 'audit'"
-    :class="filter === 'audit' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    查帳
-</button>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?filter=book_review{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'book_review' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    書審 ({{ count_book_review }})
+</a>
+<a href="?filter=standard{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'standard' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    所標 ({{ count_standard }})
+</a>
+<a href="?filter=industry_profit{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'industry_profit' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    同業利潤 ({{ count_industry_profit }})
+</a>
+<a href="?filter=cpa_certified{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'cpa_certified' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    簽證 ({{ count_cpa_certified }})
+</a>
+<a href="?filter=audit{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'audit' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    查帳 ({{ count_audit }})
+</a>
 {% endblock %}
 
 {% block table_headers %}
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg">客戶名稱</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">統一編號</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">申報方式</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-center">記帳助理</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="filingmethod">申報方式 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
     <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-32">操作</th>
 {% endblock %}
 
 {% block table_rows %}
     {% for client in clients %}
     <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"
-        x-show="matches('{{ client.income_tax_setting.filing_method|escapejs }}', '{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }}')"
-        :class="selectedRows.includes({{ client.pk }}) ? 'bg-blue-50/30' : ''">
+        :class="selectedRows.includes({{ client.pk }}) ? 'bg-blue-50/30' : ''"
+        data-name="{{ client.name|escapejs }}"
+        data-taxid="{{ client.tax_id|default:''|escapejs }}"
+        data-filingmethod="{{ client.income_tax_setting.filing_method|escapejs }}"
+        data-assistant="{{ client.bookkeeping_assistant.name|default:''|escapejs }}">
         {% include "components/row_checkbox.html" with value=client.pk %}
         <td class="px-4 py-3">
             <div class="font-medium text-slate-800">{{ client.name }}</div>
@@ -115,4 +107,16 @@
         </td>
     </tr>
     {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for client in clients %}
+    {
+        "id": {{ client.pk }},
+        "category": "ALL",
+        "content": "{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
 {% endblock %}

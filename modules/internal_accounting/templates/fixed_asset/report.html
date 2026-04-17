@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block page_title %}固定資產期末明細表{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 pb-8">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">固定資產期末明細表</h2>
+            <p class="text-sm text-slate-500 mt-1">依指定日期查詢各資產的帳面成本、累計折舊與帳面淨值。</p>
+        </div>
+        <a href="{% url 'internal_accounting:fixed_asset_list' %}"
+           class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">
+            返回財產目錄
+        </a>
+    </div>
+
+    <!-- Query Form -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-5 mb-6">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">查詢日期</label>
+                <input type="date" name="date" value="{{ query_date|date:'Y-m-d' }}"
+                       max="{{ today|date:'Y-m-d' }}"
+                       class="px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                       required>
+            </div>
+            <button type="submit"
+                    class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-700 transition-colors">
+                查詢
+            </button>
+            {% if query_date %}
+            <a href="?date={{ query_date|date:'Y-m-d' }}&print=1" target="_blank"
+               class="px-5 py-2 bg-slate-600 text-white text-sm font-bold rounded-md hover:bg-slate-700 transition-colors">
+                列印 / 匯出
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Results -->
+    {% if query_date and rows %}
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+
+        <!-- Report Title Bar -->
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+            <h3 class="text-sm font-bold text-slate-700">
+                截至 <span class="text-blue-700">{{ query_date|date:"Y 年 m 月 d 日" }}</span> 之固定資產明細
+                <span class="ml-2 text-xs text-slate-500 font-normal">共 {{ rows.items|length }} 筆</span>
+            </h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">財產編號 / 名稱</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">取得日期</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">取得成本</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">殘值</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">累計折舊</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">帳面淨值</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for row in rows.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3">
+                            <a href="{% url 'internal_accounting:fixed_asset_update' row.asset.pk %}"
+                               class="text-indigo-600 hover:text-indigo-800 font-bold">{{ row.asset.name }}</a>
+                            <div class="text-xs text-slate-400 font-mono">{{ row.asset.asset_no }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap">
+                            {{ row.asset.purchase_date|date:"Y-m-d" }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono text-slate-800 whitespace-nowrap">
+                            {{ row.asset.cost|floatformat:0|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono text-slate-500 whitespace-nowrap">
+                            {{ row.asset.salvage_value|floatformat:0|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono text-amber-700 whitespace-nowrap">
+                            {{ row.accumulated_as_of|floatformat:0|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono font-bold whitespace-nowrap
+                            {% if row.is_fully_depreciated %}text-slate-400{% else %}text-blue-700{% endif %}">
+                            {{ row.net_value_as_of|floatformat:0|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            {% if row.asset.status == 'SCRAPPED' %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">已報廢</span>
+                            {% elif row.asset.status == 'SOLD' %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">已出售</span>
+                            {% elif row.is_fully_depreciated %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">折舊完畢</span>
+                            {% else %}
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">使用中</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <!-- Totals -->
+                <tfoot class="bg-slate-100 font-bold border-t-2 border-slate-300">
+                    <tr>
+                        <td colspan="2" class="px-4 py-3 text-right text-sm text-slate-700">合計</td>
+                        <td class="px-4 py-3 text-right font-mono text-slate-800 whitespace-nowrap">{{ rows.total_cost|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3"></td>
+                        <td class="px-4 py-3 text-right font-mono text-amber-700 whitespace-nowrap">{{ rows.total_accum|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3 text-right font-mono text-blue-700 whitespace-nowrap">{{ rows.total_net|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    {% elif query_date and not rows %}
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-12 text-center">
+        <p class="text-slate-500 text-sm">{{ query_date|date:"Y-m-d" }} 以前尚無固定資產紀錄。</p>
+    </div>
+
+    {% elif not query_date %}
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-12 text-center">
+        <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-slate-500 font-medium text-sm">請選擇查詢日期後按「查詢」</p>
+        <p class="text-xs text-slate-400 mt-1">系統將依實際已過帳的折舊傳票計算當日累計折舊。</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

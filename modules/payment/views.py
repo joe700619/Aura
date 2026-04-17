@@ -33,14 +33,37 @@ class ECPayCallbackView(View):
 
             # 3. Business Logic: Update Related Model
             if transaction.rtn_code == 1: # Success
-                if transaction.related_app == 'registration' and transaction.related_model == 'Progress':
+                if transaction.related_app == 'registration' and transaction.related_model == 'ProgressPaymentRequest':
                     try:
-                        Progress = apps.get_model('registration', 'Progress')
-                        progress = Progress.objects.get(pk=transaction.related_id)
-                        progress.payment_status = 'paid'
-                        progress.save()
+                        from modules.registration.models.payment_request import ProgressPaymentRequest
+                        from modules.internal_accounting.models import PreCollection
+                        from django.contrib.contenttypes.models import ContentType
+                        import datetime
+
+                        pr = ProgressPaymentRequest.objects.get(pk=transaction.related_id)
+                        pr.status = ProgressPaymentRequest.Status.PAID
+                        pr.save(update_fields=['status'])
+
+                        # 自動建立預收款項（防止重複）
+                        already = PreCollection.objects.filter(
+                            transaction_no=transaction.merchant_trade_no
+                        ).exists()
+                        if not already:
+                            progress = pr.progress
+                            ct = ContentType.objects.get_for_model(progress.__class__)
+                            PreCollection.objects.create(
+                                date=datetime.date.today(),
+                                company_name=progress.company_name,
+                                unified_business_no=progress.unified_business_no or '',
+                                amount=transaction.total_amount,
+                                method='ecpay',
+                                transaction_no=transaction.merchant_trade_no,
+                                remarks=f"綠界自動收款 {pr.description or ''} 登記單號:{progress.registration_no}",
+                                source_content_type=ct,
+                                source_id=progress.pk,
+                            )
                     except Exception as e:
-                        logger.error(f"Error updating Progress: {e}")
+                        logger.error(f"Error updating ProgressPaymentRequest: {e}")
 
                 if transaction.related_app == 'bookkeeping' and transaction.related_model == 'ClientBill':
                     try:
@@ -50,6 +73,39 @@ class ECPayCallbackView(View):
                         bill.save(update_fields=['status'])
                     except Exception as e:
                         logger.error(f"Error updating ClientBill: {e}")
+
+                if transaction.related_app == 'internal_accounting' and transaction.related_model == 'Receivable':
+                    try:
+                        from modules.internal_accounting.models import Receivable, Collection
+                        from modules.internal_accounting.services import AccountingService
+                        import datetime
+
+                        receivable = Receivable.objects.get(pk=transaction.related_id)
+
+                        # 防止重複建立（同一交易號已有綠界收款單）
+                        already = Collection.objects.filter(
+                            receivable=receivable,
+                            remarks__contains=transaction.merchant_trade_no
+                        ).exists()
+                        if not already:
+                            collection = Collection.objects.create(
+                                receivable=receivable,
+                                date=datetime.date.today(),
+                                method='ecpay',
+                                amount=transaction.total_amount,
+                                tax=0,
+                                fee=0,
+                                allowance=0,
+                                remarks=f"綠界自動收款 交易編號:{transaction.merchant_trade_no}",
+                                auto_created=True,
+                            )
+                            # 自動過帳（無使用者，系統操作）
+                            try:
+                                AccountingService.post_collection(collection, user=None)
+                            except Exception as post_err:
+                                logger.error(f"ECPay auto post_collection failed: {post_err}")
+                    except Exception as e:
+                        logger.error(f"Error creating Collection from ECPay: {e}")
 
             return HttpResponse('1|OK')
 

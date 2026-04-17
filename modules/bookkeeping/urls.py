@@ -1,5 +1,6 @@
 from django.urls import path
 from modules.bookkeeping.views import VATListView, IncomeTaxListView, IndustryTaxRateListView
+from modules.bookkeeping.views.income_tax import IncomeTaxProgressView
 from modules.bookkeeping.views.bookkeeping_client import (
     BookkeepingClientListView,
     BookkeepingClientCreateView,
@@ -30,15 +31,19 @@ from modules.bookkeeping.views.income_tax_detail import (
     AddIncomeTaxYearView,
     SaveIncomeTaxSettingsView,
 )
-from modules.bookkeeping.views.provisional_tax import ProvisionalTaxDetailView
+from modules.bookkeeping.views.provisional_tax import ProvisionalTaxDetailView, SendProvisionalTaxNotificationView
 from modules.bookkeeping.views.dividend_tax import DividendTaxDetailView, ImportShareholdersView
-from modules.bookkeeping.views.withholding_tax import WithholdingTaxDetailView
+from modules.bookkeeping.views.withholding_tax import WithholdingTaxDetailView, SendWithholdingTaxNotificationView
 from modules.bookkeeping.views.income_tax_filing import IncomeTaxFilingDetailView
+from modules.bookkeeping.views.income_tax_media import (
+    IncomeTaxMediaDetailView, IncomeTaxMediaUploadView, IncomeTaxMediaSlideoverAPI,
+)
 from modules.bookkeeping.views.bill_views import (
     ClientBillListView, ClientBillCreateView,
     ClientBillUpdateView, ClientBillDeleteView, ClientBillTransferView,
     FetchUnbilledAdvancePaymentsView, BookkeepingClientSearchView,
     GenerateBillPaymentLinkView,
+    BillBatchPreviewView, BillBatchGenerateView,
 )
 from modules.bookkeeping.views.corporate_tax import CorporateTaxDraftAPIView, ImportCorporateTaxExcelAPIView
 from modules.bookkeeping.views.api_rates import FetchIndustryRatesApiView
@@ -85,17 +90,26 @@ urlpatterns = [
 
     # 所得稅申報
     path('income-tax/', IncomeTaxListView.as_view(), name='income_tax_list'),
+    path('income-tax/progress/', IncomeTaxProgressView.as_view(), name='income_tax_progress'),
     path('income-tax/<int:pk>/', IncomeTaxClientDetailView.as_view(), name='income_tax_detail'),
     path('income-tax/<int:pk>/add-year/', AddIncomeTaxYearView.as_view(), name='income_tax_add_year'),
     path('income-tax/<int:pk>/save-settings/', SaveIncomeTaxSettingsView.as_view(), name='income_tax_save_settings'),
     path('income-tax/<int:client_pk>/provisional/<int:pk>/', ProvisionalTaxDetailView.as_view(), name='provisional_tax_detail'),
+    path('income-tax/<int:client_pk>/provisional/<int:pk>/send-notification/', SendProvisionalTaxNotificationView.as_view(), name='provisional_tax_send_notification'),
     path('income-tax/<int:client_pk>/dividend/<int:pk>/', DividendTaxDetailView.as_view(), name='dividend_tax_detail'),
     path('income-tax/<int:client_pk>/dividend/<int:pk>/import-shareholders/', ImportShareholdersView.as_view(), name='import_shareholders'),
     path('income-tax/<int:client_pk>/withholding/<int:pk>/', WithholdingTaxDetailView.as_view(), name='withholding_tax_detail'),
+    path('income-tax/<int:client_pk>/withholding/<int:pk>/send-notification/', SendWithholdingTaxNotificationView.as_view(), name='withholding_tax_send_notification'),
     path('income-tax/<int:client_pk>/filing/<int:pk>/', IncomeTaxFilingDetailView.as_view(), name='income_tax_filing_detail'),
+
+    # 申報書媒體檔
+    path('income-tax/<int:client_pk>/media/<int:pk>/', IncomeTaxMediaDetailView.as_view(), name='income_tax_media_detail'),
+    path('income-tax/<int:client_pk>/media/<int:pk>/upload/', IncomeTaxMediaUploadView.as_view(), name='income_tax_media_upload'),
 
     # 客戶帳單系統
     path('bills/', ClientBillListView.as_view(), name='bill_list'),
+    path('bills/batch-preview/', BillBatchPreviewView.as_view(), name='bill_batch_preview'),
+    path('bills/batch-generate/', BillBatchGenerateView.as_view(), name='bill_batch_generate'),
     path('bills/add/', ClientBillCreateView.as_view(), name='bill_create'),
     path('bills/<int:pk>/edit/', ClientBillUpdateView.as_view(), name='bill_update'),
     path('bills/<int:pk>/delete/', ClientBillDeleteView.as_view(), name='bill_delete'),
@@ -108,6 +122,7 @@ urlpatterns = [
     path('api/corporate-tax/<int:year_id>/', CorporateTaxDraftAPIView.as_view(), name='api_corporate_tax_draft'),
     path('api/corporate-tax/<int:year_id>/import/', ImportCorporateTaxExcelAPIView.as_view(), name='api_corporate_tax_import'),
     path('api/industry-rates/fetch/', FetchIndustryRatesApiView.as_view(), name='api_industry_rates_fetch'),
+    path('api/income-tax/<int:client_pk>/media-data/', IncomeTaxMediaSlideoverAPI.as_view(), name='api_income_tax_media_data'),
 
     # Industry Tax Rates (Master Data)
     path('industry-tax-rates/', IndustryTaxRateListView.as_view(), name='industry_tax_rate_list'),

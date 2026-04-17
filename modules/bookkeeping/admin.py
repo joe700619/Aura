@@ -2,14 +2,15 @@ from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
 from .models import (
-    BookkeepingClient, 
-    GroupInvoice, 
-    ConvenienceBagLog, 
+    BookkeepingClient,
+    GroupInvoice,
+    ConvenienceBagLog,
     AccountingBookLog,
     TaxFilingSetting,
     TaxFilingYear,
     TaxFilingPeriod,
-    IndustryTaxRate
+    IndustryTaxRate,
+    ClientBill,
 )
 
 @admin.register(BookkeepingClient)
@@ -61,6 +62,22 @@ class TaxFilingPeriodAdmin(admin.ModelAdmin):
     list_display = ('year_record', 'period_start_month', 'sales_amount', 'payable_tax', 'is_filed', 'filing_date')
     list_filter = ('is_filed', 'period_start_month')
     search_fields = ('year_record__client__name',)
+
+@admin.register(ClientBill)
+class ClientBillAdmin(admin.ModelAdmin):
+    list_display = ('bill_no', 'client', 'year', 'month', 'bill_date', 'total_amount', 'status', 'is_ar_transferred', 'is_deleted')
+    list_filter = ('is_deleted', 'status', 'is_ar_transferred', 'year')
+    search_fields = ('bill_no', 'client__name', 'client__tax_id')
+    actions = ['restore_bills']
+
+    def get_queryset(self, _request):
+        return self.model._default_manager.all()
+
+    @admin.action(description='還原已刪除的帳單')
+    def restore_bills(self, request, queryset):
+        updated = queryset.filter(is_deleted=True).update(is_deleted=False)
+        self.message_user(request, f'已還原 {updated} 筆帳單。')
+
 
 @admin.register(IndustryTaxRate)
 class IndustryTaxRateAdmin(ImportExportModelAdmin):

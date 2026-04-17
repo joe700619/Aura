@@ -2,17 +2,17 @@
     open: false, 
     selectedLabel: '{{ label|default:'請選擇...'|escapejs }}', 
     selectedValue: '{{ value|default:''|escapejs }}',
-    selectItem(value, label, extraData) { 
-        this.selectedValue = value; 
-        this.selectedLabel = label; 
-        this.open = false; 
-        
-        const input = document.getElementById('{{ name }}_input'); 
-        if(input) { 
+    selectItem(value, label, extraData) {
+        this.selectedValue = value;
+        this.selectedLabel = label;
+        this.open = false;
+
+        const input = document.getElementById('{{ name }}_input');
+        if(input) {
             input.value = value;
-            input.dispatchEvent(new Event('change')); 
-        } 
-        
+            input.dispatchEvent(new Event('change'));
+        }
+
         if (extraData) {
             const fieldName = '{{ name }}';
             const lastDash = fieldName.lastIndexOf('-');
@@ -21,10 +21,15 @@
                 const targetField = document.querySelector(`[name='${prefix}${key}']`);
                 if (targetField) {
                     targetField.value = val;
+                    targetField.dispatchEvent(new Event('input'));
                 }
             }
+            // 讓使用 x-ref 的 form 也能接收到選取結果
+            window.dispatchEvent(new CustomEvent('modal-select-item', {
+                detail: { targetId: fieldName, item: extraData }
+            }));
         }
-    } 
+    }
 }" class="relative">
 
     <!-- Hidden Input for Form Submission -->

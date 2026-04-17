@@ -1,40 +1,58 @@
 {% extends 'components/list_view.html' %}
 {% load humanize %}
 
+{% block page_title %}應收帳款管理{% endblock %}
+
+{% block extra_init %}
+this.filter = 'ALL';
+{% endblock %}
+
 {% block filters %}
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">全部</button>
-<button @click="filter = '尚未收款'"
-    :class="filter === '尚未收款' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">尚未收款</button>
-<button @click="filter = '已收款'"
-    :class="filter === '已收款' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已收款</button>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   全部 ({{ count_all }})</a>
+<a href="?filter=未收款{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == '未收款' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   未收款 ({{ count_unpaid }})</a>
+<a href="?filter=部分收款{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == '部分收款' %}bg-amber-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   部分收款 ({{ count_partial }})</a>
+<a href="?filter=已結清{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == '已結清' %}bg-green-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   已結清 ({{ count_settled }})</a>
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">編號</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">統一編號</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">記帳助理</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="no">編號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="date">立帳日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="company">公司名稱 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">聯絡人</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">應收總額</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">未收餘額</th>
-<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">帳齡 (天)</th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="total">應收總額 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="outstanding">未收餘額 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="aging">帳齡 (天) <span class="sort-icon text-slate-400 ml-1">↕</span></th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
 {% block table_rows %}
 {% for item in receivables %}
-<tr class="hover:bg-slate-50 transition duration-150" 
-    x-show="matches('{% if item.outstanding_balance > 0 %}尚未收款{% else %}已收款{% endif %}', '{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs|default:"" }}')"
-    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/50' : ''">
+<tr class="hover:bg-slate-50 transition duration-150"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/50' : ''"
+    data-no="{{ item.receivable_no|default:'' }}"
+    data-date="{{ item.date|date:'Y-m-d'|default:'' }}"
+    data-company="{{ item.company_name|escapejs }}"
+    data-taxid="{{ item.unified_business_no|default:''|escapejs }}"
+    data-assistant="{{ item.assistant|default:''|escapejs }}"
+    data-total="{{ item.total_amount }}"
+    data-outstanding="{{ item.outstanding_balance }}"
+    data-aging="{{ item.aging }}">
     {% include "components/row_checkbox.html" with value=item.pk %}
     <td class="px-4 py-4">
         <div class="text-sm font-medium text-slate-700">{{ item.receivable_no|default:"-" }}</div>
     </td>
+    <td class="px-4 py-4 text-sm text-slate-600">{{ item.date|date:"Y-m-d"|default:"-" }}</td>
     <td class="px-4 py-4">
         <div class="font-bold text-slate-900">{{ item.company_name }}</div>
     </td>
@@ -47,10 +65,12 @@
     </td>
     <td class="px-4 py-4 text-center text-slate-600">{{ item.aging|intcomma }}</td>
     <td class="px-4 py-4 text-center">
-        {% if item.is_posted %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">已過帳</span>
+        {% if item.status == '已結清' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">已結清</span>
+        {% elif item.status == '部分收款' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">部分收款</span>
         {% else %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">待過帳</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">未收款</span>
         {% endif %}
     </td>
     {% url 'internal_accounting:receivable_edit' item.pk as update_url %}
@@ -59,7 +79,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="10" class="px-6 py-12 text-center text-slate-500">尚無應收帳款紀錄</td>
+    <td colspan="11" class="px-6 py-12 text-center text-slate-500">尚無應收帳款紀錄</td>
 </tr>
 {% endfor %}
 {% endblock %}
@@ -69,16 +89,15 @@
     {% for item in receivables %}
     {
         "id": {{ item.pk }},
-        "category": "{% if item.outstanding_balance > 0 %}尚未收款{% else %}已收款{% endif %}",
-        "content": "{{ item.company_name|escapejs }} {{ item.unified_business_no|default:''|escapejs }}"
+        "category": "{{ item.status|escapejs }}",
+        "content": "{{ item.receivable_no|default:''|escapejs }} {{ item.company_name|escapejs }} {{ item.unified_business_no|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
 {% endblock %}
 
-{% block extra_init %}
-this.model_app_label = 'internal_accounting';
-this.model_name = 'receivable';
-this.filter = '尚未收款';
-this.toggleAll(); // Force selection logic to obey default filter initially if needed, though init is usually just state.
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
 {% endblock %}

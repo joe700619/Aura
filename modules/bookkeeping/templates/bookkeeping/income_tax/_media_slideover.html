@@ -1,0 +1,303 @@
+{% comment %}
+══════════════════════════════════════════════════════════════
+_media_slideover.html — 可複用的申報書媒體檔 Slide-over Panel
+
+使用方式：在任何 detail 頁面中 include 此檔案
+需要在父頁面的 x-data 中加入 mediaSlideoverMixin()
+
+必要 context 變數：
+  - slideover_api_url: API endpoint URL
+  - slideover_current_year: 當前年度 (int)
+  - slideover_prior_year: 前一年度 (int)
+══════════════════════════════════════════════════════════════
+{% endcomment %}
+
+{# 此按鈕需放在父頁面的 toolbar 中 #}
+
+{# ── Slide-over Panel ── #}
+<div x-show="slideoverOpen" x-cloak
+     class="fixed inset-0 z-50 overflow-hidden"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0">
+
+    {# ── 背景遮罩 ── #}
+    <div class="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" @click="slideoverOpen = false"></div>
+
+    {# ── 右側 Panel ── #}
+    <div class="absolute inset-y-0 right-0 flex max-w-full pl-10"
+         x-show="slideoverOpen"
+         x-transition:enter="transform transition ease-out duration-300"
+         x-transition:enter-start="translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transform transition ease-in duration-200"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="translate-x-full">
+
+        <div class="w-screen max-w-md">
+            <div class="h-full flex flex-col bg-white shadow-2xl overflow-y-auto">
+
+                {# ── Header ── #}
+                <div class="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            申報書媒體檔資料
+                        </h3>
+                        <button type="button" @click="slideoverOpen = false"
+                            class="rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {# ── Tab: 去年/本年 ── #}
+                    <div class="flex mt-3 -mb-px">
+                        <button type="button" @click="slideoverTab = 'prior'; fetchMediaData(slideoverPriorYear)"
+                            :class="slideoverTab === 'prior'
+                                ? 'border-sky-600 text-sky-700 bg-sky-50'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                            class="flex-1 px-3 py-2 border-b-2 text-xs font-semibold text-center transition-colors rounded-t-md">
+                            <span x-text="slideoverPriorYear + ' 年度（去年）'"></span>
+                        </button>
+                        <button type="button" @click="slideoverTab = 'current'; fetchMediaData(slideoverCurrentYear)"
+                            :class="slideoverTab === 'current'
+                                ? 'border-sky-600 text-sky-700 bg-sky-50'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                            class="flex-1 px-3 py-2 border-b-2 text-xs font-semibold text-center transition-colors rounded-t-md">
+                            <span x-text="slideoverCurrentYear + ' 年度（本年）'"></span>
+                        </button>
+                    </div>
+                </div>
+
+                {# ── Content ── #}
+                <div class="flex-1 px-4 py-4">
+
+                    {# Loading #}
+                    <div x-show="slideoverLoading" class="text-center py-12">
+                        <svg class="animate-spin h-6 w-6 mx-auto text-sky-500 mb-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-xs text-slate-400">載入中...</p>
+                    </div>
+
+                    {# 無資料 #}
+                    <div x-show="!slideoverLoading && slideoverData && !slideoverData.found" class="text-center py-12">
+                        <svg class="h-10 w-10 mx-auto text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-sm font-medium text-slate-500" x-text="slideoverData.message || '尚無資料'"></p>
+                    </div>
+
+                    {# 有資料但未解析 #}
+                    <div x-show="!slideoverLoading && slideoverData && slideoverData.found && !slideoverData.is_parsed" class="text-center py-12">
+                        <svg class="h-10 w-10 mx-auto text-amber-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p class="text-sm font-medium text-slate-500">尚未上傳 001 檔案</p>
+                        <a x-show="slideoverData.media_detail_url" :href="slideoverData.media_detail_url"
+                           class="inline-flex items-center gap-1 mt-3 px-3 py-1.5 text-xs font-medium rounded-md bg-sky-600 text-white hover:bg-sky-700 transition-colors">
+                            前往上傳
+                        </a>
+                    </div>
+
+                    {# 解析完成的資料 #}
+                    <div x-show="!slideoverLoading && slideoverData && slideoverData.found && slideoverData.is_parsed" class="space-y-4">
+
+                        {# 解析時間 #}
+                        <div class="flex items-center gap-2 text-xs text-slate-400">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>解析時間：</span>
+                            <span x-text="slideoverData.parsed_at ? new Date(slideoverData.parsed_at).toLocaleString('zh-TW') : '-'"></span>
+                        </div>
+
+                        {# 基本資訊 #}
+                        <div class="rounded-lg border border-slate-200 overflow-hidden">
+                            <div class="bg-slate-50 px-3 py-2 border-b border-slate-200">
+                                <h5 class="text-xs font-bold text-slate-600">基本資訊</h5>
+                            </div>
+                            <div class="p-3 space-y-1.5 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">行業代號</span>
+                                    <span class="font-medium text-xs" x-text="slideoverData.fields.industry_code || '-'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">行業名稱</span>
+                                    <span class="font-medium text-xs" x-text="slideoverData.fields.industry_name || '-'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# 損益資料 #}
+                        <div class="rounded-lg border border-slate-200 overflow-hidden">
+                            <div class="bg-slate-50 px-3 py-2 border-b border-slate-200">
+                                <h5 class="text-xs font-bold text-slate-600">損益資料</h5>
+                            </div>
+                            <div class="p-3 space-y-1.5 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">營業收入淨額</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.gross_revenue || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">營業成本</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.cost_of_goods || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                    <span class="text-slate-500 text-xs font-semibold">營業毛利</span>
+                                    <span class="font-bold text-xs" x-text="(slideoverData.fields.gross_profit || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">營業費用</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.operating_expenses || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                    <span class="text-slate-500 text-xs font-semibold">營業淨利</span>
+                                    <span class="font-bold text-xs text-blue-700" x-text="(slideoverData.fields.net_operating_income || 0).toLocaleString()"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# 營業外 & 稅前 #}
+                        <div class="rounded-lg border border-slate-200 overflow-hidden">
+                            <div class="bg-slate-50 px-3 py-2 border-b border-slate-200">
+                                <h5 class="text-xs font-bold text-slate-600">營業外損益 & 稅前</h5>
+                            </div>
+                            <div class="p-3 space-y-1.5 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">營業外收入</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.non_operating_income || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">營業外支出</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.non_operating_expense || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                    <span class="text-slate-500 text-xs font-semibold">稅前淨利</span>
+                                    <span class="font-bold text-xs text-emerald-700" x-text="(slideoverData.fields.pre_tax_income || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs font-semibold">課稅所得額</span>
+                                    <span class="font-bold text-xs" x-text="(slideoverData.fields.taxable_income || 0).toLocaleString()"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# 稅額計算 #}
+                        <div class="rounded-lg border border-sky-200 overflow-hidden">
+                            <div class="bg-sky-50 px-3 py-2 border-b border-sky-200">
+                                <h5 class="text-xs font-bold text-sky-700">稅額計算</h5>
+                            </div>
+                            <div class="p-3 space-y-1.5 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs font-semibold">應納稅額</span>
+                                    <span class="font-bold text-xs text-rose-600" x-text="(slideoverData.fields.annual_tax || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">暫繳稅額</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.provisional_paid || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">扣繳稅額</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.withholding_paid || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between border-t border-sky-100 pt-1.5">
+                                    <span class="text-slate-500 text-xs font-semibold">應自行繳納</span>
+                                    <span class="font-bold text-xs text-rose-700" x-text="(slideoverData.fields.self_pay || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between border-t border-sky-100 pt-1.5">
+                                    <span class="text-slate-500 text-xs">未分配盈餘</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.undistributed_earnings || 0).toLocaleString()"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500 text-xs">未分配盈餘加徵</span>
+                                    <span class="font-medium text-xs" x-text="(slideoverData.fields.undistributed_surtax || 0).toLocaleString()"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# 完整頁面連結 #}
+                        <div class="pt-2">
+                            <a x-show="slideoverData.media_detail_url" :href="slideoverData.media_detail_url"
+                               class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-lg text-white bg-sky-600 hover:bg-sky-700 focus:outline-none shadow-sm transition-colors">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                前往完整頁面
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * Slide-over panel mixin for Alpine.js
+ * 在父頁面的 x-data function 中 spread 此 mixin:
+ * 
+ * function filingPage() {
+ *     return {
+ *         ...mediaSlideoverMixin(),
+ *         // ... 其他 data
+ *     }
+ * }
+ */
+function mediaSlideoverMixin() {
+    return {
+        slideoverOpen: false,
+        slideoverTab: 'prior',
+        slideoverLoading: false,
+        slideoverData: null,
+        slideoverApiUrl: '',
+        slideoverCurrentYear: 0,
+        slideoverPriorYear: 0,
+
+        initSlideover: function(apiUrl, currentYear, priorYear) {
+            this.slideoverApiUrl = apiUrl;
+            this.slideoverCurrentYear = currentYear;
+            this.slideoverPriorYear = priorYear;
+        },
+
+        openSlideover: function() {
+            this.slideoverOpen = true;
+            // 預設載入去年資料
+            if (!this.slideoverData) {
+                this.fetchMediaData(this.slideoverPriorYear);
+            }
+        },
+
+        fetchMediaData: function(year) {
+            var self = this;
+            self.slideoverLoading = true;
+            self.slideoverData = null;
+
+            fetch(self.slideoverApiUrl + '?year=' + year, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                self.slideoverData = data;
+                self.slideoverLoading = false;
+            })
+            .catch(function(err) {
+                console.error('Slide-over fetch error:', err);
+                self.slideoverData = { found: false, message: '載入失敗，請稍後重試' };
+                self.slideoverLoading = false;
+            });
+        }
+    };
+}
+</script>

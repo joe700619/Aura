@@ -1,17 +1,20 @@
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, F
+from core.mixins import BusinessRequiredMixin
+from django.core.paginator import Paginator
+from django.db.models import Sum
 from ..models import SealProcurement, SealProcurementItem
 
+PAGINATE_BY = 25
 
-class SealInventoryReportView(LoginRequiredMixin, TemplateView):
+
+class SealInventoryReportView(BusinessRequiredMixin, TemplateView):
     template_name = 'administrative/seal_procurement/seal_inventory_report.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         q = self.request.GET.get('q', '')
+        page_number = self.request.GET.get('page', 1)
 
-        # Get all procurements that have transfer_to_inventory = True
         procurements = SealProcurement.objects.filter(transfer_to_inventory=True)
         if q:
             procurements = procurements.filter(
@@ -21,55 +24,51 @@ class SealInventoryReportView(LoginRequiredMixin, TemplateView):
                 unified_business_no__icontains=q
             )
 
-        # Group by company (unified_business_no)
-        summary_data = []
         companies = procurements.values(
             'unified_business_no', 'company_name'
         ).distinct().order_by('company_name')
 
+        # Build summary for all companies (lightweight — no details yet)
+        all_summary = []
         grand_total = 0
         for company in companies:
-            items = SealProcurementItem.objects.filter(
+            items_qs = SealProcurementItem.objects.filter(
                 procurement__transfer_to_inventory=True,
                 procurement__unified_business_no=company['unified_business_no']
-            ).select_related('procurement')
-
-            if q:
-                items = items.filter(
-                    procurement__company_name__icontains=q
-                ) | SealProcurementItem.objects.filter(
-                    procurement__transfer_to_inventory=True,
-                    procurement__unified_business_no=company['unified_business_no'],
-                    procurement__unified_business_no__icontains=q
-                )
-
-            # Aggregate by seal type
-            type_summary = items.values('seal_type').annotate(
+            )
+            type_summary = items_qs.values('seal_type').annotate(
                 total_qty=Sum('quantity'),
                 total_amount=Sum('subtotal')
-            ).order_by('seal_type')
-
-            # Build a flat dict: seal_type -> qty for easy template access
+            )
             type_qty = {code: 0 for code, _ in SealProcurementItem.SEAL_TYPE_CHOICES}
+            company_total = 0
             for ts in type_summary:
                 type_qty[ts['seal_type']] = ts['total_qty'] or 0
-
-            # All individual items for the expanded detail view
-            details = items.order_by('-procurement__created_at')
-
-            company_total = sum(ts['total_amount'] or 0 for ts in type_summary)
+                company_total += ts['total_amount'] or 0
             grand_total += company_total
-
-            summary_data.append({
+            all_summary.append({
                 'unified_business_no': company['unified_business_no'],
                 'company_name': company['company_name'],
                 'type_qty': type_qty,
                 'total_amount': company_total,
-                'details': details,
             })
 
-        context['summary_data'] = summary_data
-        context['grand_total'] = grand_total
+        # Paginate the summary list
+        paginator = Paginator(all_summary, PAGINATE_BY)
+        page_obj = paginator.get_page(page_number)
+
+        # Attach details only for the current page rows (avoids loading all rows)
+        for row in page_obj:
+            row['details'] = SealProcurementItem.objects.filter(
+                procurement__transfer_to_inventory=True,
+                procurement__unified_business_no=row['unified_business_no']
+            ).select_related('procurement').order_by('-procurement__created_at')
+
+        context['page_obj'] = page_obj
+        context['paginator'] = paginator
+        context['is_paginated'] = paginator.num_pages > 1
+        context['summary_data'] = page_obj          # template iterates this
+        context['grand_total'] = grand_total        # grand total across ALL pages
         context['q'] = q
         context['seal_type_choices'] = dict(SealProcurementItem.SEAL_TYPE_CHOICES)
         return context

@@ -588,9 +588,12 @@ def auto_create_income_tax_setting(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=IncomeTaxYear)
 def auto_create_income_tax_items(sender, instance, created, **kwargs):
-    """新增 IncomeTaxYear 時，自動建立 4 個子項目"""
+    """新增 IncomeTaxYear 時，自動建立 5 個子項目"""
     if created:
         ProvisionalTax.objects.get_or_create(year_record=instance)
         WithholdingTax.objects.get_or_create(year_record=instance)
         DividendTax.objects.get_or_create(year_record=instance)
         IncomeTaxFiling.objects.get_or_create(year_record=instance)
+        # 媒體檔解析資料（延遲匯入，避免循環引用）
+        from .income_tax_media import IncomeTaxMediaData
+        IncomeTaxMediaData.objects.get_or_create(year_record=instance)

@@ -123,15 +123,33 @@
                 });
             }
             
-            /* Parse Advance Payments */
+            /* Parse Advance Payments — group by payment_type → account code */
+            const advanceTypeMap = {
+                '郵資及快遞': { code: '613202', name: '郵資及快遞' },
+                '統購發票':   { code: '613203', name: '發票費用' },
+                '零買發票':   { code: '613203', name: '發票費用' },
+                '稅款':       { code: '1141',   name: '代墊稅款及保費' },
+                '補充保費':   { code: '1141',   name: '代墊稅款及保費' },
+                '政府規費':   { code: '1142',   name: '代墊政府規費' },
+                '印章':       { code: '613204', name: '印章費用' },
+            };
+            const defaultAdvanceAccount = { code: '6132', name: '代墊費用' };
+
+            /* accumulators: { accountCode: { name, total } } */
+            const advanceByCode = {};
             if (advanceInput) {
-               const advanceData = JSON.parse(advanceInput.value || '[]');
-               advanceData.forEach(item => {
+                const advanceData = JSON.parse(advanceInput.value || '[]');
+                advanceData.forEach(item => {
                     const amount = parseFloat(item.amount) || 0;
-                    if (amount > 0) {
-                        advancePaymentTotal += amount;
+                    if (amount <= 0) return;
+                    advancePaymentTotal += amount;
+                    const payType = (item.payment_type || '').trim();
+                    const acct = advanceTypeMap[payType] || defaultAdvanceAccount;
+                    if (!advanceByCode[acct.code]) {
+                        advanceByCode[acct.code] = { name: acct.name, total: 0 };
                     }
-               });
+                    advanceByCode[acct.code].total += amount;
+                });
             }
 
             /* Cross-check Cost Sharing vs Service Fee */
@@ -141,7 +159,7 @@
                     const amount = parseFloat(item.amount) || 0;
                     if (amount > 0) costSharingTotal += amount;
                 });
-                
+
                 if (costSharingTotal > 0 && Math.abs(costSharingTotal - serviceFeeTotal) > 0.1) {
                     this.errorMessage = `公費分攤合計 (${costSharingTotal}) 與服務費用合計 (${serviceFeeTotal}) 不符，無法產生分錄。`;
                     return;
@@ -152,16 +170,17 @@
                 this.errorMessage = '帳單無任何費用，無法產生傳票。';
                 return;
             }
-            
+
             /* Generate Entries */
             if (serviceFeeTotal > 0) {
                 this.addGeneratedEntry('credit', '400002', '記帳收入', serviceFeeTotal, '服務費用合計', companyVat);
             }
-            
-            if (advancePaymentTotal > 0) {
-                this.addGeneratedEntry('credit', '613202', '發票及郵資', advancePaymentTotal, '代墊款合計', companyVat);
-            }
-            
+
+            /* One credit entry per advance payment account code (grouped & summed) */
+            Object.entries(advanceByCode).forEach(([code, info]) => {
+                this.addGeneratedEntry('credit', code, info.name, info.total, '代墊款合計', companyVat);
+            });
+
             const uncollectedTotal = serviceFeeTotal + advancePaymentTotal;
             if (uncollectedTotal > 0) {
                 this.addGeneratedEntry('debit', '1123', '應收帳款', uncollectedTotal, '未收款合計', companyVat);

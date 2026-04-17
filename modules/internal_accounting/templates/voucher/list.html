@@ -1,24 +1,37 @@
 {% extends 'components/list_view.html' %}
 
+{% block page_title %}會計傳票管理{% endblock %}
 {% block header_title %}會計傳票管理{% endblock %}
 {% block header_description %}記錄公司內部的日常財務傳票。{% endblock %}
 
+{% block filters %}
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   全部 ({{ count_all }})</a>
+<a href="?filter=DRAFT{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'DRAFT' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   草稿 ({{ count_draft }})</a>
+<a href="?filter=POSTED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'POSTED' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   已過帳 ({{ count_posted }})</a>
+{% endblock %}
+
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">傳票編號</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="date">日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="voucherno">傳票編號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">摘要</th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
-
-
 {% block table_rows %}
 {% for item in vouchers %}
-<tr class="hover:bg-slate-50 transition duration-150">
+<tr class="hover:bg-slate-50 transition duration-150"
+    data-date="{{ item.date|date:"Ymd" }}"
+    data-voucherno="{{ item.voucher_no|escapejs }}">
     <td class="px-6 py-4">
         <label class="relative flex cursor-pointer select-none items-center">
-            <input type="checkbox" class="sr-only" value="{{ item.id }}" x-model="selectedRows">
+            <input type="checkbox" class="sr-only" value="{{ item.id }}" x-model.number="selectedRows">
             <div :class="selectedRows.includes({{ item.id }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
                  class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
                 <template x-if="selectedRows.includes({{ item.id }})">
@@ -64,7 +77,11 @@
 {% block metadata_json %}
 [
     {% for item in vouchers %}
-    {"id": {{ item.id }}, "category": "ALL", "content": "{{ item.voucher_no }} {{ item.description }}"}{% if not forloop.last %},{% endif %}
+    {"id": {{ item.id }}, "category": "{{ item.status }}", "content": "{{ item.voucher_no|escapejs }} {{ item.description|escapejs }}"}{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
 {% endblock %}

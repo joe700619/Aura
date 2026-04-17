@@ -1,18 +1,18 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin
 from ..models import Contact
 from ..forms import ContactForm
 
-class ContactListView(ListActionMixin, LoginRequiredMixin, ListView):
+class ContactListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = Contact
     template_name = 'contact/list.html'
     context_object_name = 'contacts'
     paginate_by = 20
     create_button_label = '新增聯絡人'
+    search_fields = ['name', 'phone', 'mobile', 'email', 'customer__name']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -20,13 +20,9 @@ class ContactListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        q = self.request.GET.get('q')
-        if q:
-            queryset = queryset.filter(name__icontains=q) | queryset.filter(phone__icontains=q) | queryset.filter(mobile__icontains=q)
-        return queryset
+        return super().get_queryset().select_related('customer')
 
-class ContactCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class ContactCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = Contact
     form_class = ContactForm
     template_name = 'contact/form.html'
@@ -36,7 +32,7 @@ class ContactCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         messages.success(self.request, "聯絡人已成功建立！")
         return reverse_lazy('basic_data:contact_update', kwargs={'pk': self.object.pk})
 
-class ContactUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class ContactUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = Contact
     form_class = ContactForm
     template_name = 'contact/form.html'
@@ -61,12 +57,12 @@ class ContactUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         context['history'] = history_list
         return context
 
-class ContactDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class ContactDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = Contact
     success_url = reverse_lazy('basic_data:contact_list')
     template_name = 'contact/confirm_delete.html'
 
-class ContactHistoryView(LoginRequiredMixin, ListView):
+class ContactHistoryView(BusinessRequiredMixin, ListView):
     template_name = "contact/history.html"
     context_object_name = "history"
     paginate_by = 20

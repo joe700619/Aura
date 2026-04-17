@@ -5,11 +5,10 @@ from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from core.models import BaseModel
-import json
-
 class Receivable(BaseModel):
     receivable_no = models.CharField(_('應收帳款編號'), max_length=50, blank=True, null=True, unique=True)
-    
+    date = models.DateField(_('立帳日期'), null=True, blank=True)
+
     # Basic Data (Matches ClientAssessment)
     company_name = models.CharField(_('公司名稱'), max_length=255)
     unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
@@ -26,7 +25,6 @@ class Receivable(BaseModel):
     # Other Info
     assistant = models.CharField(_('記帳助理'), max_length=100, blank=True, null=True)
     assistant_email = models.EmailField(_('助理Email'), blank=True, null=True)
-    is_posted = models.BooleanField(_('已過帳'), default=False)
     remarks = models.TextField(_('備註'), blank=True)
 
     # Component Data (JSON)
@@ -67,6 +65,15 @@ class Receivable(BaseModel):
         if not self.pk:
             return self.total_amount
         return self.total_amount - self.paid_amount
+
+    @property
+    def status(self):
+        """計算應收狀態：未收款 / 部分收款 / 已結清"""
+        if not self.pk or self.paid_amount == 0:
+            return '未收款'
+        if self.outstanding_balance <= 0:
+            return '已結清'
+        return '部分收款'
 
     @property
     def aging(self):

@@ -164,6 +164,25 @@
                         {% endif %}
 
                         {% if actions.has_line %}
+                        {% if line_requires_posting and not object.is_posted %}
+                        <div class="relative group">
+                            <button type="button" disabled
+                                class="flex w-full items-center px-4 py-2 text-sm text-slate-400 cursor-not-allowed"
+                                role="menuitem">
+                                <svg class="mr-3 h-5 w-5 text-slate-300"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                傳送 Line
+                                <span class="ml-auto text-xs text-red-400 font-medium">未過帳</span>
+                            </button>
+                            <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block w-52 bg-slate-800 text-white text-xs rounded px-3 py-2 shadow-lg z-50 pointer-events-none">
+                                請先執行過帳，才能發送 Line 通知
+                            </div>
+                        </div>
+                        {% else %}
                         <button type="button"
                             @click="$dispatch('open-line-modal', { appLabel: '{{ object|app_label }}', modelName: '{{ object|model_name }}', objectId: '{{ object.pk }}' })"
                             class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
@@ -176,6 +195,7 @@
                             </svg>
                             傳送 Line
                         </button>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -422,4 +442,5 @@
 
 {% block overlays %}
 {% include 'components/document_sidebar.html' %}
+{% include 'components/line_sidebar.html' %}
 {% endblock %}

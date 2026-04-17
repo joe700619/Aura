@@ -1,11 +1,11 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.urls import reverse_lazy
 
 from ..models import Account
 from ..forms import AccountForm
 
-class AccountListView(LoginRequiredMixin, ListView):
+class AccountListView(BusinessRequiredMixin, ListView):
     model = Account
     template_name = 'account_list/account_list.html'
     context_object_name = 'accounts'
@@ -19,7 +19,7 @@ class AccountListView(LoginRequiredMixin, ListView):
         context['create_button_label'] = '新增科目'
         return context
 
-class AccountCreateView(LoginRequiredMixin, CreateView):
+class AccountCreateView(BusinessRequiredMixin, CreateView):
     model = Account
     form_class = AccountForm
     template_name = 'account_list/account_form.html'
@@ -30,7 +30,7 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
         context['page_title'] = '新增會計科目'
         return context
 
-class AccountUpdateView(LoginRequiredMixin, UpdateView):
+class AccountUpdateView(BusinessRequiredMixin, UpdateView):
     model = Account
     form_class = AccountForm
     template_name = 'account_list/account_form.html'
@@ -41,7 +41,7 @@ class AccountUpdateView(LoginRequiredMixin, UpdateView):
         context['page_title'] = f'編輯會計科目: {self.object.name}'
         return context
 
-class AccountDeleteView(LoginRequiredMixin, DeleteView):
+class AccountDeleteView(BusinessRequiredMixin, DeleteView):
     model = Account
     template_name = 'account_list/account_confirm_delete.html'
     success_url = reverse_lazy('internal_accounting:account_list')

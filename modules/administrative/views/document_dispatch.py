@@ -1,23 +1,31 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import redirect, get_object_or_404
 from django.utils import timezone
-from core.mixins import ListActionMixin, PrevNextMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin
 from ..models import DocumentDispatch, DocumentDispatchItem, DocumentDispatchImage
 from ..forms import DocumentDispatchForm, DocumentDispatchItemFormSet
 
-class DocumentDispatchListView(LoginRequiredMixin, ListActionMixin, ListView):
+class DocumentDispatchListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = DocumentDispatch
     template_name = 'administrative/document_dispatch/list.html'
     context_object_name = 'dispatches'
+    paginate_by = 25
     create_button_label = '新增發文'
+    search_fields = ['dispatch_method']
+    filter_choices = {
+        'not_transferred': {'transferred_advance_payment__isnull': True},
+        'transferred':     {'transferred_advance_payment__isnull': False},
+    }
 
-    def get_queryset(self):
-        return DocumentDispatch.objects.filter(is_deleted=False)
+    def get_base_queryset(self):
+        return super().get_base_queryset()
+
+    def _base_qs_for_counts(self):
+        return self.model.objects.filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -30,11 +38,13 @@ class DocumentDispatchListView(LoginRequiredMixin, ListActionMixin, ListView):
         context['model_app_label'] = 'administrative'
         return context
 
-class DocumentDispatchItemListView(LoginRequiredMixin, ListActionMixin, ListView):
+class DocumentDispatchItemListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = DocumentDispatchItem
     template_name = 'administrative/document_dispatch/item_list.html'
     context_object_name = 'items'
-    
+    paginate_by = 25
+    search_fields = ['customer__name', 'address', 'contact_person', 'tax_id', 'recipient']
+
     def get_queryset(self):
         return super().get_queryset().select_related('dispatch', 'customer').order_by('-dispatch__date', '-created_at')
 
@@ -49,7 +59,7 @@ class DocumentDispatchItemListView(LoginRequiredMixin, ListActionMixin, ListView
         context['model_app_label'] = 'administrative'
         return context
 
-class DocumentDispatchCreateView(LoginRequiredMixin, CreateView):
+class DocumentDispatchCreateView(BusinessRequiredMixin, CreateView):
     model = DocumentDispatch
     form_class = DocumentDispatchForm
     template_name = 'administrative/document_dispatch/form.html'
@@ -86,7 +96,7 @@ class DocumentDispatchCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "請修正表格中的錯誤。")
             return self.render_to_response(self.get_context_data(form=form))
 
-class DocumentDispatchUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class DocumentDispatchUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = DocumentDispatch
     form_class = DocumentDispatchForm
     template_name = 'administrative/document_dispatch/form.html'
@@ -135,7 +145,7 @@ class DocumentDispatchUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             messages.error(self.request, "請修正表格中的錯誤。")
             return self.render_to_response(self.get_context_data(form=form))
 
-class DocumentDispatchDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class DocumentDispatchDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = DocumentDispatch
     template_name = 'administrative/document_dispatch/confirm_delete.html'
     success_url = reverse_lazy('administrative:document_dispatch_list')

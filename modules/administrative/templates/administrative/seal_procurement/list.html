@@ -22,6 +22,24 @@
 </a>
 {% endblock %}
 
+{% block filters %}
+<a href="?filter=inventory{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'inventory' %}bg-emerald-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    已入庫
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.inventory|default:0 }})</span>
+</a>
+<a href="?filter=no_inventory{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'no_inventory' %}bg-slate-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    未入庫
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.no_inventory|default:0 }})</span>
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' or not current_filter %}bg-slate-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.ALL|default:0 }})</span>
+</a>
+{% endblock %}
+
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="date">
     建立日期 <span class="sort-icon text-slate-400 ml-1">↕</span>
@@ -29,23 +47,29 @@
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="name">
     公司名稱 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">統一編號</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-left" data-sort="taxid">
+    統一編號 <span class="sort-icon text-slate-400 ml-1">↕</span>
+</th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right" data-sort="amount">
     費用小計 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">庫存</th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">代墊款</th>
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center" data-sort="advance">
+    代墊款 <span class="sort-icon text-slate-400 ml-1">↕</span>
+</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
 {% block table_rows %}
 {% for item in items %}
 <tr class="hover:bg-slate-50 transition duration-150 border-b border-slate-100 last:border-0"
-    x-show="matches('ALL', '{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }}')"
+    x-show="matches('ALL', '{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }} {{ item.main_contact|default:''|escapejs }}')"
     :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''"
-    data-date="{{ item.created_at|date:"Y-m-d" }}"
+    data-date="{{ item.created_at|date:'Y-m-d' }}"
     data-name="{{ item.company_name|escapejs }}"
-    data-amount="{{ item.seal_cost_subtotal }}">
+    data-taxid="{{ item.unified_business_no|escapejs }}"
+    data-amount="{{ item.seal_cost_subtotal }}"
+    data-advance="{% if item.is_advance_transferred %}1{% else %}0{% endif %}">
     {% include "components/row_checkbox.html" with value=item.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm font-mono text-slate-700">{{ item.created_at|date:"Y-m-d" }}</span>
@@ -101,13 +125,17 @@
 {% endfor %}
 {% endblock %}
 
+{% block extra_pagination_params %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+
 {% block metadata_json %}
 [
     {% for item in items %}
     {
         "id": {{ item.pk }},
         "category": "ALL",
-        "content": "{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }}"
+        "content": "{{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }} {{ item.main_contact|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]

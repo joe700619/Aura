@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from core.models import BaseModel
 
-class Shareholder(models.Model):
+class Shareholder(BaseModel):
     class Nationality(models.TextChoices):
         TW = 'TW', _('中華民國')
         CN = 'CN', _('中國大陸')
@@ -15,9 +16,6 @@ class Shareholder(models.Model):
     address = models.CharField(_('地址'), max_length=255, blank=True, null=True)
     is_active = models.BooleanField(_('狀態'), default=True, choices=[(True, '使用中'), (False, '未使用')])
     note = models.TextField(_('備註'), blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('股東及董監事')

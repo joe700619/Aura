@@ -1,8 +1,7 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from core.mixins import ListActionMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, PrevNextMixin, FilterMixin
 from ..models import IrsAuditNotice, IrsAuditNoticeAttachment
 from ..forms import IrsAuditNoticeForm, IrsAuditCommunicationFormSet
 from django.contrib import messages
@@ -20,12 +19,25 @@ from modules.workflow.services import (
     get_effective_approver
 )
 
-class IrsAuditNoticeListView(ListActionMixin, LoginRequiredMixin, ListView):
+class IrsAuditNoticeListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = IrsAuditNotice
     template_name = 'administrative/irs_audit_notice/list.html'
     context_object_name = 'notices'
-    paginate_by = 20
+    paginate_by = 25
     create_button_label = '新增國稅局查帳通知'
+    search_fields = ['customer__name', 'subject', 'tax_id', 'tax_category']
+    filter_choices = {
+        'pending':    {'status': '待處理'},
+        'processing': {'status': '處理中'},
+        'closed':     {'status': '已結案'},
+    }
+    default_filter = 'pending'
+
+    def get_base_queryset(self):
+        return super().get_base_queryset().select_related('customer')
+
+    def _base_qs_for_counts(self):
+        return self.model.objects.filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -33,7 +45,7 @@ class IrsAuditNoticeListView(ListActionMixin, LoginRequiredMixin, ListView):
         context['model_app_label'] = 'administrative'
         return context
 
-class IrsAuditNoticeCreateView(LoginRequiredMixin, CreateView):
+class IrsAuditNoticeCreateView(BusinessRequiredMixin, CreateView):
     model = IrsAuditNotice
     form_class = IrsAuditNoticeForm
     template_name = 'administrative/irs_audit_notice/form.html'
@@ -65,7 +77,7 @@ class IrsAuditNoticeCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('administrative:irs_audit_notice_update', kwargs={'pk': self.object.pk})
 
-class IrsAuditNoticeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class IrsAuditNoticeUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = IrsAuditNotice
     form_class = IrsAuditNoticeForm
     template_name = 'administrative/irs_audit_notice/form.html'
@@ -130,7 +142,7 @@ class IrsAuditNoticeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         else:
             return self.form_invalid(form)
 
-class IrsAuditNoticeDeleteView(LoginRequiredMixin, DeleteView):
+class IrsAuditNoticeDeleteView(BusinessRequiredMixin, DeleteView):
     model = IrsAuditNotice
     success_url = reverse_lazy('administrative:irs_audit_notice_list')
     template_name = 'administrative/irs_audit_notice/confirm_delete.html'

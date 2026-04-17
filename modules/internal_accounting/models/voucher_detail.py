@@ -3,8 +3,8 @@ from django.db import models
 class VoucherDetail(models.Model):
     voucher = models.ForeignKey('internal_accounting.Voucher', related_name='details', on_delete=models.CASCADE, verbose_name="傳票")
     account = models.ForeignKey('internal_accounting.Account', on_delete=models.PROTECT, verbose_name="科目")
-    debit = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="借方")
-    credit = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="貸方")
+    debit = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="借方")
+    credit = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name="貸方")
     
     company_id = models.CharField(max_length=50, blank=True, verbose_name="對象/統編")
     department = models.CharField(max_length=50, blank=True, verbose_name="部門")

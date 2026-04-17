@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from core.models import BaseModel
 
-class ShareholderRegister(models.Model):
+class ShareholderRegister(BaseModel):
     class ServiceStatus(models.TextChoices):
         INCLUDED = 'INCLUDED', _('本所客戶')
         EXCLUDED = 'EXCLUDED', _('已非本所服務')
@@ -26,9 +27,6 @@ class ShareholderRegister(models.Model):
         choices=CompletionStatus.choices,
         default=CompletionStatus.UNCOMPLETED
     )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('股東名簿查詢')

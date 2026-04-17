@@ -1,8 +1,42 @@
-﻿{% extends 'components/form_view.html' %}
+{% extends 'components/form_view.html' %}
 
 {% block page_title %}{{ page_title }}{% endblock %}
 
 {% block form_attributes %}enctype="multipart/form-data"{% endblock %}
+
+{% block extra_errors %}
+{% if is_period_closed %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Disable form inputs
+        document.querySelectorAll('#main-form input, #main-form select, #main-form textarea, #main-form button:not([onclick="history.back()"])').forEach(el => {
+            el.disabled = true;
+            el.classList.add('cursor-not-allowed', 'opacity-70');
+        });
+        
+        // Hide the main save button from form_view.html
+        document.querySelectorAll('button[type="button"][x-text="globalSubmitting ? \\\'儲存中...\\\' : \\\'儲存\\\'"]').forEach(btn => {
+            btn.style.display = 'none';
+        });
+    });
+</script>
+<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6 relative z-30 shadow-sm">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-extrabold text-red-800">會計期間已關帳鎖定</h3>
+            <div class="mt-1 text-sm text-red-700">
+                <p>這筆傳票隸屬的年度或月份已經執行關帳（結轉），目前為唯讀保護狀態，無法進行任何新增修改。<br>若確需修改，請先解開會計期間的關帳設定。</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
 
 {% block form_top_block %}
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
@@ -52,9 +86,17 @@
         {{ form.description }}
         {{ form.description.errors }}
     </div>
-    <div>
+    <div x-data="{ status: '{{ form.status.value|default:'DRAFT' }}' }">
         <label class="block text-sm font-medium text-slate-700 mb-1">狀態</label>
-        {{ form.status }}
+        <input type="hidden" name="status" :value="status">
+        <div class="inline-flex rounded-lg border border-slate-200 overflow-hidden">
+            <button type="button" @click="status = 'DRAFT'"
+                :class="status === 'DRAFT' ? 'bg-gray-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                class="px-4 py-2 text-sm font-medium transition-colors">草稿</button>
+            <button type="button" @click="status = 'POSTED'"
+                :class="status === 'POSTED' ? 'bg-green-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                class="px-4 py-2 text-sm font-medium transition-colors border-l border-slate-200">已過帳</button>
+        </div>
         {{ form.status.errors }}
     </div>
 </div>
@@ -101,6 +143,12 @@
                         <div class="aux-input aux-PROJECT" style="display:none;">
                             {{ detail_form.project }}
                         </div>
+                        <div class="aux-input aux-ASSET" style="display:none;">
+                            <div class="flex gap-1">
+                                {{ detail_form.project }}
+                                <button type="button" onclick="openFixedAssetModal(this)" class="bg-indigo-600 text-white px-2 py-1 rounded text-xs hover:bg-indigo-700 min-w-max shrink-0 whitespace-nowrap">建立</button>
+                            </div>
+                        </div>
                         <div class="aux-input aux-NONE text-center text-slate-300 text-xs py-2" style="display:none;">
                             無
                         </div>
@@ -122,8 +170,8 @@
             <tfoot class="bg-slate-100 font-bold">
                 <tr>
                     <td colspan="2" class="px-2 py-3 text-right text-sm">總計</td>
-                    <td class="px-2 py-3 text-right text-sm text-blue-700" id="total-debit">0.00</td>
-                    <td class="px-2 py-3 text-right text-sm text-red-700" id="total-credit">0.00</td>
+                    <td class="px-2 py-3 text-right text-sm text-blue-700" id="total-debit">0</td>
+                    <td class="px-2 py-3 text-right text-sm text-red-700" id="total-credit">0</td>
                     <td colspan="2" class="px-2 py-3 text-center text-xs">
                         <span id="balance-status" class="px-2 py-1 rounded">平衡</span>
                     </td>
@@ -229,11 +277,12 @@
             const activeGroup = auxContainer.querySelector(`.aux-${auxType}`);
             if (activeGroup) {
                 activeGroup.style.display = 'block';
-                const input = activeGroup.querySelector('input');
-                if (input && input.placeholder === '') {
-                    if (auxType === 'PARTNER') input.placeholder = '請選擇對象...';
-                    if (auxType === 'DEPT') input.placeholder = '請選擇部門...';
-                    if (auxType === 'PROJECT') input.placeholder = '請選擇專案...';
+                const targetInput = activeGroup.querySelector('input, select');
+                if (targetInput && targetInput.tagName === 'INPUT' && !targetInput.value) {
+                    if (auxType === 'PARTNER') targetInput.placeholder = '請選擇對象...';
+                    if (auxType === 'DEPT') targetInput.placeholder = '請選擇部門...';
+                    if (auxType === 'PROJECT') targetInput.placeholder = '請選擇專案...';
+                    if (auxType === 'ASSET') targetInput.placeholder = '財產編號...';
                 }
             }
         }
@@ -458,7 +507,133 @@
             </template>
         </div>
     </div>
+<!-- Fixed Asset Creation Modal -->
+<div id="fixed-asset-modal" class="fixed inset-0 z-[99] bg-black/50 hidden flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <h3 class="text-lg font-bold text-slate-800">快速建立財產目錄</h3>
+            <button type="button" onclick="closeFixedAssetModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1 text-sm space-y-4">
+            <div id="fa-modal-error" class="hidden p-3 bg-red-50 text-red-700 rounded-md font-medium border border-red-200"></div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">財產編號 (系統自動產生)</label>
+                    <input type="text" id="fa_asset_no" readonly class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-slate-100 text-slate-500 shadow-sm cursor-not-allowed">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">財產名稱 (必填) <span class="text-red-500">*</span></label>
+                    <input type="text" id="fa_name" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors" placeholder="例如: MacBook Pro">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">取得日期</label>
+                    <input type="date" id="fa_purchase_date" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">取得成本 (<span class="text-indigo-600 font-medium">依傳票借方帶入</span>)</label>
+                    <input type="number" id="fa_cost" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">預估殘值</label>
+                    <input type="number" id="fa_salvage" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">耐用月數 (例: 3年=36個月)</label>
+                    <input type="number" id="fa_life" value="36" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-colors">
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+            <button type="button" onclick="closeFixedAssetModal()" class="px-5 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50 font-bold text-sm transition-colors shadow-sm cursor-pointer">取消</button>
+            <button type="button" onclick="saveFixedAsset()" id="fa_save_btn" class="px-5 py-2.5 bg-indigo-600 text-white border border-transparent rounded-md hover:bg-indigo-700 font-bold text-sm transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">儲存並帶入</button>
+        </div>
+    </div>
 </div>
+
+<script>
+    let currentAssetTargetInput = null;
+    
+    function openFixedAssetModal(btn) {
+        currentAssetTargetInput = btn.previousElementSibling;
+        const modal = document.getElementById('fixed-asset-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('fa-modal-error').classList.add('hidden');
+        
+        // Auto fill context
+        const row = btn.closest('tr');
+        document.getElementById('fa_purchase_date').value = document.getElementById('id_date').value;
+        const debitVal = parseFloat(row.querySelector('.debit-input').value || 0);
+        document.getElementById('fa_cost').value = debitVal;
+        
+        // Auto generate roughly
+        const now = new Date();
+        document.getElementById('fa_asset_no').value = 'FA' + now.getFullYear().toString().substring(2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + Math.floor(Math.random() * 1000).toString().padStart(3,'0');
+    }
+    
+    function closeFixedAssetModal() {
+        document.getElementById('fixed-asset-modal').classList.add('hidden');
+        document.getElementById('fixed-asset-modal').classList.remove('flex');
+    }
+    
+    async function saveFixedAsset() {
+        const payload = {
+            asset_no: document.getElementById('fa_asset_no').value,
+            name: document.getElementById('fa_name').value,
+            purchase_date: document.getElementById('fa_purchase_date').value,
+            cost: document.getElementById('fa_cost').value,
+            salvage_value: document.getElementById('fa_salvage').value,
+            useful_life_months: document.getElementById('fa_life').value,
+        };
+        
+        if (!payload.name) {
+            const err = document.getElementById('fa-modal-error');
+            err.innerText = "財產名稱為必填項目";
+            err.classList.remove('hidden');
+            return;
+        }
+        
+        const btn = document.getElementById('fa_save_btn');
+        btn.disabled = true;
+        btn.innerText = "儲存中...";
+        
+        try {
+            const res = await fetch("{% url 'internal_accounting:create_fixed_asset_api' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                // Done. Populate UI and close
+                currentAssetTargetInput.value = data.asset_no;
+                closeFixedAssetModal();
+            } else {
+                throw new Error(data.message || "發生錯誤");
+            }
+        } catch (e) {
+            const err = document.getElementById('fa-modal-error');
+            err.innerText = e.message;
+            err.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "儲存並帶入";
+        }
+    }
+</script>
 {% endblock %}
 
 

@@ -1,28 +1,26 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.utils import timezone
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin
-from ..models import AttendanceRecord, Employee
+from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS
+from ..models import AttendanceRecord
 from ..forms import AttendanceRecordForm, ClockInOutForm
 
 
-class AttendanceListView(ListActionMixin, LoginRequiredMixin, ListView):
+class AttendanceListView(OwnEmployeeDataMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = AttendanceRecord
     template_name = 'attendance/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增紀錄'
+    search_fields = ['employee__name', 'employee__employee_number']
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_deleted=False).select_related('employee')
-        q = self.request.GET.get('q', '')
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
         if date_from:
             qs = qs.filter(date__gte=date_from)
         if date_to:
@@ -33,13 +31,12 @@ class AttendanceListView(ListActionMixin, LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '出勤紀錄'
         context['custom_create_url'] = reverse_lazy('hr:attendance_create')
-        context['q'] = self.request.GET.get('q', '')
         context['date_from'] = self.request.GET.get('date_from', '')
         context['date_to'] = self.request.GET.get('date_to', '')
         return context
 
 
-class AttendanceCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class AttendanceCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = AttendanceRecord
     form_class = AttendanceRecordForm
     template_name = 'attendance/form.html'
@@ -58,7 +55,8 @@ class AttendanceCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class AttendanceUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class AttendanceUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AttendanceRecord
     form_class = AttendanceRecordForm
     template_name = 'attendance/form.html'
@@ -67,6 +65,16 @@ class AttendanceUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯出勤紀錄 - {self.object.employee.name} ({self.object.date})'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -75,15 +83,13 @@ class AttendanceUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:attendance_update', pk=self.object.pk)
 
 
-class AttendanceDeleteView(LoginRequiredMixin, DeleteView):
+class AttendanceDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AttendanceRecord
     success_url = reverse_lazy('hr:attendance_list')
 
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
-
-class ClockInOutView(LoginRequiredMixin, View):
+class ClockInOutView(HRRequiredMixin, View):
     """員工自助打卡頁面"""
     template_name = 'attendance/clock_in_out.html'
 

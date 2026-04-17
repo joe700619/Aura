@@ -4,46 +4,41 @@
 {% block header_title %}客戶帳單系統{% endblock %}
 {% block header_description %}管理記帳客戶帳單，支援自動產帳與拋轉AR{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for bill in bills %}
-    {
-        "id": {{ bill.pk }},
-        "category": "{{ bill.get_status_display|escapejs }}",
-        "content": "{{ bill.bill_no|escapejs }} {{ bill.client.name|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
-{% endblock %}
-
 {% block filters %}
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">全部</button>
-<button @click="filter = '草稿'"
-    :class="filter === '草稿' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">草稿</button>
-<button @click="filter = '已開立'"
-    :class="filter === '已開立' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已開立</button>
-<button @click="filter = '已收款'"
-    :class="filter === '已收款' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已收款</button>
-<button @click="filter = '逾期'"
-    :class="filter === '逾期' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
-    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">逾期</button>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?filter=draft{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'draft' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    草稿 ({{ count_draft }})
+</a>
+<a href="?filter=issued{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'issued' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    已開立 ({{ count_issued }})
+</a>
+<a href="?filter=paid{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'paid' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    已收款 ({{ count_paid }})
+</a>
+<a href="?filter=overdue{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'overdue' %}bg-red-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    逾期 ({{ count_overdue }})
+</a>
+<a href="?filter=void{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'void' %}bg-slate-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    已作廢 ({{ count_void }})
+</a>
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">帳單編號</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">客戶名稱</th>
-<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">帳單期間</th>
-<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">開立日期</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">合計金額</th>
-<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="billno">帳單編號 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="client">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="period">帳單期間 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="date">開立日期 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="amount">合計金額 <span class="sort-icon text-slate-400">↕</span></th>
+<th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="status">狀態 <span class="sort-icon text-slate-400">↕</span></th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">AR</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
@@ -51,8 +46,14 @@
 {% block table_rows %}
 {% for bill in bills %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('{{ bill.get_status_display|escapejs }}', '{{ bill.bill_no|escapejs }} {{ bill.client.name|escapejs }}')"
-    :class="selectedRows.includes({{ bill.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ bill.pk }}) ? 'bg-blue-50/30' : ''"
+    data-billno="{{ bill.bill_no|escapejs }}"
+    data-client="{{ bill.client.name|escapejs }}"
+    data-taxid="{{ bill.client.tax_id|escapejs }}"
+    data-period="{{ bill.year }}{{ bill.month|stringformat:'02d' }}"
+    data-date="{{ bill.bill_date|date:'Y-m-d' }}"
+    data-amount="{{ bill.total_amount }}"
+    data-status="{{ bill.get_status_display|escapejs }}">
     <td class="px-6 py-4 whitespace-nowrap">
         <label class="relative flex cursor-pointer select-none items-center">
             <input type="checkbox" class="sr-only" value="{{ bill.pk }}" x-model.number="selectedRows">
@@ -70,6 +71,7 @@
         <span class="font-mono text-sm text-blue-700">{{ bill.bill_no }}</span>
     </td>
     <td class="px-4 py-4">{{ bill.client.name }}</td>
+    <td class="px-4 py-4 font-mono text-sm text-slate-600">{{ bill.client.tax_id|default:"-" }}</td>
     <td class="px-4 py-4 text-center text-sm">{{ bill.year }}/{{ bill.month|stringformat:"02d" }}</td>
     <td class="px-4 py-4 text-center text-sm">{{ bill.bill_date|date:"Y-m-d" }}</td>
     <td class="px-4 py-4 text-right font-semibold">
@@ -124,10 +126,239 @@
     </td>
 </tr>
 {% empty %}
-<tr><td colspan="9" class="px-6 py-8 text-center text-slate-500">目前沒有帳單資料</td></tr>
+<tr><td colspan="10" class="px-6 py-8 text-center text-slate-500">目前沒有帳單資料</td></tr>
 {% endfor %}
+{% endblock %}
+
+{% block actions %}
+<button type="button"
+    @click="$dispatch('open-batch-bill-modal')"
+    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+    批次產帳
+</button>
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for bill in bills %}
+    {
+        "id": {{ bill.pk }},
+        "category": "ALL",
+        "content": "{{ bill.bill_no|escapejs }} {{ bill.client.name|escapejs }} {{ bill.client.tax_id|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
 {% endblock %}
 
 {% block overlays %}
 {% include "components/export_modal.html" %}
+
+{# ── 批次產帳 Modal ── #}
+<div x-data="{
+    isOpen: false,
+    step: 'form',
+    year: {{ today.year }},
+    month: {{ today.month }},
+    billDate: '{{ today_str }}',
+    dueDate: '{{ due_date_default_str }}',
+    annualOverride: '',
+    loading: false,
+    previewItems: [],
+    newCount: 0,
+    skipCount: 0,
+    resultMsg: '',
+    csrfToken: '{{ csrf_token }}',
+
+    open() { this.step = 'form'; this.isOpen = true; },
+    close() { this.isOpen = false; },
+
+    async preview() {
+        this.loading = true;
+        const fd = new FormData();
+        fd.append('year', this.year);
+        fd.append('month', this.month);
+        fd.append('annual_override', this.annualOverride);
+        fd.append('csrfmiddlewaretoken', this.csrfToken);
+        try {
+            const res = await fetch('{{ bill_batch_preview_url }}', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            this.previewItems = data.items;
+            this.newCount = data.new_count;
+            this.skipCount = data.skip_count;
+            this.step = 'preview';
+        } catch(e) { alert('預覽失敗，請重試'); }
+        finally { this.loading = false; }
+    },
+
+    async generate() {
+        this.loading = true;
+        const fd = new FormData();
+        fd.append('year', this.year);
+        fd.append('month', this.month);
+        fd.append('bill_date', this.billDate);
+        fd.append('due_date', this.dueDate);
+        fd.append('annual_override', this.annualOverride);
+        fd.append('csrfmiddlewaretoken', this.csrfToken);
+        try {
+            const res = await fetch('{{ bill_batch_generate_url }}', { method: 'POST', body: fd });
+            const data = await res.json();
+            this.resultMsg = data.message || '完成';
+            this.step = 'result';
+        } catch(e) { alert('產帳失敗，請重試'); }
+        finally { this.loading = false; }
+    },
+
+    fmt(n) { return Number(n).toLocaleString('en-US'); }
+}"
+@open-batch-bill-modal.window="open()"
+x-show="isOpen" style="display:none;"
+class="fixed inset-0 z-[100] overflow-y-auto" role="dialog">
+
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-slate-900/60" @click="close()"></div>
+
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl" @click.stop>
+
+            {# Header #}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800">批次產帳</h2>
+                <button @click="close()" class="text-slate-400 hover:text-slate-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {# Step: form #}
+            <div x-show="step === 'form'" class="p-6 space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">年度</label>
+                        <input type="number" x-model.number="year"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">月份</label>
+                        <input type="number" x-model.number="month" min="1" max="12"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">開立日期</label>
+                        <input type="date" x-model="billDate"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">應繳日期 <span class="text-slate-400 font-normal">（今天+30）</span></label>
+                        <input type="date" x-model="dueDate"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <p class="text-sm font-medium text-slate-700">帳簿費</p>
+                    <p class="text-xs text-slate-400">依各客戶收費週期自動判斷，如有特殊情況可覆蓋。</p>
+                    <div class="flex rounded-lg border border-slate-300 overflow-hidden text-sm mt-1">
+                        <button type="button" @click="annualOverride = ''"
+                            :class="annualOverride === '' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                            class="flex-1 py-2 font-medium transition-colors border-r border-slate-300">
+                            自動判斷
+                        </button>
+                        <button type="button" @click="annualOverride = 'yes'"
+                            :class="annualOverride === 'yes' ? 'bg-amber-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                            class="flex-1 py-2 font-medium transition-colors border-r border-slate-300">
+                            帳簿費（全部計入）
+                        </button>
+                        <button type="button" @click="annualOverride = 'no'"
+                            :class="annualOverride === 'no' ? 'bg-slate-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'"
+                            class="flex-1 py-2 font-medium transition-colors">
+                            帳簿費（全部不計）
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button @click="close()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">取消</button>
+                    <button @click="preview()" :disabled="loading"
+                        class="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                        <span x-show="!loading">預覽 →</span>
+                        <span x-show="loading">載入中...</span>
+                    </button>
+                </div>
+            </div>
+
+            {# Step: preview #}
+            <div x-show="step === 'preview'" class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm text-slate-600">
+                        共 <span class="font-bold text-slate-800" x-text="previewItems.length"></span> 筆符合條件，
+                        新建 <span class="font-bold text-green-600" x-text="newCount"></span> 筆，
+                        跳過 <span class="font-bold text-slate-400" x-text="skipCount"></span> 筆（已存在）
+                    </p>
+                </div>
+
+                <div class="overflow-auto max-h-80 border border-slate-200 rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600">客戶名稱</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-600">週期</th>
+                                <th class="px-3 py-2 text-center text-xs font-semibold text-slate-600">年度發單</th>
+                                <th class="px-3 py-2 text-right text-xs font-semibold text-slate-600">金額</th>
+                                <th class="px-3 py-2 text-center text-xs font-semibold text-slate-600">狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="item in previewItems" :key="item.client_id">
+                                <tr :class="item.already_exists ? 'bg-slate-50 text-slate-400' : 'bg-white'">
+                                    <td class="px-3 py-2">
+                                        <span x-text="item.client_name"></span>
+                                        <span class="text-xs text-slate-400 ml-1" x-text="item.tax_id"></span>
+                                    </td>
+                                    <td class="px-3 py-2" x-text="item.billing_cycle"></td>
+                                    <td class="px-3 py-2 text-center">
+                                        <span x-show="item.is_annual" class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">年度</span>
+                                        <span x-show="!item.is_annual" class="text-slate-300">-</span>
+                                    </td>
+                                    <td class="px-3 py-2 text-right font-mono" x-text="'NT$ ' + fmt(item.total)"></td>
+                                    <td class="px-3 py-2 text-center">
+                                        <span x-show="item.already_exists" class="text-xs text-slate-400">已存在</span>
+                                        <span x-show="!item.already_exists" class="text-xs text-green-600 font-medium">新建</span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between gap-3 pt-2">
+                    <button @click="step = 'form'" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">← 返回修改</button>
+                    <button @click="generate()" :disabled="loading || newCount === 0"
+                        class="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+                        <span x-show="!loading">確認產生 <span x-text="newCount"></span> 筆</span>
+                        <span x-show="loading">產帳中...</span>
+                    </button>
+                </div>
+            </div>
+
+            {# Step: result #}
+            <div x-show="step === 'result'" class="p-6 text-center space-y-4">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <p class="text-slate-700 font-medium" x-text="resultMsg"></p>
+                <button @click="close(); window.location.reload()"
+                    class="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    關閉並重新整理
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
 {% endblock %}

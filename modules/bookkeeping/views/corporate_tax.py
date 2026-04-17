@@ -1,13 +1,13 @@
 import json
+from core.mixins import BusinessRequiredMixin
 import openpyxl
 from decimal import Decimal
 from django.http import JsonResponse
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from ..models import BookkeepingYear, CorporateTaxFiling, TaxAdjustmentEntry
 
-class CorporateTaxDraftAPIView(LoginRequiredMixin, View):
+class CorporateTaxDraftAPIView(BusinessRequiredMixin, View):
     """
     營所稅試算 API
     GET: 取得該年度 (BookkeepingYear) 的申報主檔及調整明細
@@ -19,30 +19,6 @@ class CorporateTaxDraftAPIView(LoginRequiredMixin, View):
         filing, created = CorporateTaxFiling.objects.get_or_create(year_record=year_record)
         
         adjustments = filing.adjustments.all()
-        
-        # 預設模擬科目 (如果沒有任何調整明細)
-        # 未來這會由 Excel 匯入取代，目前為了展示與測試先自動建立
-        if not adjustments.exists():
-            default_items = [
-                {'code': '4100', 'name': '銷貨收入', 'book': 1000000},
-                {'code': '5100', 'name': '銷貨成本', 'book': 700000},
-                {'code': '6100', 'name': '薪資費用', 'book': 10000},
-                {'code': '6200', 'name': '租金支出', 'book': 8000},
-                {'code': '6300', 'name': '文具費用', 'book': 3000},
-                {'code': '7200', 'name': '利息收入', 'book': 999},
-                {'code': '8100', 'name': '利息支出', 'book': 1200},
-            ]
-            entries = []
-            for item in default_items:
-                entries.append(TaxAdjustmentEntry(
-                    filing=filing,
-                    account_code=item['code'],
-                    account_name=item['name'],
-                    book_amount=item['book'],
-                    excluded_amount=0,
-                ))
-            TaxAdjustmentEntry.objects.bulk_create(entries)
-            adjustments = filing.adjustments.all()
 
         items_data = []
         for adj in adjustments:
@@ -59,6 +35,8 @@ class CorporateTaxDraftAPIView(LoginRequiredMixin, View):
             'incomeStandardRate': float(filing.income_standard_rate),
             'netProfitRate': float(filing.net_profit_rate),
             'taxRate': float(filing.tax_rate),
+            'industryCd': filing.industry_code,
+            'industryNm': filing.industry_name,
             'items': items_data,
         }
         return JsonResponse(data)
@@ -76,6 +54,10 @@ class CorporateTaxDraftAPIView(LoginRequiredMixin, View):
                 filing.income_standard_rate = data['incomeStandardRate']
             if 'netProfitRate' in data:
                 filing.net_profit_rate = data['netProfitRate']
+            if 'industryCd' in data:
+                filing.industry_code = data['industryCd']
+            if 'industryNm' in data:
+                filing.industry_name = data['industryNm']
             filing.save()
             
             # 更新明細
@@ -93,7 +75,7 @@ class CorporateTaxDraftAPIView(LoginRequiredMixin, View):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-class ImportCorporateTaxExcelAPIView(LoginRequiredMixin, View):
+class ImportCorporateTaxExcelAPIView(BusinessRequiredMixin, View):
     """
     匯入試算表 Excel
     """

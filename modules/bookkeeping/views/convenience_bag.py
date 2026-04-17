@@ -1,8 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
-from core.mixins import ListActionMixin, PrevNextMixin, EmployeeDataIsolationMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, EmployeeDataIsolationMixin
 from ..models import BookkeepingClient, ConvenienceBagLog, AccountingBookLog
 from django.forms import inlineformset_factory
 from django import forms
@@ -28,38 +27,32 @@ class ConvenienceBagForm(forms.ModelForm):
         }
 
 
-class ConvenienceBagListView(EmployeeDataIsolationMixin, ListActionMixin, LoginRequiredMixin, ListView):
+class ConvenienceBagListView(EmployeeDataIsolationMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = BookkeepingClient
     template_name = 'bookkeeping/convenience_bag/list.html'
     context_object_name = 'clients'
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
+    paginate_by = 25
 
     # We do NOT allow creating a new client from here, this is just for updating bag info.
     create_button_label = None
 
     def get_queryset(self):
-        # Show active clients
         qs = super().get_queryset().filter(
             is_deleted=False
         ).select_related(
             'group_assistant', 'bookkeeping_assistant'
         )
-        
         q = self.request.GET.get('q', '')
         if q:
             qs = qs.filter(
                 Q(name__icontains=q) | Q(tax_id__icontains=q)
             )
-            
         return qs
 
     def get_context_data(self, **kwargs):
-        # The mixin list view expects object_list for pagination logic.
         context = super().get_context_data(**kwargs)
         context['q'] = self.request.GET.get('q', '')
-        # Set object_list to the clients queryset for the correct count length in Alpine and Django templates.
-        context['object_list'] = context['clients']
-        context['object_list'] = context['clients']
         return context
 
 # ── Inline Formsets ──
@@ -80,7 +73,7 @@ AccountingBookLogFormSet = inlineformset_factory(
 )
 
 
-class ConvenienceBagUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class ConvenienceBagUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = BookkeepingClient
     form_class = ConvenienceBagForm
     template_name = 'bookkeeping/convenience_bag/form.html'

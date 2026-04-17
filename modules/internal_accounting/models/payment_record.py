@@ -9,7 +9,7 @@ class PaymentRecord(models.Model):
         verbose_name=_('應收帳款')
     )
     date = models.DateField(_('收款日期'))
-    amount = models.DecimalField(_('金額'), max_digits=12, decimal_places=2)
+    amount = models.DecimalField(_('金額'), max_digits=12, decimal_places=0)
     remark = models.CharField(_('備註'), max_length=255, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

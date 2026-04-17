@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>與您確認案件及付款 - {{ progress.company_name }}</title>
+    <title>付款確認 - {{ progress.company_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -20,7 +20,7 @@
     <div class="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="text-center mb-10">
-            <h1 class="text-2xl font-bold text-slate-900 mb-2">案件確認及付款</h1>
+            <h1 class="text-2xl font-bold text-slate-900 mb-2">付款確認</h1>
             <p class="text-slate-600">{{ progress.company_name }}</p>
         </div>
 
@@ -42,13 +42,14 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">聯絡人 <span
                                     class="text-red-500">*</span></label>
                             <input type="text" name="recipient_name" required
-                                value="{{ progress.main_contact|default:'' }}"
+                                value="{{ pr.recipient_name|default:progress.main_contact|default:'' }}"
                                 class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">連絡電話 <span
                                     class="text-red-500">*</span></label>
-                            <input type="tel" name="recipient_phone" required value="{{ progress.mobile|default:'' }}"
+                            <input type="tel" name="recipient_phone" required
+                                value="{{ pr.recipient_phone|default:progress.mobile|default:'' }}"
                                 class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
                     </div>
@@ -56,7 +57,8 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">文件寄送地址 <span
                                 class="text-red-500">*</span></label>
-                        <input type="text" name="recipient_addr" required value="{{ progress.address|default:'' }}"
+                        <input type="text" name="recipient_addr" required
+                            value="{{ pr.recipient_addr|default:progress.address|default:'' }}"
                             class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
 
@@ -105,7 +107,7 @@
 
             </section>
 
-            <!-- 2. Quotation & Fee -->
+            <!-- 2. Fee -->
             <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-blue-600 px-6 py-4">
                     <h2 class="text-lg font-bold text-white flex items-center">
@@ -128,15 +130,15 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
-                                <!-- Quotation Items -->
-                                {% for item in progress.quotation_data %}
+                                <!-- Fixed amount from payment request -->
                                 <tr>
-                                    <td class="px-3 py-3 text-sm text-slate-900">{{ item.service_name }}</td>
+                                    <td class="px-3 py-3 text-sm text-slate-900">
+                                        {{ pr.description|default:"委辦費用" }}
+                                    </td>
                                     <td class="px-3 py-3 text-sm text-slate-900 text-right font-mono">
-                                        {{item.amount|intcomma}}
+                                        {{ pr.amount|intcomma }}
                                     </td>
                                 </tr>
-                                {% endfor %}
 
                                 <!-- Shipping Fee Row -->
                                 <tr x-show="pickupMethod === 'mail'" x-transition class="bg-blue-50/50">
@@ -146,7 +148,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                         </svg>
-                                        郵資 (System)
+                                        郵資
                                     </td>
                                     <td class="px-3 py-3 text-sm text-slate-900 text-right font-mono">65</td>
                                 </tr>
@@ -162,8 +164,6 @@
                         </table>
                     </div>
                 </div>
-
-
             </section>
 
             <!-- 3. Agreements -->
@@ -211,34 +211,16 @@
         </form>
     </div>
 
-    <!-- Data Injection -->
-    {{ progress.quotation_data|json_script:"quotation-data" }}
-
     <script>
-        document.addEventListener('alpine:init', () => {
-            // Alpine.js init if needed, but we are using x-data function
-        });
-
         function paymentForm() {
             return {
                 pickupMethod: 'mail',
                 agreedMandate: false,
                 agreedDraft: false,
-                items: [],
-
-                init() {
-                    const dataScript = document.getElementById('quotation-data');
-                    if (dataScript) {
-                        this.items = JSON.parse(dataScript.textContent) || [];
-                    }
-                },
-
-                get baseTotal() {
-                    return this.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                },
+                baseAmount: {{ pr.amount }},
 
                 get totalAmount() {
-                    let total = this.baseTotal;
+                    let total = this.baseAmount;
                     if (this.pickupMethod === 'mail') {
                         total += 65;
                     }

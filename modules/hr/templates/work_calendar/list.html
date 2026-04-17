@@ -5,23 +5,9 @@
 {% block header_title %}工作日曆{% endblock %}
 {% block header_description %}管理國定假日與補班日{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for item in items %}
-    {
-        "id": {{ item.pk }},
-        "category": "{{ item.day_type|escapejs }}",
-        "content": "{{ item.date|escapejs }} {{ item.description|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
-{% endblock %}
-
 {% block filters %}
 <form method="get" class="flex flex-wrap items-center gap-3">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
     <select name="year" onchange="this.form.submit()"
         class="px-3 py-1.5 rounded-md text-sm font-medium border border-slate-200 bg-white text-slate-600 transition-colors">
         <option value="">全部年度</option>
@@ -36,44 +22,92 @@
         <option value="makeup_workday" {% if selected_day_type == 'makeup_workday' %}selected{% endif %}>補班日</option>
     </select>
     {% if selected_year or selected_day_type %}
-    <a href="{% url 'hr:work_calendar_list' %}" class="text-sm text-slate-500 hover:text-slate-700">清除篩選</a>
+    <a href="{% url 'hr:work_calendar_list' %}{% if q %}?q={{ q }}{% endif %}" class="text-sm text-slate-500 hover:text-slate-700">清除篩選</a>
     {% endif %}
 </form>
 {% endblock %}
 
+{% block extra_pagination_params %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_day_type %}&day_type={{ selected_day_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_day_type %}&day_type={{ selected_day_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_day_type %}&day_type={{ selected_day_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
+<th scope="col" @click="serverSort('date')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">日期
+        <span class="ml-1 text-[10px] {% if 'date' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'date' %}↓{% elif current_sort == '-date' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">星期</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">類型</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">說明</th>
+<th scope="col" @click="serverSort('day_type')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">類型
+        <span class="ml-1 text-[10px] {% if 'day_type' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'day_type' %}↓{% elif current_sort == '-day_type' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('description')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">說明
+        <span class="ml-1 text-[10px] {% if 'description' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'description' %}↓{% elif current_sort == '-description' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
 {% block table_rows %}
 {% for item in items %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('{{ item.day_type|escapejs }}', '{{ item.date|escapejs }} {{ item.description|escapejs }}')"
     :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
     {% include "components/row_checkbox.html" with value=item.pk %}
-    <td class="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-800">{{ item.date|date:"Y-m-d" }}</td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+    <td class="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-800 border-b border-slate-100">{{ item.date|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-600 border-b border-slate-100">
         {% with day=item.date|date:"w" %}
         {% if day == "0" %}日{% elif day == "1" %}一{% elif day == "2" %}二{% elif day == "3" %}三{% elif day == "4" %}四{% elif day == "5" %}五{% elif day == "6" %}六{% endif %}
         {% endwith %}
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm">
+    <td class="px-4 py-4 whitespace-nowrap text-sm border-b border-slate-100">
         {% if item.day_type == 'national_holiday' %}
         <span class="px-2.5 py-1 text-xs rounded-full font-semibold bg-red-100 text-red-700">國定假日</span>
         {% else %}
         <span class="px-2.5 py-1 text-xs rounded-full font-semibold bg-amber-100 text-amber-700">補班日</span>
         {% endif %}
     </td>
-    <td class="px-4 py-4 text-sm text-slate-700">{{ item.description|default:"-" }}</td>
-    {% include "components/row_actions.html" with update_url='hr:work_calendar_update' delete_url='hr:work_calendar_delete' pk=item.pk %}
+    <td class="px-4 py-4 text-sm text-slate-700 border-b border-slate-100">{{ item.description|default:"-" }}</td>
+    {% url 'hr:work_calendar_update' item.pk as update_url %}
+    {% url 'hr:work_calendar_delete' item.pk as delete_url %}
+    {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
 </tr>
 {% empty %}
-<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">目前沒有工作日曆資料</td></tr>
+<tr>
+    <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+        <div class="flex flex-col items-center justify-center">
+            <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p class="text-base font-medium text-slate-900">尚無資料</p>
+            <p class="text-sm text-slate-400 mt-1">目前沒有工作日曆資料</p>
+        </div>
+    </td>
+</tr>
 {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "{{ item.day_type|escapejs }}",
+        "content": "{{ item.date|escapejs }} {{ item.description|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block pagination_info %}
+{% if is_paginated %}
+顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+{% else %}
+顯示第 1 到 {{ object_list|length }} 筆，共 {{ object_list|length }} 筆資料
+{% endif %}
 {% endblock %}
 
 {% block overlays %}

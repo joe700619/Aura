@@ -3,49 +3,91 @@
 {% block header_title %}勞健保投保級距表{% endblock %}
 {% block header_description %}管理勞保、健保、勞退及相關雇主負擔的投保級距與費額{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[{% for item in items %}{"id":{{ item.pk }},"category":"ALL","content":"{{ item.level_name|escapejs }} {{ item.insured_salary }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
-</script>
-{{ block.super }}
-{% endblock %}
-
-{% block filters %}
-<form method="get" class="flex items-center gap-3">
-    <input type="text" name="q" value="{{ q }}" placeholder="搜尋級別名稱..." class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-48">
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
-</form>
-{% endblock %}
-
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">級別名稱</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">投保薪資</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider bg-blue-50/50">勞保(自付/雇主)</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider bg-blue-50/50">健保(自付/雇主)</th>
-<th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50">勞退雇主</th>
+<th scope="col" @click="serverSort('level_name')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">級別名稱
+        <span class="ml-1 text-[10px] {% if 'level_name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'level_name' %}↓{% elif current_sort == '-level_name' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('insured_salary')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center justify-end">投保薪資
+        <span class="ml-1 text-[10px] {% if 'insured_salary' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'insured_salary' %}↓{% elif current_sort == '-insured_salary' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('labor_employee')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none bg-blue-50/50">
+    <div class="flex items-center justify-end">勞保(自付/雇主)
+        <span class="ml-1 text-[10px] {% if 'labor_employee' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'labor_employee' %}↓{% elif current_sort == '-labor_employee' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('health_employee')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none bg-blue-50/50">
+    <div class="flex items-center justify-end">健保(自付/雇主)
+        <span class="ml-1 text-[10px] {% if 'health_employee' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'health_employee' %}↓{% elif current_sort == '-health_employee' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('pension_employer')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none bg-slate-50">
+    <div class="flex items-center justify-end">勞退雇主
+        <span class="ml-1 text-[10px] {% if 'pension_employer' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'pension_employer' %}↓{% elif current_sort == '-pension_employer' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
 {% block table_rows %}
 {% for item in items %}
-<tr class="hover:bg-slate-50 transition duration-150" x-show="matches('ALL','{{ item.level_name|escapejs }} {{ item.insured_salary }}')" :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+<tr class="hover:bg-slate-50 transition duration-150"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
     {% include "components/row_checkbox.html" with value=item.pk %}
-    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.level_name }}</td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-700 font-bold">${{ item.insured_salary|floatformat:0 }}</td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-600 bg-blue-50/20">
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800 border-b border-slate-100">{{ item.level_name }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-700 font-bold border-b border-slate-100">${{ item.insured_salary|floatformat:0 }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-600 bg-blue-50/20 border-b border-slate-100">
         <span class="text-blue-600">${{ item.labor_employee|floatformat:0 }}</span> / <span class="text-slate-500">${{ item.labor_employer|floatformat:0 }}</span>
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-600 bg-blue-50/20">
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono text-slate-600 bg-blue-50/20 border-b border-slate-100">
         <span class="text-blue-600">${{ item.health_employee|floatformat:0 }}</span> / <span class="text-slate-500">${{ item.health_employer|floatformat:0 }}</span>
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono font-bold text-slate-700 bg-slate-50/50">
+    <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-mono font-bold text-slate-700 bg-slate-50/50 border-b border-slate-100">
         ${{ item.pension_employer|floatformat:0 }}
     </td>
-    {% include "components/row_actions.html" with update_url='hr:insurance_bracket_update' delete_url='hr:insurance_bracket_delete' pk=item.pk %}
+    {% url 'hr:insurance_bracket_update' item.pk as update_url %}
+    {% url 'hr:insurance_bracket_delete' item.pk as delete_url %}
+    {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
 </tr>
 {% empty %}
-<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">目前沒有投保級距資料，請新增。</td></tr>
+<tr>
+    <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+        <div class="flex flex-col items-center justify-center">
+            <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-base font-medium text-slate-900">尚無資料</p>
+            <p class="text-sm text-slate-400 mt-1">目前沒有投保級距資料，請新增。</p>
+        </div>
+    </td>
+</tr>
 {% endfor %}
 {% endblock %}
 
-{% block overlays %}{% include "components/export_modal.html" %}{% endblock %}
+{% block metadata_json %}
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.level_name|escapejs }} {{ item.insured_salary }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block pagination_info %}
+{% if is_paginated %}
+顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+{% else %}
+顯示第 1 到 {{ object_list|length }} 筆，共 {{ object_list|length }} 筆資料
+{% endif %}
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}

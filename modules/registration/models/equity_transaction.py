@@ -1,8 +1,9 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from datetime import date
+from core.models import BaseModel
 
-class EquityTransaction(models.Model):
+class EquityTransaction(BaseModel):
     class OrganizationType(models.TextChoices):
         LTD = 'LTD', _('有限公司')
         CORP = 'CORP', _('股份有限公司')
@@ -49,9 +50,6 @@ class EquityTransaction(models.Model):
     is_completed = models.BooleanField(_('是否完成'), default=False)
 
     note = models.TextField(_('備註'), blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('股權交易')

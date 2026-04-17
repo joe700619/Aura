@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 
+{% block page_title %}統購發票查詢{% endblock %}
 {% block header %}統購發票查詢{% endblock %}
 
 {% block content %}
@@ -7,7 +8,8 @@
     period: '',
     buildMedia(taxId, code, qty) {
         if (!this.period || !code) return '-';
-        return taxId + code + qty + this.period + '82530323' + ';';
+        const paddedQty = String(qty).padStart(4, '0');
+        return taxId + code + paddedQty + this.period + '82530323' + ';';
     }
 }">
 

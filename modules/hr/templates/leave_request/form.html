@@ -30,9 +30,16 @@
     </div>
 
     <div>
-        <label for="{{ form.employee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">員工</label>
-        {{ form.employee }}
-        {{ form.employee.errors }}
+        <label class="block text-sm font-medium text-slate-700 mb-1">員工</label>
+        {% if form.employee.is_hidden %}
+            <div class="w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-sm text-slate-700">
+                {{ request.user.employee_profile.name }}
+            </div>
+            {{ form.employee }}
+        {% else %}
+            {{ form.employee }}
+            {{ form.employee.errors }}
+        {% endif %}
     </div>
 
     <div>
@@ -62,9 +69,12 @@
     </div>
 
     <div>
-        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">請假事由</label>
+        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+            請假事由 <span class="text-red-500">*</span>
+        </label>
         {{ form.reason }}
         {{ form.reason.errors }}
+        <p id="reason-required-error" class="mt-1 text-sm text-red-600 hidden">請假事由為必填欄位。</p>
     </div>
 </div>
 {% endblock %}
@@ -117,38 +127,61 @@
 {{ block.super }}
 <script>
 (function() {
+    // ── 自動計算時數 ──
     var startField = document.getElementById('{{ form.start_datetime.id_for_label }}');
-    var endField = document.getElementById('{{ form.end_datetime.id_for_label }}');
+    var endField   = document.getElementById('{{ form.end_datetime.id_for_label }}');
     var hoursField = document.getElementById('{{ form.total_hours.id_for_label }}');
 
-    if (!startField || !endField || !hoursField) return;
-
-    function calcHours() {
-        var startVal = startField.value;
-        var endVal = endField.value;
-
-        if (!startVal || !endVal) return;
-
-        var startDate = new Date(startVal);
-        var endDate = new Date(endVal);
-
-        if (isNaN(startDate) || isNaN(endDate)) return;
-
-        var diffMs = endDate - startDate;
-        if (diffMs < 0) {
-            hoursField.value = '0';
-            return;
+    if (startField && endField && hoursField) {
+        function calcHours() {
+            var startVal = startField.value;
+            var endVal   = endField.value;
+            if (!startVal || !endVal) return;
+            var startDate = new Date(startVal);
+            var endDate   = new Date(endVal);
+            if (isNaN(startDate) || isNaN(endDate)) return;
+            var diffMs = endDate - startDate;
+            if (diffMs < 0) { hoursField.value = '0'; return; }
+            var diffHours = Math.round(diffMs / (1000 * 60 * 60) * 2) / 2;
+            if (diffHours < 0) diffHours = 0;
+            hoursField.value = diffHours.toFixed(1);
         }
-
-        var diffHours = diffMs / (1000 * 60 * 60);
-        diffHours = Math.round(diffHours * 2) / 2;
-        if (diffHours < 0) diffHours = 0;
-
-        hoursField.value = diffHours.toFixed(1);
+        startField.addEventListener('change', calcHours);
+        endField.addEventListener('change', calcHours);
     }
 
-    startField.addEventListener('change', calcHours);
-    endField.addEventListener('change', calcHours);
+    // ── 請假事由必填驗證（在 spinner 出現前攔截）──
+    var form        = document.getElementById('main-form');
+    var reasonField = document.getElementById('{{ form.reason.id_for_label }}');
+    var reasonError = document.getElementById('reason-required-error');
+
+    if (form && reasonField) {
+        // 使用 capture 模式，比 Alpine 的 @submit 更早執行
+        form.addEventListener('submit', function(e) {
+            if (!reasonField.value.trim()) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (reasonError) reasonError.classList.remove('hidden');
+                reasonField.classList.add('border-red-500');
+                reasonField.focus();
+                // 重設 Alpine globalSubmitting（避免 spinner 卡住）
+                var bodyEl = document.body;
+                if (bodyEl._x_dataStack && bodyEl._x_dataStack[0]) {
+                    bodyEl._x_dataStack[0].globalSubmitting = false;
+                }
+            } else {
+                if (reasonError) reasonError.classList.add('hidden');
+                reasonField.classList.remove('border-red-500');
+            }
+        }, true); // capture phase
+
+        reasonField.addEventListener('input', function() {
+            if (this.value.trim()) {
+                if (reasonError) reasonError.classList.add('hidden');
+                this.classList.remove('border-red-500');
+            }
+        });
+    }
 })();
 </script>
 {% endblock %}

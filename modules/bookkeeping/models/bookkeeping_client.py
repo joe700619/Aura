@@ -178,3 +178,13 @@ class BookkeepingClient(BaseModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def active_service_fee(self):
+        """返回目前生效中的服務費用記錄"""
+        today = timezone.now().date()
+        return self.service_fees.filter(
+            effective_date__lte=today,
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+        ).order_by('-effective_date').first()

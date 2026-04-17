@@ -26,6 +26,17 @@
             }));
         });
         
+        // 匯入服務費用一筆
+        window.addEventListener('import-service-fee-row', (e) => {
+            const row = e.detail;
+            const isEmpty = this.rows.length === 1 && !this.rows[0].service_name && !(parseInt(this.rows[0].amount) > 0);
+            if (isEmpty) {
+                this.rows = [row];
+            } else {
+                this.rows.push(row);
+            }
+        });
+
         // Listen for advance payment imports to automatically append to items
         window.addEventListener('import-advance-payment', (e) => {
             const addedAmount = e.detail.amount;

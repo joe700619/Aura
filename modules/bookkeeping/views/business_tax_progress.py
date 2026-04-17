@@ -1,20 +1,21 @@
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
+from django.core.paginator import Paginator
+from django.db.models import Q
 from datetime import date
 
 from ..models import TaxFilingYear, TaxFilingPeriod, BookkeepingClient
 
 
-# 只顯示需要申報營業稅的服務類型
+# 只顯示需要申報營業稅的服務類型（排除執行業務與專營投資公司）
 VAT_SERVICE_TYPES = [
     BookkeepingClient.ServiceType.VAT_BUSINESS,
     BookkeepingClient.ServiceType.MIXED_DIRECT,
     BookkeepingClient.ServiceType.MIXED_RATIO,
-    BookkeepingClient.ServiceType.INVESTMENT,
 ]
 
 
-class BusinessTaxProgressView(LoginRequiredMixin, TemplateView):
+class BusinessTaxProgressView(BusinessRequiredMixin, TemplateView):
     """
     申報期別進度表
     讓記帳人員依年度/月份，一眼查閱所有客戶的申報與繳稅狀況。
@@ -76,16 +77,22 @@ class BusinessTaxProgressView(LoginRequiredMixin, TemplateView):
         #   所以如果使用者選的是偶數月，我們換算成前一個奇數月
         bimonthly_month = selected_month if selected_month % 2 == 1 else selected_month - 1
 
+        q = self.request.GET.get('q', '').strip()
+        context['q'] = q
+
         periods = []
         if selected_year:
+            qs_filter = Q(
+                year_record__year=selected_year,
+                period_start_month__in=[selected_month, bimonthly_month],
+                year_record__client__service_type__in=VAT_SERVICE_TYPES,
+                year_record__client__is_deleted=False,
+            )
+            if q:
+                qs_filter &= Q(year_record__client__name__icontains=q) | Q(year_record__client__tax_id__icontains=q)
             periods = list(
                 TaxFilingPeriod.objects
-                .filter(
-                    year_record__year=selected_year,
-                    # 同時找出 monthly 的當月，或 bimonthly 的起月
-                    period_start_month__in=[selected_month, bimonthly_month],
-                    year_record__client__service_type__in=VAT_SERVICE_TYPES,
-                )
+                .filter(qs_filter)
                 .select_related(
                     'year_record__client',
                     'year_record__client__tax_setting',
@@ -111,17 +118,14 @@ class BusinessTaxProgressView(LoginRequiredMixin, TemplateView):
                         p.year_record.client.name)
 
             unique_periods.sort(key=_assistant_sort_key)
-            periods = unique_periods
 
-        context['periods'] = periods
-
-        # 5. 統計摘要
-        total = len(periods)
-        count_not_notified = sum(1 for p in periods if p.filing_status == TaxFilingPeriod.FilingStatus.NOT_NOTIFIED)
-        count_waiting = sum(1 for p in periods if p.filing_status == TaxFilingPeriod.FilingStatus.WAITING)
-        count_paid = sum(1 for p in periods if p.filing_status == TaxFilingPeriod.FilingStatus.PAID)
-        count_no_payment = sum(1 for p in periods if p.filing_status == TaxFilingPeriod.FilingStatus.NO_PAYMENT_NEEDED)
-        count_replied = sum(1 for p in periods if p.filing_status in (
+        # 5. 統計摘要（篩選前，反映該月全部筆數）
+        total = len(unique_periods)
+        count_not_notified = sum(1 for p in unique_periods if p.filing_status == TaxFilingPeriod.FilingStatus.NOT_NOTIFIED)
+        count_waiting = sum(1 for p in unique_periods if p.filing_status == TaxFilingPeriod.FilingStatus.WAITING)
+        count_paid = sum(1 for p in unique_periods if p.filing_status == TaxFilingPeriod.FilingStatus.PAID)
+        count_no_payment = sum(1 for p in unique_periods if p.filing_status == TaxFilingPeriod.FilingStatus.NO_PAYMENT_NEEDED)
+        count_replied = sum(1 for p in unique_periods if p.filing_status in (
             TaxFilingPeriod.FilingStatus.AUTO_REPLIED,
             TaxFilingPeriod.FilingStatus.MANUALLY_REPLIED,
         ))
@@ -134,6 +138,30 @@ class BusinessTaxProgressView(LoginRequiredMixin, TemplateView):
             'paid': count_paid,
             'no_payment': count_no_payment,
         }
+
+        # 6. 狀態快速篩選（server-side）
+        status_filter = self.request.GET.get('filter', 'ALL')
+        context['current_filter'] = status_filter
+        context['filter_counts'] = {
+            'ALL':              total,
+            'not_notified':     count_not_notified,
+            'waiting':          count_waiting,
+            'paid':             count_paid,
+            'no_payment_needed': count_no_payment,
+        }
+
+        if status_filter != 'ALL':
+            unique_periods = [p for p in unique_periods if p.filing_status == status_filter]
+
+        # 7. 分頁
+        paginator = Paginator(unique_periods, 25)
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context['periods'] = list(page_obj)
+        context['page_obj'] = page_obj
+        context['paginator'] = paginator
+        context['is_paginated'] = paginator.num_pages > 1
+        context['current_per_page'] = 25
 
         context['today'] = date.today()
         return context

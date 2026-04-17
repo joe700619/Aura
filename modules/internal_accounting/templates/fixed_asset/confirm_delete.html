@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block header %}{% block page_title %}刪除財產目錄{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-lg mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="p-8">
+            <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6 mx-auto">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h2 class="text-2xl font-bold text-slate-900 text-center mb-2">確認刪除？</h2>
+            <p class="text-slate-500 text-center mb-8">您確定要刪除「<span class="font-bold text-slate-800">{{ object.asset_no }} - {{ object.name }}</span>」嗎？此動作無法復原。</p>
+
+            <form method="post" class="flex flex-col space-y-4">
+                {% csrf_token %}
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200">
+                    是的，我要刪除
+                </button>
+                <a href="{% url 'internal_accounting:fixed_asset_list' %}" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl text-center transition duration-200">
+                    取消
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

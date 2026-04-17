@@ -1,25 +1,33 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views import View
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.db import transaction
-from core.mixins import ListActionMixin, CopyMixin, PrevNextMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, CopyMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin
 from ..models import DocumentReceipt, DocumentReceiptAttachment
 from ..forms import DocumentReceiptForm
 from core.notifications.services import LineService
 
-class DocumentReceiptListView(ListActionMixin, LoginRequiredMixin, ListView):
+class DocumentReceiptListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = DocumentReceipt
     template_name = 'administrative/document_receipt/list.html'
     context_object_name = 'receipts'
-    paginate_by = 10
+    paginate_by = 25
     create_button_label = '新增收文'
-    
-    def get_queryset(self):
-        return DocumentReceipt.objects.filter(is_deleted=False)
+    search_fields = ['subject', 'customer__name', 'category']
+    filter_choices = {
+        'pending':    {'status': '待處理'},
+        'processing': {'status': '處理中'},
+        'closed':     {'status': '已結案'},
+    }
+
+    def get_base_queryset(self):
+        return super().get_base_queryset().select_related('customer')
+
+    def _base_qs_for_counts(self):
+        return self.model.objects.filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -30,7 +38,7 @@ class DocumentReceiptListView(ListActionMixin, LoginRequiredMixin, ListView):
         ]
         return context
 
-class DocumentReceiptCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class DocumentReceiptCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = DocumentReceipt
     form_class = DocumentReceiptForm
     template_name = 'administrative/document_receipt/form.html'
@@ -51,7 +59,7 @@ class DocumentReceiptCreateView(CopyMixin, LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('administrative:document_receipt_update', kwargs={'pk': self.object.pk})
 
-class DocumentReceiptUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class DocumentReceiptUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = DocumentReceipt
     form_class = DocumentReceiptForm
     template_name = 'administrative/document_receipt/form.html'
@@ -92,12 +100,12 @@ class DocumentReceiptUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             context['history'] = history_list
         return context
 
-class DocumentReceiptDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class DocumentReceiptDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = DocumentReceipt
     template_name = 'administrative/document_receipt/confirm_delete.html'
     success_url = reverse_lazy('administrative:document_receipt_list')
 
-class SendDocumentReceiptLineView(LoginRequiredMixin, View):
+class SendDocumentReceiptLineView(BusinessRequiredMixin, View):
     def post(self, request, pk):
         receipt = get_object_or_404(DocumentReceipt, pk=pk)
         

@@ -1,15 +1,18 @@
 from django.views.generic import UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
+from django.views import View
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
+from django.http import JsonResponse
 import math
 
 from ..models import BookkeepingClient
-from ..models.income_tax import ProvisionalTax
+from ..models.income_tax import ProvisionalTax, FilingStatus
+from ..services.provisional_tax_notification import send_provisional_tax_notification
 
 
-class ProvisionalTaxDetailView(LoginRequiredMixin, UpdateView):
+class ProvisionalTaxDetailView(BusinessRequiredMixin, UpdateView):
     """
     暫繳申報詳情頁：顯示並編輯單一暫繳申報的完整資料
     URL: /bookkeeping/income-tax/<client_pk>/provisional/<pk>/
@@ -91,3 +94,28 @@ class ProvisionalTaxDetailView(LoginRequiredMixin, UpdateView):
         provisional.save()
         messages.success(self.request, '暫繳申報資料已儲存。')
         return super().form_valid(form)
+
+
+class SendProvisionalTaxNotificationView(BusinessRequiredMixin, View):
+    """
+    POST: 發送暫繳申報繳稅通知給客戶（Line/Email）
+    發送成功後將 filing_status 更新為 'waiting'
+    """
+
+    def post(self, request, client_pk, pk):
+        provisional = get_object_or_404(
+            ProvisionalTax,
+            pk=pk,
+            year_record__client__pk=client_pk,
+        )
+
+        results = send_provisional_tax_notification(provisional, request)
+
+        if results['success_channels']:
+            provisional.filing_status = FilingStatus.WAITING
+            provisional.save(update_fields=['filing_status'])
+
+        return JsonResponse({
+            'success_channels': results['success_channels'],
+            'error_channels': results['error_channels'],
+        })

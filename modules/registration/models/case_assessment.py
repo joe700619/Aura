@@ -2,8 +2,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from .client_assessment import ClientAssessment
+from core.models import BaseModel
 
-class CaseAssessment(models.Model):
+class CaseAssessment(BaseModel):
     class RiskLevel(models.IntegerChoices):
         NORMAL = 0, _('一般風險')
         HIGH = 1, _('高風險')
@@ -73,9 +74,6 @@ class CaseAssessment(models.Model):
     appendix_4_note = models.CharField(_('備註'), max_length=255, blank=True, null=True)
 
     note = models.TextField(_('說明'), blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('案件評估表')

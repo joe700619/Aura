@@ -1,19 +1,21 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.contrib import messages
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin
+from core.mixins import HRRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SortMixin
 from ..models import WorkCalendar
 from ..forms import WorkCalendarForm
 
 
-class WorkCalendarListView(ListActionMixin, LoginRequiredMixin, ListView):
+class WorkCalendarListView(SortMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = WorkCalendar
     template_name = 'work_calendar/list.html'
     context_object_name = 'items'
     paginate_by = 50
     create_button_label = '新增日曆'
+    search_fields = ['description', 'date']
+    allowed_sort_fields = ['date', 'day_type', 'description']
+    default_sort = ['-date']
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_deleted=False)
@@ -39,7 +41,7 @@ class WorkCalendarListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class WorkCalendarCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class WorkCalendarCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = WorkCalendar
     form_class = WorkCalendarForm
     template_name = 'work_calendar/form.html'
@@ -58,7 +60,7 @@ class WorkCalendarCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class WorkCalendarUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class WorkCalendarUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
     model = WorkCalendar
     form_class = WorkCalendarForm
     template_name = 'work_calendar/form.html'
@@ -67,6 +69,16 @@ class WorkCalendarUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯工作日曆 - {self.object.date}'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -75,7 +87,7 @@ class WorkCalendarUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:work_calendar_update', pk=self.object.pk)
 
 
-class WorkCalendarDeleteView(LoginRequiredMixin, DeleteView):
+class WorkCalendarDeleteView(HRRequiredMixin, DeleteView):
     model = WorkCalendar
     success_url = reverse_lazy('hr:work_calendar_list')
 

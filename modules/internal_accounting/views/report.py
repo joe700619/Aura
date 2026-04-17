@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.db.models import Prefetch, Sum
 from decimal import Decimal
 from collections import defaultdict
@@ -9,35 +9,42 @@ from ..models.voucher_detail import VoucherDetail
 from ..models.account import Account
 from ..forms import ReportFilterForm
 
-class JournalListView(LoginRequiredMixin, TemplateView):
+class JournalListView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/journal.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Initialize form with GET data or empty
+
+        submitted = bool(self.request.GET)
         form = ReportFilterForm(self.request.GET or None)
+        context['form'] = form
+        context['submitted'] = submitted
+
+        if not submitted:
+            context['month_groups'] = []
+            context['total_debit'] = Decimal('0.00')
+            context['total_credit'] = Decimal('0.00')
+            return context
+
         queryset = VoucherDetail.objects.select_related('voucher', 'account').filter(voucher__status=Voucher.Status.POSTED)
-        
+
         if form.is_valid():
             start_date = form.cleaned_data.get('start_date')
             end_date = form.cleaned_data.get('end_date')
             voucher_no = form.cleaned_data.get('voucher_no')
-            
             if start_date:
                 queryset = queryset.filter(voucher__date__gte=start_date)
             if end_date:
                 queryset = queryset.filter(voucher__date__lte=end_date)
             if voucher_no:
                 queryset = queryset.filter(voucher__voucher_no__icontains=voucher_no)
-        
-        # Order chronologically for the Journal
+
         queryset = queryset.order_by('voucher__date', 'voucher__voucher_no', 'id')
-        
+
         month_groups = {}
         total_debit = Decimal('0.00')
         total_credit = Decimal('0.00')
-        
+
         for entry in queryset:
             month_key = entry.voucher.date.strftime('%Y年%m月')
             if month_key not in month_groups:
@@ -52,26 +59,31 @@ class JournalListView(LoginRequiredMixin, TemplateView):
             month_groups[month_key]['total_credit'] += entry.credit
             total_debit += entry.debit
             total_credit += entry.credit
-            
-        context['form'] = form
+
         context['month_groups'] = month_groups.values()
-        
-        # Calculate Page Totals
         context['total_debit'] = total_debit
         context['total_credit'] = total_credit
         return context
 
-class GeneralLedgerListView(LoginRequiredMixin, TemplateView):
+class GeneralLedgerListView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/general_ledger.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
+        submitted = bool(self.request.GET)
         form = ReportFilterForm(self.request.GET or None)
+        context['form'] = form
+        context['submitted'] = submitted
+
+        if not submitted:
+            context['account_groups'] = []
+            return context
+
         queryset = VoucherDetail.objects.select_related('voucher', 'account').filter(voucher__status=Voucher.Status.POSTED)
-        
+
         start_date = None
-        
+
         if form.is_valid():
             start_date = form.cleaned_data.get('start_date')
             end_date = form.cleaned_data.get('end_date')
@@ -143,94 +155,88 @@ class GeneralLedgerListView(LoginRequiredMixin, TemplateView):
                 'balance': account_groups[acc_code]['running_balance']
             })
             
-        context['form'] = form
         context['account_groups'] = account_groups.values()
         return context
 
-class IncomeStatementView(LoginRequiredMixin, TemplateView):
+class IncomeStatementView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/income_statement.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        submitted = bool(self.request.GET)
         form = ReportFilterForm(self.request.GET or None)
-        
-        # Default empty structure
+        context['form'] = form
+        context['submitted'] = submitted
+
+        if not submitted:
+            return context
+
         sections = {
-            Account.Category.REVENUE: {'name': '營業收入', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
-            Account.Category.COST: {'name': '營業成本', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
-            Account.Category.EXPENSE: {'name': '營業費用', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
+            Account.Category.REVENUE:    {'name': '營業收入',   'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
+            Account.Category.COST:       {'name': '營業成本',   'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
+            Account.Category.EXPENSE:    {'name': '營業費用',   'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
             Account.Category.NON_OP_INC: {'name': '營業外收入', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
             Account.Category.NON_OP_EXP: {'name': '營業外支出', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
-            Account.Category.TAX: {'name': '所得稅費用', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
+            Account.Category.TAX:        {'name': '所得稅費用', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
         }
 
         start_date = None
         end_date = None
-
         if form.is_valid():
             start_date = form.cleaned_data.get('start_date')
             end_date = form.cleaned_data.get('end_date')
 
-        # Query all posted details for P&L accounts (Revenue & Expenses)
-        pl_categories = list(sections.keys())
         queryset = VoucherDetail.objects.select_related('account', 'voucher').filter(
             voucher__status=Voucher.Status.POSTED,
-            account__category__in=pl_categories
+            account__category__in=list(sections.keys())
         )
-
         if start_date:
             queryset = queryset.filter(voucher__date__gte=start_date)
         if end_date:
             queryset = queryset.filter(voucher__date__lte=end_date)
-            
-        # Aggregate balances
+
         for entry in queryset:
-            cat = entry.account.category
-            section = sections[cat]
-            # Normal balance for these: Credit for Revenue/Non-Op Inc, Debit for Cost/Expense/Tax/Non-Op Exp
-            if section['is_credit']:
-                balance = entry.credit - entry.debit
-            else:
-                balance = entry.debit - entry.credit
-                
+            section = sections[entry.account.category]
+            balance = (entry.credit - entry.debit) if section['is_credit'] else (entry.debit - entry.credit)
             section['groups'][entry.account] += balance
             section['total'] += balance
-            
-        # Calculate Margins
-        gross_profit = sections[Account.Category.REVENUE]['total'] - sections[Account.Category.COST]['total']
+
+        gross_profit     = sections[Account.Category.REVENUE]['total'] - sections[Account.Category.COST]['total']
         operating_profit = gross_profit - sections[Account.Category.EXPENSE]['total']
-        pre_tax_income = operating_profit + sections[Account.Category.NON_OP_INC]['total'] - sections[Account.Category.NON_OP_EXP]['total']
-        net_income = pre_tax_income - sections[Account.Category.TAX]['total']
-        
-        # Convert defaultdicts to regular dicts for template iteration
+        pre_tax_income   = operating_profit + sections[Account.Category.NON_OP_INC]['total'] - sections[Account.Category.NON_OP_EXP]['total']
+        net_income       = pre_tax_income - sections[Account.Category.TAX]['total']
+
         for key in sections:
-            # Only keep accounts with non-zero balance
             sections[key]['groups'] = {acc: bal for acc, bal in sections[key]['groups'].items() if bal != 0}
-            
-        context['form'] = form
-        context['sections'] = sections
-        context['gross_profit'] = gross_profit
-        context['operating_profit'] = operating_profit
-        context['pre_tax_income'] = pre_tax_income
-        context['net_income'] = net_income
-        context['start_date'] = start_date
-        context['end_date'] = end_date
-        
+
+        context['sections']          = sections
+        context['gross_profit']      = gross_profit
+        context['operating_profit']  = operating_profit
+        context['pre_tax_income']    = pre_tax_income
+        context['net_income']        = net_income
+        context['start_date']        = start_date
+        context['end_date']          = end_date
         return context
 
-class BalanceSheetView(LoginRequiredMixin, TemplateView):
+class BalanceSheetView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/balance_sheet.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        submitted = bool(self.request.GET)
         form = ReportFilterForm(self.request.GET or None)
-        
+        context['form'] = form
+        context['submitted'] = submitted
+
+        if not submitted:
+            return context
+
         sections = {
-            Account.Category.ASSET: {'name': '資產', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
+            Account.Category.ASSET:     {'name': '資產', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': False},
             Account.Category.LIABILITY: {'name': '負債', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
-            Account.Category.EQUITY: {'name': '權益', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
+            Account.Category.EQUITY:    {'name': '權益', 'groups': defaultdict(Decimal), 'total': Decimal('0.00'), 'is_credit': True},
         }
-        
+
         end_date = None
         if form.is_valid():
             end_date = form.cleaned_data.get('end_date')
@@ -291,16 +297,14 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
         total_liab_and_equity = sections[Account.Category.LIABILITY]['total'] + sections[Account.Category.EQUITY]['total']
         is_balanced = (sections[Account.Category.ASSET]['total'] == total_liab_and_equity)
             
-        context['form'] = form
-        context['sections'] = sections
-        context['total_assets'] = sections[Account.Category.ASSET]['total']
+        context['sections']              = sections
+        context['total_assets']          = sections[Account.Category.ASSET]['total']
         context['total_liab_and_equity'] = total_liab_and_equity
-        context['is_balanced'] = is_balanced
-        context['end_date'] = end_date
-        
+        context['is_balanced']           = is_balanced
+        context['end_date']              = end_date
         return context
 
-class SubsidiaryLedgerView(LoginRequiredMixin, TemplateView):
+class SubsidiaryLedgerView(BusinessRequiredMixin, TemplateView):
     template_name = 'report/subsidiary_ledger.html'
 
     def get_context_data(self, **kwargs):

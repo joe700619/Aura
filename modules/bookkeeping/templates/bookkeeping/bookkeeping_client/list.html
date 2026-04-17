@@ -32,49 +32,64 @@
 {% endblock %}
 
 {% block filters %}
-<button @click="filter = 'active'"
-    :class="filter === 'active' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    承接中
-</button>
-<button @click="filter = 'suspended'"
-    :class="filter === 'suspended' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    停業中
-</button>
-<button @click="filter = 'transferred'"
-    :class="filter === 'transferred' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    轉出/解散
-</button>
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    全部
-</button>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?filter=active{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'active' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    承接中 ({{ count_active }})
+</a>
+<a href="?filter=suspended{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'suspended' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    停業中 ({{ count_suspended }})
+</a>
+<a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    轉出/解散 ({{ count_transferred }})
+</a>
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    公司名稱
+<th scope="col" @click="serverSort('name')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">公司名稱
+        <span class="ml-1 text-[10px] {% if 'name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'name' %}↓{% elif current_sort == '-name' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    統一編號
+<th scope="col" @click="serverSort('tax_id')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">統一編號
+        <span class="ml-1 text-[10px] {% if 'tax_id' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'tax_id' %}↓{% elif current_sort == '-tax_id' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    承接狀態
+<th scope="col" @click="serverSort('acceptance_status')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">承接狀態
+        <span class="ml-1 text-[10px] {% if 'acceptance_status' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'acceptance_status' %}↓{% elif current_sort == '-acceptance_status' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    計費狀態
+<th scope="col" @click="serverSort('billing_status')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">計費狀態
+        <span class="ml-1 text-[10px] {% if 'billing_status' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'billing_status' %}↓{% elif current_sort == '-billing_status' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    提供服務
+<th scope="col" @click="serverSort('annotated_billing_cycle')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">收費週期
+        <span class="ml-1 text-[10px] {% if 'annotated_billing_cycle' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'annotated_billing_cycle' %}↓{% elif current_sort == '-annotated_billing_cycle' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    集團助理
+<th scope="col" @click="serverSort('service_type')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">提供服務
+        <span class="ml-1 text-[10px] {% if 'service_type' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'service_type' %}↓{% elif current_sort == '-service_type' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-    記帳助理
+<th scope="col" @click="serverSort('group_assistant__name')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">集團助理
+        <span class="ml-1 text-[10px] {% if 'group_assistant__name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'group_assistant__name' %}↓{% elif current_sort == '-group_assistant__name' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('bookkeeping_assistant__name')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">記帳助理
+        <span class="ml-1 text-[10px] {% if 'bookkeeping_assistant__name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'bookkeeping_assistant__name' %}↓{% elif current_sort == '-bookkeeping_assistant__name' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
     操作
@@ -84,7 +99,6 @@
 {% block table_rows %}
 {% for client in clients %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('{{ client.acceptance_status|escapejs }}', '{{ client.name|escapejs }}')"
     :class="selectedRows.includes({{ client.pk }}) ? 'bg-blue-50/30' : ''">
     {% include "components/row_checkbox.html" with value=client.pk %}
     <td class="px-4 py-4 whitespace-nowrap">
@@ -116,6 +130,15 @@
         {% endif %}
     </td>
     <td class="px-4 py-4 whitespace-nowrap">
+        {% with sf=client.active_service_fee %}
+        {% if sf %}
+        <span class="text-sm text-slate-600">{{ sf.get_billing_cycle_display }}</span>
+        {% else %}
+        <span class="text-sm text-slate-400">-</span>
+        {% endif %}
+        {% endwith %}
+    </td>
+    <td class="px-4 py-4 whitespace-nowrap">
         <span class="text-sm text-slate-600">{{ client.get_service_type_display }}</span>
     </td>
     <td class="px-4 py-4 whitespace-nowrap">
@@ -130,16 +153,13 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="9" class="px-6 py-12 text-center text-slate-400 italic">
+    <td colspan="10" class="px-6 py-12 text-center text-slate-400 italic">
         目前尚無記帳客戶資料
     </td>
 </tr>
 {% endfor %}
 {% endblock %}
 
-{% block pagination_info %}
-顯示第 1 到 {{ clients|length }} 筆，共 {{ clients|length }} 筆資料
-{% endblock %}
 
 {% block overlays %}
 {% include "components/export_modal.html" %}

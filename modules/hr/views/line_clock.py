@@ -6,9 +6,9 @@ LineWebhookView 已搬移至 core/notifications/views.py（route: /core/notifica
 """
 
 import logging
+from core.mixins import HRRequiredMixin
 from django.http import JsonResponse
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
@@ -17,7 +17,7 @@ from ..services.line_clock import process_line_clock, build_reply_message
 logger = logging.getLogger(__name__)
 
 
-class LineClockSimulateView(LoginRequiredMixin, View):
+class LineClockSimulateView(HRRequiredMixin, View):
     """
     模擬 Line 打卡（IDE 測試用）。
 

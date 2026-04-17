@@ -384,10 +384,29 @@ def get_pending_approvals(user):
         Q(current_step__approver_role__in=delegated_groups)
     )
     
-    # 合併並去重
-    all_approvals = (my_approvals | role_approvals | delegated_approvals).distinct()
-    
-    return all_approvals
+    # 合併並去重（先收集 pk 避免 unique/non-unique queryset 合併問題）
+    all_pks = set()
+    all_pks.update(my_approvals.values_list('pk', flat=True))
+    all_pks.update(role_approvals.values_list('pk', flat=True))
+    all_pks.update(delegated_approvals.values_list('pk', flat=True))
+
+    # 4. approver_field 動態欄位（例如 employee.supervisor）
+    field_steps = WorkflowStep.objects.filter(
+        approver_field__isnull=False
+    ).exclude(approver_field='')
+    if field_steps.exists():
+        pending_field_reqs = (
+            ApprovalRequest.objects
+            .filter(status='PENDING', current_step__in=field_steps)
+            .exclude(pk__in=all_pks)
+            .select_related('current_step')
+        )
+        for req in pending_field_reqs:
+            approver = req.current_step.get_approver(req.content_object)
+            if approver == user:
+                all_pks.add(req.pk)
+
+    return ApprovalRequest.objects.filter(pk__in=all_pks)
 
 
 def get_approval_request(obj):

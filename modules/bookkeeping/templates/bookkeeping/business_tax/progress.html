@@ -5,21 +5,6 @@
 {% block header_description %}依月份查看所有客戶的申報與繳稅狀況{% endblock %}
 {% block search_placeholder %}搜尋客戶名稱、繳納狀態...{% endblock %}
 
-{# ── 把 JSON metadata 注入在 content block 最前面，讓 allItems 可以被 list_view 讀到 #}
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for period in periods %}
-    {
-        "id": {{ period.pk }},
-        "category": "{{ period.filing_status|escapejs }}",
-        "content": "{{ period.year_record.client.name|escapejs }} {{ period.year_record.client.tax_id|default:''|escapejs }} {{ period.get_filing_status_display|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
-{% endblock %}
 
 {# ── 批次動作側邊欄 ── #}
 {% block overlays %}
@@ -28,23 +13,23 @@
 {% include "components/line_sidebar.html" %}
 {% endblock %}
 
-{# ── 狀態篩選按鈕 ── #}
+{# ── 狀態篩選按鈕（後端 server-side）── #}
 {% block filters %}
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200">全部</button>
-<button @click="filter = 'not_notified'"
-    :class="filter === 'not_notified' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200">尚未通知</button>
-<button @click="filter = 'waiting'"
-    :class="filter === 'waiting' ? 'bg-yellow-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200">等待回覆</button>
-<button @click="filter = 'paid'"
-    :class="filter === 'paid' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200">繳納完成</button>
-<button @click="filter = 'no_payment_needed'"
-    :class="filter === 'no_payment_needed' ? 'bg-slate-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200">無須繳納</button>
+<a href="?year={{ selected_year }}&month={{ selected_month }}{% if q %}&q={{ q }}{% endif %}&filter=ALL"
+   class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+   全部 ({{ filter_counts.ALL }})</a>
+<a href="?year={{ selected_year }}&month={{ selected_month }}{% if q %}&q={{ q }}{% endif %}&filter=not_notified"
+   class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'not_notified' %}bg-red-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+   尚未通知 ({{ filter_counts.not_notified }})</a>
+<a href="?year={{ selected_year }}&month={{ selected_month }}{% if q %}&q={{ q }}{% endif %}&filter=waiting"
+   class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'waiting' %}bg-yellow-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+   等待回覆 ({{ filter_counts.waiting }})</a>
+<a href="?year={{ selected_year }}&month={{ selected_month }}{% if q %}&q={{ q }}{% endif %}&filter=paid"
+   class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'paid' %}bg-green-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+   繳納完成 ({{ filter_counts.paid }})</a>
+<a href="?year={{ selected_year }}&month={{ selected_month }}{% if q %}&q={{ q }}{% endif %}&filter=no_payment_needed"
+   class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'no_payment_needed' %}bg-slate-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+   無須繳納 ({{ filter_counts.no_payment_needed }})</a>
 {% endblock %}
 
 {# ── 自訂批次動作 (Line 通知 + Email 通知) ── #}
@@ -70,6 +55,8 @@
 {# ── 年度/月份選擇器放在 actions block ── #}
 {% block actions %}
 <form method="GET" action="" class="flex items-center gap-2" id="filter-form">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    {% if current_filter and current_filter != 'ALL' %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
     <select name="year" onchange="document.getElementById('filter-form').submit()"
         class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-blue-500 focus:border-blue-500">
         {% for y in available_years %}
@@ -91,16 +78,16 @@
 
 {# ── 表頭 ── #}
 {% block table_headers %}
-<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">記帳助理</th>
-<th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">客戶名稱</th>
+<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+<th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">提供服務</th>
-<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">收到發票</th>
-<th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">應納(退)稅額</th>
+<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="invoicedate">收到發票 <span class="sort-icon text-slate-400">↕</span></th>
+<th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="tax">應納(退)稅額 <span class="sort-icon text-slate-400">↕</span></th>
 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">繳稅方式</th>
 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">申報書</th>
-<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">申報日期</th>
-<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-32">繳納狀態</th>
-<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">截止日</th>
+<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="filingdate">申報日期 <span class="sort-icon text-slate-400">↕</span></th>
+<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-32" data-sort="status">繳納狀態 <span class="sort-icon text-slate-400">↕</span></th>
+<th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="deadline">截止日 <span class="sort-icon text-slate-400">↕</span></th>
 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider w-12">詳情</th>
 {% endblock %}
 
@@ -113,8 +100,14 @@
     {% elif period.filing_status == 'no_payment_needed' %}bg-slate-50/50
     {% elif period.filing_status == 'waiting' or period.filing_status == 'auto_replied' or period.filing_status == 'manually_replied' %}bg-yellow-50/40
     {% elif period.filing_status == 'not_notified' %}bg-red-50/30 {% endif %}"
-    x-show="matches('{{ period.filing_status|escapejs }}', '{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }} {{ period.get_filing_status_display|escapejs }}')"
-    :class="selectedRows.includes({{ period.pk }}) ? 'bg-blue-50/30' : ''">
+    :class="selectedRows.includes({{ period.pk }}) ? 'bg-blue-50/30' : ''"
+    data-assistant="{{ client.bookkeeping_assistant.name|default:''|escapejs }}"
+    data-name="{{ client.name|escapejs }}"
+    data-invoicedate="{{ period.invoice_received_date|date:'Y-m-d'|default:'' }}"
+    data-tax="{{ period.payable_tax|default:0 }}"
+    data-filingdate="{{ period.filing_date|date:'Y-m-d'|default:'' }}"
+    data-status="{{ period.filing_status|default:''|escapejs }}"
+    data-deadline="{{ period.tax_deadline|date:'Y-m-d'|default:'' }}">
 
     {# Checkbox #}
     {% include "components/row_checkbox.html" with value=period.pk %}
@@ -262,6 +255,14 @@
 ]
 {% endblock %}
 
+{% block extra_pagination_params %}&year={{ selected_year }}&month={{ selected_month }}{% endblock %}
+{% block extra_pagination_params_num %}&year={{ selected_year }}&month={{ selected_month }}{% endblock %}
+{% block extra_pagination_params_next %}&year={{ selected_year }}&month={{ selected_month }}{% endblock %}
+
 {% block pagination_info %}
-共 {{ periods|length }} 筆，顯示 {{ selected_year }} 年 {{ selected_month }} 月
+{% if is_paginated %}
+顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆 ({{ selected_year }} 年 {{ selected_month }} 月)
+{% else %}
+共 {{ paginator.count }} 筆，{{ selected_year }} 年 {{ selected_month }} 月
+{% endif %}
 {% endblock %}

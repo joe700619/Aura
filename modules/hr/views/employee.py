@@ -1,27 +1,27 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.http import HttpResponseRedirect
 
-from core.mixins import ListActionMixin, CopyMixin, PrevNextMixin
+from core.mixins import HRRequiredMixin, ListActionMixin, CopyMixin, PrevNextMixin, SortMixin
 from ..models import Employee
 from ..forms import EmployeeForm
 
 
-class EmployeeListView(ListActionMixin, LoginRequiredMixin, ListView):
+class EmployeeListView(SortMixin, ListActionMixin, HRRequiredMixin, ListView):
     """員工列表視圖"""
     model = Employee
     template_name = 'employee/list.html'
     context_object_name = 'employees'
-    paginate_by = 20
+    paginate_by = 25
     create_button_label = '新增員工'
-    
+    allowed_sort_fields = ['employee_number', 'name', 'gender', 'team', 'employment_status', 'hire_date']
+    default_sort = ['-employee_number']
+
     def get_queryset(self):
-        """只顯示啟用的員工"""
-        return Employee.objects.filter(is_active=True).order_by('-employee_number')
+        return super().get_queryset().filter(is_active=True)
 
 
-class EmployeeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class EmployeeCreateView(CopyMixin, HRRequiredMixin, CreateView):
     """員工新增視圖"""
     model = Employee
     form_class = EmployeeForm
@@ -30,7 +30,7 @@ class EmployeeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
     copy_exclude_fields = []  # 複製時不排除任何欄位
 
 
-class EmployeeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class EmployeeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
     """員工編輯視圖"""
     model = Employee
     form_class = EmployeeForm
@@ -56,7 +56,7 @@ class EmployeeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return context
 
 
-class EmployeeDeleteView(LoginRequiredMixin, UpdateView):
+class EmployeeDeleteView(HRRequiredMixin, UpdateView):
     """員工刪除視圖（軟刪除）"""
     model = Employee
     fields = []

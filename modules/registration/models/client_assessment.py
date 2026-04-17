@@ -3,8 +3,9 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.fields import GenericRelation
 from modules.workflow.models import ApprovalRequest
 from django.urls import reverse
+from core.models import BaseModel
 
-class ClientAssessment(models.Model):
+class ClientAssessment(BaseModel):
     class RiskLevel(models.IntegerChoices):
         NORMAL = 0, _('一般風險')
         HIGH = 1, _('高風險')
@@ -47,9 +48,6 @@ class ClientAssessment(models.Model):
     is_gov_fund = models.BooleanField(_('是否為我國政府機關主管之基金'), default=False)
     # h.是否為員工持股信託、員工福利儲蓄信託
     is_employee_trust = models.BooleanField(_('是否為員工持股信託、員工福利儲蓄信託'), default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     approval_requests = GenericRelation(ApprovalRequest, related_query_name='client_assessment')
 

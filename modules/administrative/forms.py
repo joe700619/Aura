@@ -52,6 +52,9 @@ class IrsAuditNoticeForm(forms.ModelForm):
         self.fields['irs_contact'].required = True
         self.fields['irs_phone'].required = True
         self.fields['irs_district'].required = True
+        self.fields['attributable_year'].required = True
+        self.fields['tax_category'].required = True
+        self.fields['reply_deadline'].required = True
         
         # Applying standard Tailwind classes to all fields
         for field_name, field in self.fields.items():
@@ -146,8 +149,13 @@ class SealProcurementForm(forms.ModelForm):
     search_customer = forms.CharField(
         label=_('搜尋客戶'),
         required=False,
-        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/', button_label='帶入客戶')
+        widget=ModalSelectWidget(search_url='/basic-data/api/customers/search/progress/', button_label='點此搜尋客戶...')
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.company_name:
+            self.fields['search_customer'].widget.button_label = self.instance.company_name
 
     search_contact = forms.CharField(
         label=_('搜尋聯絡人'),
@@ -292,10 +300,19 @@ class AdvancePaymentForm(forms.ModelForm):
         }
 
 class AdvancePaymentDetailForm(forms.ModelForm):
+    is_registration_case = forms.ChoiceField(
+        label='登記案件',
+        choices=[('', '---'), ('YES', 'Yes'), ('NO', 'No')],
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 registration-case-select'
+        })
+    )
+
     class Meta:
         model = AdvancePaymentDetail
         fields = [
-            'is_customer_absorbed', 'customer', 'unified_business_no', 
+            'is_registration_case', 'is_customer_absorbed', 'customer', 'unified_business_no',
             'reason', 'amount', 'is_billed', 'payment_type'
         ]
         widgets = {
@@ -303,7 +320,7 @@ class AdvancePaymentDetailForm(forms.ModelForm):
                 'class': 'w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 is-absorbed-select'
             }),
             'customer': ModalSelectWidget(
-                search_url='/basic-data/api/customers/search/', 
+                search_url='/basic-data/api/customers/search/',
                 label_model=Customer
             ),
             'unified_business_no': forms.TextInput(attrs={
@@ -330,5 +347,5 @@ AdvancePaymentDetailFormSet = inlineformset_factory(
     form=AdvancePaymentDetailForm,
     extra=1,
     can_delete=True,
-    fields=['is_customer_absorbed', 'customer', 'unified_business_no', 'reason', 'amount', 'is_billed', 'payment_type']
+    fields=['is_registration_case', 'is_customer_absorbed', 'customer', 'unified_business_no', 'reason', 'amount', 'is_billed', 'payment_type']
 )

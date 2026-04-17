@@ -11,7 +11,8 @@
 
 
 
-            <!-- System Settings Link -->
+            <!-- System Settings Link — Admin / superuser only -->
+            {% if request.user.is_superuser or is_admin_user %}
             <li class="px-3">
                 <a href="{% url 'admin:system_config_systemparameter_changelist' %}" target="_blank"
                     class="flex items-center gap-3 font-medium p-2 rounded-lg transition-colors duration-200 text-slate-600 hover:bg-slate-100">
@@ -25,6 +26,7 @@
                     <span x-show="sidebarOpen" class="whitespace-nowrap">系統設定</span>
                 </a>
             </li>
+            {% endif %}
         </ul>
     </nav>
 </aside>

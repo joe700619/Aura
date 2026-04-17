@@ -3,13 +3,14 @@
 {% block header %}{% block page_title %}列表{% endblock %}{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 pb-8" x-data="{ 
-        selectedRows: [], 
+<div class="w-full px-4 pb-8" x-data="{
+        selectedRows: [],
         selectAll: false,
         toastMsg: '',
         filter: 'ALL',
-        search: '',
+        search: '{{ q|default:''|escapejs }}',
         allItems: [],
+        {% block extra_data %}{% endblock %}
         init() {
             const dataEl = document.getElementById('list-metadata');
             if (dataEl) {
@@ -43,6 +44,14 @@
         showToast(msg) {
             this.toastMsg = msg;
             setTimeout(() => { this.toastMsg = ''; }, 3000);
+        },
+        serverSort(field) {
+            const params = new URLSearchParams(window.location.search);
+            const currentSort = params.get('sort') || '';
+            const newSort = currentSort === field ? '-' + field : field;
+            params.set('sort', newSort);
+            params.delete('page');
+            window.location.href = '?' + params.toString();
         }
     }">
 
@@ -183,17 +192,21 @@
                 </div>
 
                 <!-- Search Input -->
-                <div class="relative w-full md:w-64">
+                <form method="GET" id="server-search-form" class="relative w-full md:w-64">
+                    {% for key, val in request.GET.items %}{% if key != 'q' and key != 'page' %}<input type="hidden" name="{{ key }}" value="{{ val }}">{% endif %}{% endfor %}
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </span>
-                    <input type="text" placeholder="{% block search_placeholder %}輸入關鍵字搜尋...{% endblock %}"
+                    <input type="text" name="q"
+                        placeholder="{% block search_placeholder %}輸入關鍵字搜尋...{% endblock %}"
                         x-model="search"
+                        @keydown.enter.prevent="$el.closest('form').submit()"
+                        @input="clearTimeout(window._sqTimer); window._sqTimer = setTimeout(() => { if (search.length === 0 || search.length >= 2) $el.closest('form').submit(); }, 500)"
                         class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition duration-150 shadow-sm">
-                </div>
+                </form>
             </div>
         </div>
 
@@ -241,7 +254,7 @@
             {% if is_paginated %}
             <div class="flex items-center space-x-2">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if current_filter and current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% block extra_pagination_params %}{% endblock %}"
                     class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">上一頁</a>
                 {% else %}
                 <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">上一頁</span>
@@ -251,13 +264,13 @@
                     {% if page_obj.number == num %}
                     <span class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium">{{ num }}</span>
                     {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-                    <a href="?page={{ num }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                    <a href="?page={{ num }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if current_filter and current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% block extra_pagination_params_num %}{% endblock %}"
                         class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">{{ num }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+                <a href="?page={{ page_obj.next_page_number }}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if q %}&q={{ q }}{% endif %}{% if current_filter and current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% block extra_pagination_params_next %}{% endblock %}"
                     class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-600 hover:bg-slate-100">下一頁</a>
                 {% else %}
                 <span class="px-3 py-1 border border-slate-200 rounded-md text-sm text-slate-400 opacity-50 cursor-not-allowed">下一頁</span>
@@ -297,6 +310,10 @@
                 rows.sort(function (a, b) {
                     const av = a.dataset[col] || '';
                     const bv = b.dataset[col] || '';
+                    const an = parseFloat(av), bn = parseFloat(bv);
+                    if (!isNaN(an) && !isNaN(bn)) {
+                        return asc ? an - bn : bn - an;
+                    }
                     return asc ? av.localeCompare(bv, 'zh-TW', { numeric: true }) : bv.localeCompare(av, 'zh-TW', { numeric: true });
                 });
                 rows.forEach(function (r) { tbody.appendChild(r); });

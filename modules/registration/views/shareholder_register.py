@@ -1,10 +1,9 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.contrib import messages
 from django.forms import inlineformset_factory
 from collections import defaultdict
-from core.mixins import ListActionMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin, SearchMixin, SortMixin
 from ..models import ShareholderRegister, DirectorSupervisor
 from ..forms import ShareholderRegisterForm
 
@@ -19,39 +18,39 @@ DirectorFormSet = inlineformset_factory(
 )
 
 
-class ShareholderRegisterListView(LoginRequiredMixin, ListActionMixin, ListView):
+class ShareholderRegisterListView(SortMixin, FilterMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = ShareholderRegister
     template_name = 'shareholder_register/list.html'
     context_object_name = 'registers'
-    paginate_by = 20
+    paginate_by = 25
+    search_fields = ['company_name', 'unified_business_no']
+    default_filter = 'UNCOMPLETED'
+    filter_choices = {
+        'UNCOMPLETED': {'completion_status': 'UNCOMPLETED'},
+        'COMPLETED':   {'completion_status': 'COMPLETED'},
+    }
+    allowed_sort_fields = ['company_name', 'unified_business_no', 'service_status', 'completion_status']
+    default_sort = ['company_name']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-
-        status = self.request.GET.get('status', 'UNCOMPLETED')
-        if status != 'ALL':
-            queryset = queryset.filter(completion_status=status)
-
-        q = self.request.GET.get('q')
-        if q:
-            queryset = queryset.filter(
-                Q(company_name__icontains=q) |
-                Q(unified_business_no__icontains=q)
-            )
-
-        return queryset
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['current_status'] = self.request.GET.get('status', 'UNCOMPLETED')
+        context['count_all']         = context['filter_counts']['ALL']
+        context['count_uncompleted'] = context['filter_counts']['UNCOMPLETED']
+        context['count_completed']   = context['filter_counts']['COMPLETED']
         return context
 
 
-class ShareholderRegisterCreateView(LoginRequiredMixin, CreateView):
+class ShareholderRegisterCreateView(BusinessRequiredMixin, CreateView):
     model = ShareholderRegister
     form_class = ShareholderRegisterForm
     template_name = 'shareholder_register/form.html'
-    success_url = reverse_lazy('registration:shareholder_register_list')
+
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:shareholder_register_update', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -59,11 +58,15 @@ class ShareholderRegisterCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class ShareholderRegisterUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView):
+class ShareholderRegisterUpdateView(BusinessRequiredMixin, PrevNextMixin, UpdateView):
     model = ShareholderRegister
     form_class = ShareholderRegisterForm
     template_name = 'shareholder_register/form.html'
-    success_url = reverse_lazy('registration:shareholder_register_list')
+    prev_next_order_field = 'created_at'
+
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:shareholder_register_update', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         print("!!! DEBUG: ShareholderRegisterUpdateView EXECUTED !!!")
@@ -116,6 +119,18 @@ class ShareholderRegisterUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateVie
         else:
             context['director_formset'] = DirectorFormSet(instance=self.object)
 
+        # 編修紀錄
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
+
         return context
 
     def form_valid(self, form):
@@ -130,7 +145,7 @@ class ShareholderRegisterUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateVie
             return self.form_invalid(form)
 
 
-class ShareholderRegisterDeleteView(LoginRequiredMixin, DeleteView):
+class ShareholderRegisterDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = ShareholderRegister
     template_name = 'shareholder_register/confirm_delete.html'
     success_url = reverse_lazy('registration:shareholder_register_list')

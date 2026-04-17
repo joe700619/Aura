@@ -1,9 +1,9 @@
 import json
+from core.mixins import BusinessRequiredMixin
 import copy
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import UpdateView
@@ -23,7 +23,7 @@ DEFAULT_RECONCILIATION = [
 ]
 
 
-class IncomeTaxFilingDetailView(LoginRequiredMixin, UpdateView):
+class IncomeTaxFilingDetailView(BusinessRequiredMixin, UpdateView):
     model = IncomeTaxFiling
     fields = [
         'annual_tax', 'provisional_credit', 'withholding_credit',
@@ -83,6 +83,15 @@ class IncomeTaxFilingDetailView(LoginRequiredMixin, UpdateView):
         if not recon or not isinstance(recon, list):
             recon = copy.deepcopy(DEFAULT_RECONCILIATION)
         context['reconciliation_json'] = json.dumps(recon, ensure_ascii=False)
+
+        # Slide-over panel: 媒體檔查閱資料
+        current_year = filing.year_record.year
+        context['slideover_api_url'] = reverse(
+            'bookkeeping:api_income_tax_media_data',
+            kwargs={'client_pk': client.pk},
+        )
+        context['slideover_current_year'] = current_year
+        context['slideover_prior_year'] = current_year - 1
 
         return context
 

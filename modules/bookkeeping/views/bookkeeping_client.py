@@ -1,11 +1,10 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DetailView
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import transaction
+from django.db import models, transaction
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
-from core.mixins import ListActionMixin, CopyMixin, PrevNextMixin, EmployeeDataIsolationMixin
+from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, SearchMixin, CopyMixin, PrevNextMixin, EmployeeDataIsolationMixin, SortMixin
 from ..models import BookkeepingClient, GroupInvoice
 from ..models.billing import ServiceFee
 from ..forms import BookkeepingClientForm
@@ -31,18 +30,65 @@ ServiceFeeFormSet = inlineformset_factory(
 )
 
 
-class BookkeepingClientListView(EmployeeDataIsolationMixin, ListActionMixin, LoginRequiredMixin, ListView):
+class BookkeepingClientListView(FilterMixin, EmployeeDataIsolationMixin, ListActionMixin, SearchMixin, SortMixin, BusinessRequiredMixin, ListView):
     model = BookkeepingClient
     template_name = 'bookkeeping/bookkeeping_client/list.html'
     context_object_name = 'clients'
     create_button_label = '新增記帳客戶'
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
+    search_fields = ['name', 'tax_id']
+    allowed_sort_fields = [
+        'name', 'tax_id', 'acceptance_status', 'billing_status',
+        'service_type', 'group_assistant__name', 'bookkeeping_assistant__name',
+        'annotated_billing_cycle'
+    ]
+    paginate_by = 25
+    filter_choices = {
+        'active':      {'acceptance_status': 'active'},
+        'suspended':   {'acceptance_status': 'suspended'},
+        'transferred': {'acceptance_status': 'transferred'},
+    }
+
+    def get_base_queryset(self):
+        from django.db.models import OuterRef, Subquery
+        from django.utils import timezone
+        
+        today = timezone.now().date()
+        active_sf_cycle = ServiceFee.objects.filter(
+            client=OuterRef('pk'),
+            effective_date__lte=today,
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+        ).order_by('-effective_date').values('billing_cycle')[:1]
+        
+        return super().get_base_queryset().select_related(
+            'group_assistant', 'bookkeeping_assistant'
+        ).prefetch_related('service_fees').annotate(
+            annotated_billing_cycle=Subquery(active_sf_cycle)
+        )
+
+    def _base_qs_for_counts(self):
+        # Use get_base_queryset so counts respect employee isolation
+        return self.get_base_queryset()
+
+    def get_ordering(self):
+        # 避免 ListView 預設去對尚未產生的 annotated_billing_cycle 做排序導致報錯
+        return ['-created_at']
 
     def get_queryset(self):
-        # The mixin handles the role-based filtering and returns the filtered qs
-        return super().get_queryset().filter(is_deleted=False).select_related(
-            'group_assistant', 'bookkeeping_assistant'
-        )
+        qs = super().get_queryset()
+        sort = self.request.GET.get('sort', '').strip()
+        field_to_check = sort.lstrip('-')
+        if sort and field_to_check in self.allowed_sort_fields:
+            qs = qs.order_by(sort)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['count_active']      = context['filter_counts']['active']
+        context['count_suspended']   = context['filter_counts']['suspended']
+        context['count_transferred'] = context['filter_counts']['transferred']
+        return context
 
 
 def _build_select_options(choices, current_value):
@@ -103,6 +149,19 @@ def _get_common_context(context, form, obj=None, request=None):
     else:
         context['service_fee_formset'] = ServiceFeeFormSet(prefix='service_fees')
 
+    # Active service fee (for display in Card 3)
+    if obj:
+        from django.utils import timezone
+        today = timezone.now().date()
+        active_sf = obj.service_fees.filter(
+            effective_date__lte=today,
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+        ).order_by('-effective_date').first()
+        context['active_service_fee'] = active_sf
+    else:
+        context['active_service_fee'] = None
+
     # History (only for existing objects)
     if obj and hasattr(obj, 'history'):
         history_list = []
@@ -132,7 +191,7 @@ BOOKKEEPING_CLIENT_FIELDS = [
 ]
 
 
-class BookkeepingClientCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class BookkeepingClientCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = BookkeepingClient
     template_name = 'bookkeeping/bookkeeping_client/form.html'
     form_class = BookkeepingClientForm
@@ -173,7 +232,7 @@ class BookkeepingClientCreateView(CopyMixin, LoginRequiredMixin, CreateView):
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class BookkeepingClientUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class BookkeepingClientUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = BookkeepingClient
     template_name = 'bookkeeping/bookkeeping_client/form.html'
     form_class = BookkeepingClientForm
@@ -215,7 +274,7 @@ class BookkeepingClientUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView)
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class BookkeepingClientDeleteView(LoginRequiredMixin, View):
+class BookkeepingClientDeleteView(BusinessRequiredMixin, View):
     """Soft-delete: GET shows confirmation, POST sets is_deleted=True."""
 
     def get(self, request, pk):

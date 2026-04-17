@@ -2,7 +2,7 @@
 Views for VAT notification sending and public payment confirmation callback.
 """
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
@@ -13,7 +13,7 @@ from modules.internal_accounting.models.receivable import Receivable
 from ..services.vat_notification import send_vat_notification
 
 
-class SendVATNotificationView(LoginRequiredMixin, View):
+class SendVATNotificationView(BusinessRequiredMixin, View):
     """
     POST: send Line/Email notification to the client for a specific period.
     Updates filing_status → 'waiting'.
@@ -76,7 +76,7 @@ class VATConfirmView(View):
         })
 
 
-class CheckOutstandingReceivablesAPI(LoginRequiredMixin, View):
+class CheckOutstandingReceivablesAPI(BusinessRequiredMixin, View):
     """
     API endpoint to check if a client has any unposted bills, and if not,
     fetch all their outstanding receivables.

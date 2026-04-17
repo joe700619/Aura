@@ -1,45 +1,42 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, FilterMixin, SearchMixin, SortMixin, PrevNextMixin, SoftDeleteMixin
+from django.contrib import messages
 from ..models import CompanyFiling
 from ..forms import CompanyFilingForm, FilingHistoryFormSet
-from django.db.models import Q
 from django.db import transaction
 
-class CompanyFilingListView(LoginRequiredMixin, ListView):
+class CompanyFilingListView(SortMixin, FilterMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = CompanyFiling
     template_name = 'company_filing/list.html'
     context_object_name = 'company_filing_list'
-    paginate_by = 20
+    paginate_by = 25
+    search_fields = ['filing_no', 'company_name', 'main_contact', 'unified_business_no', 'address']
+    filter_choices = {
+        'OFFICE': {'filing_method': 'OFFICE'},
+        'SELF':   {'filing_method': 'SELF'},
+    }
+    allowed_sort_fields = ['filing_no', 'company_name', 'unified_business_no', 'main_contact', 'filing_method', 'fee']
+    default_sort = ['-filing_no']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        search_query = self.request.GET.get('q')
-
-        if search_query:
-            queryset = queryset.filter(
-                Q(filing_no__icontains=search_query) |
-                Q(company_name__icontains=search_query) |
-                Q(main_contact__icontains=search_query) |
-                Q(unified_business_no__icontains=search_query) |
-                Q(address__icontains=search_query)
-            )
-        
-        return queryset
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_title'] = '公司法22-1申報列表'
-        context['model_name'] = 'registration:company_filing'
-        context['model_app_label'] = 'registration'
-        context['create_button_label'] = '新增申報'
+        context['count_all']    = context['filter_counts']['ALL']
+        context['count_office'] = context['filter_counts']['OFFICE']
+        context['count_self']   = context['filter_counts']['SELF']
         return context
 
-class CompanyFilingCreateView(LoginRequiredMixin, CreateView):
+class CompanyFilingCreateView(BusinessRequiredMixin, CreateView):
     model = CompanyFiling
     form_class = CompanyFilingForm
     template_name = 'company_filing/form.html'
-    success_url = reverse_lazy('registration:company_filing_list')
+
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:company_filing_edit', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -63,11 +60,15 @@ class CompanyFilingCreateView(LoginRequiredMixin, CreateView):
                 return self.render_to_response(self.get_context_data(form=form))
         return super().form_valid(form)
 
-class CompanyFilingUpdateView(LoginRequiredMixin, UpdateView):
+class CompanyFilingUpdateView(BusinessRequiredMixin, PrevNextMixin, UpdateView):
     model = CompanyFiling
     form_class = CompanyFilingForm
     template_name = 'company_filing/form.html'
-    success_url = reverse_lazy('registration:company_filing_list')
+    prev_next_order_field = 'created_at'
+
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:company_filing_edit', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -77,6 +78,16 @@ class CompanyFilingUpdateView(LoginRequiredMixin, UpdateView):
             context['history_formset'] = FilingHistoryFormSet(self.request.POST, instance=self.object)
         else:
             context['history_formset'] = FilingHistoryFormSet(instance=self.object)
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -91,7 +102,7 @@ class CompanyFilingUpdateView(LoginRequiredMixin, UpdateView):
                 return self.render_to_response(self.get_context_data(form=form))
         return super().form_valid(form)
 
-class CompanyFilingDeleteView(LoginRequiredMixin, DeleteView):
+class CompanyFilingDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = CompanyFiling
     success_url = reverse_lazy('registration:company_filing_list')
     template_name = 'company_filing/confirm_delete.html'

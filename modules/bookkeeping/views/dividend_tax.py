@@ -1,11 +1,11 @@
 import json
+from core.mixins import BusinessRequiredMixin
 import math
 from datetime import date
 from collections import defaultdict
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -15,7 +15,7 @@ from django.views.generic import UpdateView
 from ..models.income_tax import DividendTax, ShareholderDividend
 
 
-class DividendTaxDetailView(LoginRequiredMixin, UpdateView):
+class DividendTaxDetailView(BusinessRequiredMixin, UpdateView):
     model = DividendTax
     fields = [
         'last_year_profit', 'accumulated_loss', 'distributable_amount',
@@ -158,7 +158,7 @@ class DividendTaxDetailView(LoginRequiredMixin, UpdateView):
             ShareholderDividend.objects.filter(pk__in=to_delete).delete()
 
 
-class ImportShareholdersView(LoginRequiredMixin, View):
+class ImportShareholdersView(BusinessRequiredMixin, View):
     """AJAX endpoint: import shareholders from EquityTransaction."""
 
     def post(self, request, client_pk, pk):

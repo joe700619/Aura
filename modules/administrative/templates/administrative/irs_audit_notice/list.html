@@ -27,27 +27,45 @@
 <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
+{% block metadata_json %}
 [
     {% for instance in notices %}
     {
         "id": {{ instance.pk }},
-        "category": "{{ instance.tax_category|default:'ALL'|escapejs }}",
-        "content": "{{ instance.customer.name|escapejs }} {{ instance.subject|escapejs }}"
+        "category": "ALL",
+        "content": "{{ instance.customer.name|escapejs }} {{ instance.subject|escapejs }} {{ instance.tax_id|default:''|escapejs }} {{ instance.tax_category|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
-</script>
-{{ block.super }}
+{% endblock %}
+
+{% block filters %}
+<a href="?filter=pending{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'pending' %}bg-red-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    待處理
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.pending|default:0 }})</span>
+</a>
+<a href="?filter=processing{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'processing' %}bg-yellow-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    處理中
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.processing|default:0 }})</span>
+</a>
+<a href="?filter=closed{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'closed' %}bg-green-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    已結案
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.closed|default:0 }})</span>
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-slate-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部
+    <span class="ml-1 text-xs opacity-75">({{ filter_counts.ALL|default:0 }})</span>
+</a>
 {% endblock %}
 
 {% block table_rows %}
 {% for instance in notices %}
 <tr class="hover:bg-slate-50 transition-colors duration-150"
-    data-category="{{ instance.tax_category|default:'ALL'|escape }}"
-    data-content="{{ instance.customer.name|escape }} {{ instance.subject|escape }}"
-    x-show="matches($el.dataset.category, $el.dataset.content)"
+    x-show="matches('ALL', '{{ instance.customer.name|escapejs }} {{ instance.subject|escapejs }} {{ instance.tax_id|default:''|escapejs }} {{ instance.tax_category|default:''|escapejs }}')"
     :class="selectedRows.includes({{ instance.pk }}) ? 'bg-blue-50/30' : ''"
     data-receiptdate="{{ instance.receipt_date|date:'Y-m-d'|default:'' }}"
     data-customer="{{ instance.customer.name|escapejs }}"
@@ -99,3 +117,7 @@
 </tr>
 {% endfor %}
 {% endblock %}
+
+{% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}

@@ -1,10 +1,9 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin
+from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, PayrollDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SortMixin, FilterMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS  # noqa: F401
 from ..models import SalaryStructure, OvertimeRecord, PayrollRecord, Employee, InsuranceBracket, AdvancePayment
 from ..forms import SalaryStructureForm, OvertimeRecordForm, PayrollRecordForm, InsuranceBracketForm, AdvancePaymentForm
 from modules.workflow.services import (
@@ -20,29 +19,27 @@ from modules.workflow.services import (
 
 # ==================== InsuranceBracket ====================
 
-class InsuranceBracketListView(ListActionMixin, LoginRequiredMixin, ListView):
+class InsuranceBracketListView(SortMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = InsuranceBracket
     template_name = 'insurance_bracket/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增級距'
+    search_fields = ['level_name']
+    allowed_sort_fields = ['level_name', 'insured_salary', 'labor_employee', 'labor_employer', 'health_employee', 'health_employer', 'pension_employer']
+    default_sort = ['insured_salary']
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(is_deleted=False)
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(level_name__icontains=q)
-        return qs
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '勞健保投保級距表'
         context['custom_create_url'] = reverse_lazy('hr:insurance_bracket_create')
-        context['q'] = self.request.GET.get('q', '')
         return context
 
 
-class InsuranceBracketCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class InsuranceBracketCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = InsuranceBracket
     form_class = InsuranceBracketForm
     template_name = 'insurance_bracket/form.html'
@@ -61,7 +58,7 @@ class InsuranceBracketCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class InsuranceBracketUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class InsuranceBracketUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
     model = InsuranceBracket
     form_class = InsuranceBracketForm
     template_name = 'insurance_bracket/form.html'
@@ -78,39 +75,38 @@ class InsuranceBracketUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:insurance_bracket_update', pk=self.object.pk)
 
 
-class InsuranceBracketDeleteView(LoginRequiredMixin, DeleteView):
+class InsuranceBracketDeleteView(SoftDeleteMixin, HRRequiredMixin, DeleteView):
     model = InsuranceBracket
     success_url = reverse_lazy('hr:insurance_bracket_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
 
 # ==================== SalaryStructure ====================
 
-class SalaryStructureListView(ListActionMixin, LoginRequiredMixin, ListView):
+class SalaryStructureListView(PayrollDataMixin, SortMixin, FilterMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = SalaryStructure
     template_name = 'salary_structure/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增薪資結構'
+    search_fields = ['employee__name']
+    allowed_sort_fields = ['employee__name', 'base_salary', 'effective_date', 'is_current']
+    default_sort = ['-effective_date']
+    filter_choices = {
+        'current': {'is_current': True},
+        'expired': {'is_current': False},
+    }
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(is_deleted=False).select_related('employee')
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
-        return qs
+        return super().get_queryset().filter(is_deleted=False).select_related('employee')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '薪資結構'
         context['custom_create_url'] = reverse_lazy('hr:salary_structure_create')
-        context['q'] = self.request.GET.get('q', '')
         return context
 
 
-class SalaryStructureCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class SalaryStructureCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = SalaryStructure
     form_class = SalaryStructureForm
     template_name = 'salary_structure/form.html'
@@ -129,7 +125,7 @@ class SalaryStructureCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class SalaryStructureUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class SalaryStructureUpdateView(PayrollDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     model = SalaryStructure
     form_class = SalaryStructureForm
     template_name = 'salary_structure/form.html'
@@ -138,6 +134,16 @@ class SalaryStructureUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯薪資結構 - {self.object.employee.name}'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -146,39 +152,40 @@ class SalaryStructureUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:salary_structure_update', pk=self.object.pk)
 
 
-class SalaryStructureDeleteView(LoginRequiredMixin, DeleteView):
+class SalaryStructureDeleteView(PayrollDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     model = SalaryStructure
     success_url = reverse_lazy('hr:salary_structure_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
 
 # ==================== OvertimeRecord ====================
 
-class OvertimeListView(ListActionMixin, LoginRequiredMixin, ListView):
+class OvertimeListView(OwnEmployeeDataMixin, SortMixin, FilterMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = OvertimeRecord
     template_name = 'overtime/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     create_button_label = '新增加班'
+    search_fields = ['employee__name']
+    allowed_sort_fields = ['employee__name', 'date', 'hours', 'rate']
+    default_sort = ['-date']
+    filter_choices = {
+        'pending':  {'is_approved': False},
+        'approved': {'is_approved': True},
+    }
+    default_filter = 'pending'
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(is_deleted=False).select_related('employee')
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
-        return qs
+        return super().get_queryset().filter(is_deleted=False).select_related('employee')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '加班紀錄'
         context['custom_create_url'] = reverse_lazy('hr:overtime_create')
-        context['q'] = self.request.GET.get('q', '')
         return context
 
 
-class OvertimeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class OvertimeCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = OvertimeRecord
     form_class = OvertimeRecordForm
     template_name = 'overtime/form.html'
@@ -197,7 +204,8 @@ class OvertimeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class OvertimeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class OvertimeUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = OvertimeRecord
     form_class = OvertimeRecordForm
     template_name = 'overtime/form.html'
@@ -207,10 +215,20 @@ class OvertimeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯加班紀錄 - {self.object.employee.name}'
 
-        # 添加核准相關 context
         approval_request = self.object.get_approval_request()
         context['approval_request'] = approval_request
         context['can_approve'] = self.object.can_user_approve(self.request.user) if approval_request else False
+
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
 
         return context
 
@@ -220,52 +238,49 @@ class OvertimeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:overtime_update', pk=self.object.pk)
 
 
-class OvertimeDeleteView(LoginRequiredMixin, DeleteView):
+class OvertimeDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = OvertimeRecord
     success_url = reverse_lazy('hr:overtime_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
 
 # ==================== PayrollRecord ====================
 
-class PayrollListView(ListActionMixin, LoginRequiredMixin, ListView):
+class PayrollListView(PayrollDataMixin, SortMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = PayrollRecord
     template_name = 'payroll/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增薪資單'
+    search_fields = ['employee__name']
+    allowed_sort_fields = ['employee__name', 'year_month', 'gross_salary', 'net_salary', 'is_finalized']
+    default_sort = ['-year_month']
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_deleted=False).select_related('employee')
-        q = self.request.GET.get('q', '')
         year_month = self.request.GET.get('year_month', '')
         status = self.request.GET.get('status', 'draft')
-        
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
+
         if year_month:
             qs = qs.filter(year_month=year_month)
-            
+
         if status == 'draft':
             qs = qs.filter(is_finalized=False)
         elif status == 'finalized':
             qs = qs.filter(is_finalized=True)
-            
+
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '薪資單'
         context['custom_create_url'] = reverse_lazy('hr:payroll_create')
-        context['q'] = self.request.GET.get('q', '')
         context['selected_year_month'] = self.request.GET.get('year_month', '')
         context['selected_status'] = self.request.GET.get('status', 'draft')
         return context
 
 
-class PayrollCreateView(LoginRequiredMixin, CreateView):
+class PayrollCreateView(HRRequiredMixin, CreateView):
     model = PayrollRecord
     form_class = PayrollRecordForm
     template_name = 'payroll/form.html'
@@ -286,7 +301,7 @@ class PayrollCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class PayrollUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class PayrollUpdateView(PayrollDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     model = PayrollRecord
     form_class = PayrollRecordForm
     template_name = 'payroll/form.html'
@@ -295,6 +310,16 @@ class PayrollUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'薪資單 - {self.object.employee.name} ({self.object.year_month})'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -320,15 +345,12 @@ class PayrollUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:payroll_update', pk=self.object.pk)
 
 
-class PayrollDeleteView(LoginRequiredMixin, DeleteView):
+class PayrollDeleteView(PayrollDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     model = PayrollRecord
     success_url = reverse_lazy('hr:payroll_list')
 
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
-
-class PayrollBatchGenerateView(LoginRequiredMixin, View):
+class PayrollBatchGenerateView(HRRequiredMixin, View):
     """批次產生薪資單"""
 
     def post(self, request):
@@ -354,29 +376,34 @@ class PayrollBatchGenerateView(LoginRequiredMixin, View):
 
 # ==================== AdvancePayment ====================
 
-class AdvancePaymentListView(ListActionMixin, LoginRequiredMixin, ListView):
+class AdvancePaymentListView(OwnEmployeeDataMixin, SortMixin, FilterMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = AdvancePayment
     template_name = 'advance_payment/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     create_button_label = '新增代墊款'
+    search_fields = ['employee__name', 'reason']
+    allowed_sort_fields = ['employee__name', 'date_applied', 'amount', 'status']
+    default_sort = ['-date_applied']
+    filter_choices = {
+        'pending':  {'status': 'pending'},
+        'approved': {'status': 'approved'},
+        'deducted': {'status': 'deducted'},
+        'rejected': {'status': 'rejected'},
+    }
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(is_deleted=False).select_related('employee', 'payroll_record')
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
-        return qs
+        return super().get_queryset().filter(is_deleted=False).select_related('employee', 'payroll_record')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '代墊款申請'
         context['custom_create_url'] = reverse_lazy('hr:advance_payment_create')
-        context['q'] = self.request.GET.get('q', '')
         return context
 
 
-class AdvancePaymentCreateView(LoginRequiredMixin, CreateView):
+class AdvancePaymentCreateView(HRRequiredMixin, CreateView):
     model = AdvancePayment
     form_class = AdvancePaymentForm
     template_name = 'advance_payment/form.html'
@@ -395,7 +422,8 @@ class AdvancePaymentCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class AdvancePaymentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class AdvancePaymentUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AdvancePayment
     form_class = AdvancePaymentForm
     template_name = 'advance_payment/form.html'
@@ -416,6 +444,17 @@ class AdvancePaymentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         else:
             context['can_approve'] = False
 
+        if hasattr(obj, 'history'):
+            history_list = []
+            for record in obj.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
+
         return context
 
     def form_valid(self, form):
@@ -424,12 +463,10 @@ class AdvancePaymentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect(self.get_success_url())
 
 
-class AdvancePaymentDeleteView(LoginRequiredMixin, DeleteView):
+class AdvancePaymentDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AdvancePayment
     success_url = reverse_lazy('hr:advance_payment_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
 
 # ========== Advance Payment Approval Action Views ==========

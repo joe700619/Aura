@@ -13,7 +13,7 @@
     <label for="status" class="px-3 text-sm text-slate-600">進度:</label>
     <select name="status" id="status"
         class="border-0 bg-transparent py-1.5 pl-0 pr-8 text-sm focus:ring-0 text-slate-700 font-medium cursor-pointer"
-        onchange="window.location.href='?status=' + this.value">
+        onchange="(function(v){ var p=new URLSearchParams(window.location.search); if(v) p.set('status',v); else p.delete('status'); p.delete('page'); window.location.href='?'+p.toString(); })(this.value)">
         <option value="">全部</option>
         {% for option in status_options %}
         <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>{{ option.label }}</option>
@@ -22,14 +22,42 @@
 </div>
 {% endblock %}
 
+{% block extra_pagination_params %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+
 {% block table_headers %}
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記單號</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">承接日期</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">統一編號</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">主要聯絡人</th>
+<th scope="col" @click="serverSort('registration_no')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">登記單號
+        <span class="ml-1 text-[10px] {% if 'registration_no' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'registration_no' %}↓{% elif current_sort == '-registration_no' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('acceptance_date')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">承接日期
+        <span class="ml-1 text-[10px] {% if 'acceptance_date' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'acceptance_date' %}↓{% elif current_sort == '-acceptance_date' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('unified_business_no')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">統一編號
+        <span class="ml-1 text-[10px] {% if 'unified_business_no' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'unified_business_no' %}↓{% elif current_sort == '-unified_business_no' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('company_name')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">公司名稱
+        <span class="ml-1 text-[10px] {% if 'company_name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'company_name' %}↓{% elif current_sort == '-company_name' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
+<th scope="col" @click="serverSort('main_contact')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">主要聯絡人
+        <span class="ml-1 text-[10px] {% if 'main_contact' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'main_contact' %}↓{% elif current_sort == '-main_contact' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">案件種類</th>
-<th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記進度</th>
+<th scope="col" @click="serverSort('progress_status')" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">登記進度
+        <span class="ml-1 text-[10px] {% if 'progress_status' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'progress_status' %}↓{% elif current_sort == '-progress_status' %}↑{% else %}↕{% endif %}</span>
+    </div>
+</th>
 <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
 
@@ -116,16 +144,18 @@
 {% endfor %}
 {% endblock %}
 
-{% block overlays %}
-<script id="list-metadata" type="application/json">
+{% block metadata_json %}
 [
     {% for item in progress_list %}
-    { 
-        "id": {{ item.pk }}, 
-        "category": "ALL", 
-        "content": "{{ item.registration_no }} {{ item.company_name }} {{ item.unified_business_no }}" 
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.registration_no|escapejs }} {{ item.company_name|escapejs }} {{ item.unified_business_no|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
-</script>
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
 {% endblock %}

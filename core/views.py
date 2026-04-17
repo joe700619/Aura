@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.apps import apps
 from django.http import JsonResponse, HttpResponse
 from django.views import View
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from import_export.resources import modelresource_factory
 from core.resources import DynamicResource
@@ -10,6 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 import json
 
+@login_required
 def dashboard(request):
     context = {}
     if request.user.is_authenticated:
@@ -18,101 +20,98 @@ def dashboard(request):
         context['pending_approvals'] = pending_approvals
         context['pending_count'] = pending_approvals.count()
         
-        # Dashboard new metrics logic
-        try:
-            employee = getattr(request.user, 'employee_profile', None)
-            if employee:
-                # 1. Bookkeeping count
+        # ── 員工個人資料區（打卡、記帳件數等）──
+        employee = getattr(request.user, 'employee_profile', None)
+        context['employee'] = employee
+
+        if employee:
+            try:
                 from modules.bookkeeping.models import BookkeepingClient
                 context['bookkeeping_count'] = BookkeepingClient.objects.filter(bookkeeping_assistant=employee).count()
+            except Exception:
+                context['bookkeeping_count'] = 0
 
-                # 2. Registration count (skip for now)
-                context['registration_count'] = 0
+            context['registration_count'] = 0
 
-                # 3. Unbilled amount (Receivable)
+            try:
                 from modules.internal_accounting.models import Receivable
                 receivables = Receivable.objects.filter(is_posted=False, assistant=employee.name)
                 context['unbilled_amount'] = sum(r.total_amount for r in receivables)
+            except Exception:
+                context['unbilled_amount'] = 0
 
-                # 4. Bookkeeping Progress (Not Started)
+            try:
                 from modules.bookkeeping.models import BookkeepingPeriod
-                not_started_periods = BookkeepingPeriod.objects.filter(
+                context['not_started_periods'] = BookkeepingPeriod.objects.filter(
                     year_record__client__bookkeeping_assistant=employee,
                     account_status=BookkeepingPeriod.AccountStatus.NOT_STARTED
                 ).select_related('year_record__client').order_by('year_record__year', 'period_start_month')
-                context['not_started_periods'] = not_started_periods
-                
-                # 4.5. Attendance / Clock In
+            except Exception:
+                context['not_started_periods'] = []
+
+            try:
                 from modules.hr.models import AttendanceRecord
                 from django.utils import timezone
                 today = timezone.localdate()
                 context['today'] = today
-                context['employee'] = employee
                 context['today_record'] = AttendanceRecord.objects.filter(
                     employee=employee, date=today, is_deleted=False
                 ).first()
-                
-            else:
-                context['bookkeeping_count'] = 0
-                context['registration_count'] = 0
-                context['unbilled_amount'] = 0
-                context['not_started_periods'] = []
-                context['today'] = None
-                context['employee'] = None
+            except Exception:
+                from django.utils import timezone
+                context['today'] = timezone.localdate()
                 context['today_record'] = None
-                
-            # 5. System Bulletin (fetch top 5 active)
-            from modules.administrative.models.bulletin import SystemBulletin
-            context['system_bulletins'] = SystemBulletin.objects.filter(status='active').order_by('-publish_date', '-created_at')[:5]
+        else:
+            context['bookkeeping_count'] = 0
+            context['registration_count'] = 0
+            context['unbilled_amount'] = 0
+            context['not_started_periods'] = []
+            from django.utils import timezone
+            context['today'] = timezone.localdate()
+            context['today_record'] = None
 
-            # 6. Tax Timeline (Annual Horizontal Timeline)
+        # ── 系統布告欄（所有登入者皆顯示）──
+        try:
+            from modules.administrative.models.bulletin import SystemBulletin
+            context['system_bulletins'] = SystemBulletin.objects.filter(
+                status='active'
+            ).order_by('-publish_date', '-created_at')[:5]
+        except Exception:
+            context['system_bulletins'] = []
+
+        # ── 年度稅務行事曆（所有登入者皆顯示）──
+        try:
             from datetime import date
             from modules.administrative.models.tax_timeline import TaxTaskInstance
             current_year = date.today().year
             current_month = date.today().month
-            
             tasks = TaxTaskInstance.objects.filter(year=current_year).select_related('template')
             timeline_data = []
             for m in range(1, 13):
                 month_tasks = tasks.filter(month=m)
-                
-                # Check if there's any task with alert: not completed and deadline passed
                 has_alert = any(not t.is_completed and t.deadline < date.today() for t in month_tasks)
-                
                 tasks_info = []
                 for t in month_tasks:
                     progress = (t.completed_clients / t.total_clients * 100) if t.total_clients > 0 else 0
-                    if progress < 0: progress = 0
-                    if progress > 100: progress = 100
-                    
+                    progress = max(0, min(100, progress))
                     tasks_info.append({
                         "id": t.id,
                         "title": t.title,
                         "progress": round(progress, 1),
                         "deadline": t.deadline,
                         "is_completed": t.is_completed,
-                        "remarks": t.remarks
+                        "remarks": t.remarks,
                     })
-                
                 timeline_data.append({
                     "month": m,
                     "is_current": m == current_month,
                     "has_alert": has_alert,
                     "tasks": tasks_info,
-                    # Count total uncompleted tasks for badge/display if needed
-                    "uncompleted_count": len([t for t in month_tasks if not t.is_completed])
+                    "uncompleted_count": sum(1 for t in month_tasks if not t.is_completed),
                 })
-            
             context['timeline'] = timeline_data
-
-        except Exception as e:
-            # Handle any fetching exception safely
-            context['bookkeeping_count'] = 0
-            context['registration_count'] = 0
-            context['unbilled_amount'] = 0
-            context['not_started_periods'] = []
-            context['system_bulletins'] = []
-            print(f"Error loading dashboard metrics: {e}")
+        except Exception:
+            context['timeline'] = []
         
     return render(request, 'dashboard.html', context)
 

@@ -81,6 +81,11 @@ class AdvancePaymentDetail(BaseModel):
     amount = models.DecimalField(_('代墊費用'), max_digits=12, decimal_places=0, default=0)
     is_billed = models.BooleanField(_('是否已發單'), default=False)
     payment_type = models.CharField(_('代墊類型'), max_length=50, choices=PaymentType.choices, blank=True, null=True)
+    is_registration_case = models.CharField(
+        _('登記案件'), max_length=3,
+        choices=[('YES', 'Yes'), ('NO', 'No')],
+        blank=True, null=True
+    )
     
     class Meta:
         verbose_name = _('代墊款明細')

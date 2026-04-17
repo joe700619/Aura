@@ -52,6 +52,7 @@ urlpatterns = [
     
     # Advance Payment
     path('advance-payments/', views.AdvancePaymentListView.as_view(), name='advance_payment_list'),
+    path('advance-payments/detail-list/', views.AdvancePaymentDetailListView.as_view(), name='advance_payment_detail_list'),
     path('advance-payments/add/', views.AdvancePaymentCreateView.as_view(), name='advance_payment_create'),
     path('advance-payments/<int:pk>/edit/', views.AdvancePaymentUpdateView.as_view(), name='advance_payment_update'),
     path('advance-payments/<int:pk>/delete/', views.AdvancePaymentDeleteView.as_view(), name='advance_payment_delete'),

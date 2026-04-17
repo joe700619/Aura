@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load humanize %}
 
+{% block page_title %}損益表{% endblock %}
+
 {% block content %}
 <div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
     <!-- Page header -->
@@ -35,6 +37,14 @@
     </div>
 
     <!-- P&L Table -->
+    {% if not submitted %}
+    <div class="bg-white px-4 py-16 rounded-sm border border-slate-200 shadow-sm text-center mb-8 max-w-4xl mx-auto">
+        <svg class="mx-auto h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <p class="text-slate-400 font-medium">請設定日期範圍後按「產生報表」以顯示損益表</p>
+    </div>
+    {% else %}
     <div class="bg-white shadow-lg rounded-sm border border-slate-200 relative max-w-4xl mx-auto">
         <div class="p-3">
             <table class="table-auto w-full text-sm">
@@ -185,6 +195,7 @@
             </table>
         </div>
     </div>
+    {% endif %}{# end submitted #}
 </div>
 
 <style>

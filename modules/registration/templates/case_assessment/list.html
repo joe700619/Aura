@@ -3,90 +3,60 @@
 {% block page_title %}案件評估表列表{% endblock %}
 {% block header_title %}案件評估表{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for assessment in assessments %}
-    {
-        "id": {{ assessment.pk }},
-        "category": "{% if assessment.is_completed %}COMPLETED{% else %}UNCOMPLETED{% endif %}",
-        "content": "{{ assessment.company_name|escapejs }} {{ assessment.registration_no|default:''|escapejs }} {{ assessment.unified_business_no|default:''|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
-{% endblock %}
-
-{% block overlays %}
-{% include "components/export_modal.html" %}
-{% endblock %}
-
-{% block extra_init %}
-this.filter = 'UNCOMPLETED';
-{% endblock %}
-
 {% block filters %}
-<nav class="flex space-x-1 rounded-lg bg-slate-100 p-1" aria-label="Tabs">
-    <button @click="filter = 'UNCOMPLETED'; toggleAll()"
-        :class="filter === 'UNCOMPLETED' ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'"
-        class="rounded-md px-3 py-2 text-sm font-medium transition-all duration-200">
-        未完成
-    </button>
-    <button @click="filter = 'COMPLETED'; toggleAll()"
-        :class="filter === 'COMPLETED' ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'"
-        class="rounded-md px-3 py-2 text-sm font-medium transition-all duration-200">
-        完成
-    </button>
-    <button @click="filter = 'ALL'; toggleAll()"
-        :class="filter === 'ALL' ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'"
-        class="rounded-md px-3 py-2 text-sm font-medium transition-all duration-200">
-        全部
-    </button>
-</nav>
+<a href="?filter=UNCOMPLETED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'UNCOMPLETED' %}bg-amber-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   未完成 ({{ count_uncompleted }})</a>
+<a href="?filter=COMPLETED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'COMPLETED' %}bg-green-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   完成 ({{ count_completed }})</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   全部 ({{ count_all }})</a>
 {% endblock %}
 
 {% block table_headers %}
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">評估日期
+<th scope="col" @click="serverSort('date')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">評估日期
+        <span class="ml-1 text-[10px] {% if 'date' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'date' %}↓{% elif current_sort == '-date' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">登記案件編號
+<th scope="col" @click="serverSort('registration_no')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">登記案件編號
+        <span class="ml-1 text-[10px] {% if 'registration_no' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'registration_no' %}↓{% elif current_sort == '-registration_no' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-2/12">公司名稱
+<th scope="col" @click="serverSort('company_name')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-2/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">公司名稱
+        <span class="ml-1 text-[10px] {% if 'company_name' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'company_name' %}↓{% elif current_sort == '-company_name' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">統一編號
+<th scope="col" @click="serverSort('unified_business_no')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">統一編號
+        <span class="ml-1 text-[10px] {% if 'unified_business_no' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'unified_business_no' %}↓{% elif current_sort == '-unified_business_no' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">風險層級
+<th scope="col" @click="serverSort('risk_level')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">風險層級
+        <span class="ml-1 text-[10px] {% if 'risk_level' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'risk_level' %}↓{% elif current_sort == '-risk_level' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">核准狀態
-</th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">承接與否
-</th>
-<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">完成否
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">核准狀態</th>
+<th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">承接與否</th>
+<th scope="col" @click="serverSort('is_completed')" class="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12 cursor-pointer hover:bg-slate-200 transition-colors group select-none">
+    <div class="flex items-center">完成否
+        <span class="ml-1 text-[10px] {% if 'is_completed' in current_sort %}text-blue-600 font-bold opacity-100{% else %}opacity-50 group-hover:opacity-100{% endif %}">{% if current_sort == 'is_completed' %}↓{% elif current_sort == '-is_completed' %}↑{% else %}↕{% endif %}</span>
+    </div>
 </th>
 <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">說明</th>
-<th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">操作
-</th>
+<th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/12">操作</th>
 {% endblock %}
 
 {% block table_rows %}
 {% for object in assessments %}
 <tr class="hover:bg-slate-50 transition-colors duration-150 ease-in-out"
-    x-show="matches('{% if object.is_completed %}COMPLETED{% else %}UNCOMPLETED{% endif %}', '{{ object.company_name|escapejs }} {{ object.registration_no|default:''|escapejs }} {{ object.unified_business_no|default:''|escapejs }}')"
-    x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95"
-    x-transition:enter-end="opacity-100 transform scale-100">
-    <td class="px-6 py-4 whitespace-nowrap">
-        <label class="relative flex cursor-pointer select-none items-center">
-            <input type="checkbox" class="sr-only" value="{{ object.pk }}" x-model.number="selectedRows">
-            <div :class="selectedRows.includes({{ object.pk }}) ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'"
-                class="flex h-5 w-5 items-center justify-center rounded border transition-colors shadow-sm">
-                <template x-if="selectedRows.includes({{ object.pk }})">
-                    <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                    </svg>
-                </template>
-            </div>
-        </label>
-    </td>
+    :class="selectedRows.includes({{ object.pk }}) ? 'bg-blue-50/50' : ''">
+    {% include "components/row_checkbox.html" with value=object.pk %}
     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 border-b border-slate-100">
         {{ object.date|date:"Y/m/d"|default:"-" }}
     </td>
@@ -192,16 +162,23 @@ this.filter = 'UNCOMPLETED';
 {% endfor %}
 {% endblock %}
 
-{% block actions %}
-<a href="{% url 'registration:case_assessment_create' %}"
-    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-    </svg>
-    新增案件評估表
-</a>
+
+{% block metadata_json %}
+[
+    {% for object in assessments %}
+    {
+        "id": {{ object.pk }},
+        "category": "{% if object.is_completed %}COMPLETED{% else %}UNCOMPLETED{% endif %}",
+        "content": "{{ object.company_name|escapejs }} {{ object.registration_no|default:''|escapejs }} {{ object.unified_business_no|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
 {% endblock %}
 
 {% block pagination_info %}
+{% if is_paginated %}
 顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+{% else %}
+顯示第 1 到 {{ object_list|length }} 筆，共 {{ object_list|length }} 筆資料
+{% endif %}
 {% endblock %}

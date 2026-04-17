@@ -13,25 +13,32 @@
 {% endblock %}
 
 {% block table_headers %}
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg">發出日期</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">方式</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-center">吸收</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-right">郵資</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">客戶名稱</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">統一編號</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">寄送地址</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">聯絡人</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">收件人</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left">自訂訊息</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg">已通知</th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-center w-12">連結</th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left rounded-tl-lg" data-sort="date">發出日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left" data-sort="method">方式 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center">吸收</th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-right" data-sort="postage">郵資 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left" data-sort="customer">客戶名稱 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">寄送地址</th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left" data-sort="contact">聯絡人 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left" data-sort="recipient">收件人 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">自訂訊息</th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center rounded-tr-lg">已通知</th>
+    <th class="px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center w-12">連結</th>
 {% endblock %}
 
 {% block table_rows %}
     {% for item in items %}
     <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"
-        x-show="matches('ALL', '{{ item.customer.name|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }}')"
-        :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
+        x-show="matches('ALL', '{{ item.customer.name|escapejs }} {{ item.tax_id|default:''|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }} {{ item.recipient|default:''|escapejs }}')"
+        :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''"
+        data-date="{{ item.dispatch.date|date:'Y-m-d' }}"
+        data-method="{{ item.dispatch.dispatch_method|escapejs }}"
+        data-postage="{{ item.postage }}"
+        data-customer="{{ item.customer.name|escapejs }}"
+        data-taxid="{{ item.tax_id|default:''|escapejs }}"
+        data-contact="{{ item.contact_person|default:''|escapejs }}"
+        data-recipient="{{ item.recipient|default:''|escapejs }}">
         {% include "components/row_checkbox.html" with value=item.pk %}
         <td class="px-4 py-3 whitespace-nowrap font-mono text-slate-600 text-sm">
             {{ item.dispatch.date|date:"Y-m-d" }}
@@ -97,13 +104,17 @@
 {% include "components/export_modal.html" %}
 {% endblock %}
 
+{% block extra_pagination_params %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if q %}&q={{ q }}{% endif %}{% endblock %}
+
 {% block metadata_json %}
 [
     {% for item in items %}
     {
         "id": {{ item.pk }},
         "category": "ALL",
-        "content": "{{ item.customer.name|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }}"
+        "content": "{{ item.customer.name|escapejs }} {{ item.tax_id|default:''|escapejs }} {{ item.address|escapejs }} {{ item.contact_person|escapejs }} {{ item.recipient|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]

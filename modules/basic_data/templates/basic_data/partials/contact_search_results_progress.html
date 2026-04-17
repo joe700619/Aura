@@ -6,6 +6,7 @@
             value: '{{ contact.id }}',
             label: '{{ contact.name|escapejs }}',
             extra: {
+                'main_contact': '{{ contact.name|escapejs }}',
                 'mobile': '{{ contact.mobile|escapejs }}',
                 'phone': '{{ contact.phone|escapejs }}',
                 'email': '{{ contact.email|escapejs }}',

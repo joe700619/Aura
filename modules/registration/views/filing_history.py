@@ -1,11 +1,10 @@
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from core.mixins import PrevNextMixin
+from core.mixins import BusinessRequiredMixin, PrevNextMixin
 from ..models import FilingHistory
 from ..forms import FilingHistoryForm
 
-class FilingHistoryUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView):
+class FilingHistoryUpdateView(BusinessRequiredMixin, PrevNextMixin, UpdateView):
     model = FilingHistory
     fields = ['year', 'category', 'filing_date', 'registration_no', 'is_completed']
     template_name = 'filing_history/form.html'
@@ -21,7 +20,7 @@ class FilingHistoryUpdateView(LoginRequiredMixin, PrevNextMixin, UpdateView):
         context['parent'] = self.object.company_filing
         return context
 
-class FilingHistoryDeleteView(LoginRequiredMixin, DeleteView):
+class FilingHistoryDeleteView(BusinessRequiredMixin, DeleteView):
     model = FilingHistory
     template_name = 'filing_history/confirm_delete.html'
     

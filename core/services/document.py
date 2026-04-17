@@ -79,7 +79,85 @@ class DocumentService:
         # Let's pass the object as 'object' or 'obj' and also spread its fields.
         
         context['obj'] = obj
-        
+
+        # ClientBill: 帳單明細、代墊款明細、合計、支付網址
+        if obj.__class__.__name__ == 'ClientBill':
+            import json as _json
+
+            # ── 帳單明細（bill_items）──
+            try:
+                quotation_data = obj.quotation_data or []
+                if isinstance(quotation_data, str):
+                    quotation_data = _json.loads(quotation_data)
+                bill_items = []
+                for i, item in enumerate(quotation_data, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    amount = int(item.get('amount', 0) or 0)
+                    bill_items.append({
+                        'no':          i,
+                        'service_code': item.get('service_code', ''),
+                        'service_name': item.get('service_name', ''),
+                        'amount':       amount,
+                        'amount_fmt':   f"{amount:,}",
+                        'remark':       item.get('remark', ''),
+                    })
+                context['bill_items'] = bill_items
+                context['service_fee_total'] = sum(it['amount'] for it in bill_items)
+                context['service_fee_total_fmt'] = f"{context['service_fee_total']:,}"
+            except Exception:
+                context['bill_items'] = []
+                context['service_fee_total'] = 0
+                context['service_fee_total_fmt'] = '0'
+
+            # ── 代墊款明細（advance_items）──
+            try:
+                advance_data = obj.advance_payment_data or []
+                if isinstance(advance_data, str):
+                    advance_data = _json.loads(advance_data)
+                advance_items = []
+                for i, item in enumerate(advance_data, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    amount = int(item.get('amount', 0) or 0)
+                    advance_items.append({
+                        'no':           i,
+                        'advance_no':   item.get('advance_no', ''),
+                        'date':         item.get('date', ''),
+                        'reason':       item.get('reason', ''),
+                        'payment_type': item.get('payment_type', ''),
+                        'amount':       amount,
+                        'amount_fmt':   f"{amount:,}",
+                    })
+                context['advance_items'] = advance_items
+                context['advance_total'] = sum(it['amount'] for it in advance_items)
+                context['advance_total_fmt'] = f"{context['advance_total']:,}"
+            except Exception:
+                context['advance_items'] = []
+                context['advance_total'] = 0
+                context['advance_total_fmt'] = '0'
+
+            # ── 格式化合計 ──
+            try:
+                context['total_amount_fmt'] = f"{int(obj.total_amount):,}"
+            except Exception:
+                context['total_amount_fmt'] = str(obj.total_amount)
+
+            # ── 第三方支付網址 ──
+            try:
+                from modules.payment.models import PaymentTransaction
+                tx = PaymentTransaction.objects.filter(
+                    related_app='bookkeeping',
+                    related_model='ClientBill',
+                    related_id=str(obj.pk),
+                ).order_by('-created_at').first()
+                if tx:
+                    context['pay_url'] = f"/payment/bill/{tx.merchant_trade_no}/"
+                else:
+                    context['pay_url'] = ''
+            except Exception:
+                context['pay_url'] = ''
+
         # We can also add helpers or specific related data
         # For Customer, add contacts
         if hasattr(obj, 'contacts'):

@@ -17,6 +17,7 @@ class Account(models.Model):
         PARTNER = 'PARTNER', '對象 (客戶/廠商/統編)'
         DEPARTMENT = 'DEPT', '部門'
         PROJECT = 'PROJECT', '專案'
+        FIXED_ASSET = 'ASSET', '固定資產'
 
     code = models.CharField(max_length=20, primary_key=True, verbose_name="科目代號")
     name = models.CharField(max_length=100, verbose_name="科目名稱")

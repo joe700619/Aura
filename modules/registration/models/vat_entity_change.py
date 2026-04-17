@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from core.models import BaseModel
 
-class VATEntityChange(models.Model):
+class VATEntityChange(BaseModel):
     # 1. Basic Data
     unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True)
     company_name = models.CharField(_('公司名稱'), max_length=255, blank=True)
@@ -29,12 +30,10 @@ class VATEntityChange(models.Model):
     case_types = models.JSONField(_('案件種類'), default=list, blank=True)
     registration_no = models.CharField(_('登記單號'), max_length=20, blank=True)
     is_completed = models.BooleanField(_('完成狀態'), default=False)
+    closed_at = models.DateField(_('結案日期'), null=True, blank=True)
 
     # 4. Note
     note = models.TextField(_('備註'), blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('營業人變更登記')

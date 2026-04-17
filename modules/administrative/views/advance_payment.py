@@ -1,13 +1,12 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
 
-from core.mixins import ListActionMixin, PrevNextMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin
 from modules.workflow.services import (
     initiate_approval,
     submit_for_approval,
@@ -18,18 +17,27 @@ from modules.workflow.services import (
     get_effective_approver
 )
 
-from ..models.advance_payment import AdvancePayment, AdvancePaymentImage
+from ..models.advance_payment import AdvancePayment, AdvancePaymentDetail, AdvancePaymentImage
 from ..forms import AdvancePaymentForm, AdvancePaymentDetailFormSet
 
-class AdvancePaymentListView(ListActionMixin, LoginRequiredMixin, ListView):
+class AdvancePaymentListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = AdvancePayment
     template_name = 'administrative/advance_payment/list.html'
     context_object_name = 'advance_payments'
-    paginate_by = 20
+    paginate_by = 25
     create_button_label = '新增代墊款'
+    search_fields = ['advance_no', 'description', 'applicant__username']
+    filter_choices = {
+        'unposted': {'is_posted': False},
+        'posted':   {'is_posted': True},
+    }
+    default_filter = 'unposted'
 
-    def get_queryset(self):
-        return AdvancePayment.objects.filter(is_deleted=False)
+    def get_base_queryset(self):
+        return super().get_base_queryset()
+
+    def _base_qs_for_counts(self):
+        return self.model.objects.filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -37,7 +45,57 @@ class AdvancePaymentListView(ListActionMixin, LoginRequiredMixin, ListView):
         context['custom_create_url'] = reverse_lazy('administrative:advance_payment_create')
         return context
 
-class AdvancePaymentCreateView(LoginRequiredMixin, CreateView):
+class AdvancePaymentDetailListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
+    model = AdvancePaymentDetail
+    template_name = 'administrative/advance_payment/detail_list.html'
+    context_object_name = 'details'
+    paginate_by = 25
+    search_fields = ['reason', 'customer__name', 'unified_business_no', 'advance_payment__advance_no']
+
+    def _base_detail_qs(self):
+        return AdvancePaymentDetail.objects.select_related(
+            'advance_payment', 'customer'
+        ).filter(advance_payment__is_deleted=False).order_by(
+            '-advance_payment__date', '-advance_payment__advance_no'
+        )
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related(
+            'advance_payment', 'customer'
+        ).filter(advance_payment__is_deleted=False).order_by(
+            '-advance_payment__date', '-advance_payment__advance_no'
+        )
+        absorbed = self.request.GET.get('absorbed', 'NO')
+        billed = self.request.GET.get('billed', 'UNBILLED')
+        if absorbed == 'YES':
+            qs = qs.filter(is_customer_absorbed=True)
+        elif absorbed == 'NO':
+            qs = qs.filter(is_customer_absorbed=False)
+        if billed == 'BILLED':
+            qs = qs.filter(is_billed=True)
+        elif billed == 'UNBILLED':
+            qs = qs.filter(is_billed=False)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        absorbed = self.request.GET.get('absorbed', 'NO')
+        billed = self.request.GET.get('billed', 'UNBILLED')
+        context['current_absorbed'] = absorbed
+        context['current_billed'] = billed
+
+        base = self._base_detail_qs()
+        context['count_absorbed_yes'] = base.filter(is_customer_absorbed=True).count()
+        context['count_absorbed_no'] = base.filter(is_customer_absorbed=False).count()
+        context['count_absorbed_all'] = base.count()
+        context['count_billed_billed'] = base.filter(is_billed=True).count()
+        context['count_billed_unbilled'] = base.filter(is_billed=False).count()
+        context['count_billed_all'] = base.count()
+        context['page_title'] = '代墊款明細查詢'
+        return context
+
+
+class AdvancePaymentCreateView(BusinessRequiredMixin, CreateView):
     model = AdvancePayment
     form_class = AdvancePaymentForm
     template_name = 'administrative/advance_payment/form.html'
@@ -79,7 +137,7 @@ class AdvancePaymentCreateView(LoginRequiredMixin, CreateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class AdvancePaymentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = AdvancePayment
     form_class = AdvancePaymentForm
     template_name = 'administrative/advance_payment/form.html'
@@ -175,7 +233,7 @@ class AdvancePaymentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class AdvancePaymentDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class AdvancePaymentDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = AdvancePayment
     template_name = 'administrative/advance_payment/confirm_delete.html'
     success_url = reverse_lazy('administrative:advance_payment_list')

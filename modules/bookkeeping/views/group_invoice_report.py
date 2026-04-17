@@ -1,10 +1,9 @@
 from django.views.generic import TemplateView, View, ListView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.db.models import Q
 from io import BytesIO
 from ..models import BookkeepingClient, GroupInvoice
-from core.mixins import EmployeeDataIsolationMixin
+from core.mixins import BusinessRequiredMixin, EmployeeDataIsolationMixin
 
 # 發票代碼對照
 INVOICE_CODE_MAP = {
@@ -21,7 +20,7 @@ INVOICE_CODE_MAP = {
 FIXED_SUFFIX = '82530323'
 
 
-class GroupInvoiceReportView(EmployeeDataIsolationMixin, LoginRequiredMixin, ListView):
+class GroupInvoiceReportView(EmployeeDataIsolationMixin, BusinessRequiredMixin, ListView):
     template_name = 'bookkeeping/group_invoice_report.html'
     model = BookkeepingClient
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
@@ -64,7 +63,7 @@ class GroupInvoiceReportView(EmployeeDataIsolationMixin, LoginRequiredMixin, Lis
         return context
 
 
-class GroupInvoiceExportView(EmployeeDataIsolationMixin, LoginRequiredMixin, ListView):
+class GroupInvoiceExportView(EmployeeDataIsolationMixin, BusinessRequiredMixin, ListView):
     """Excel export: only 媒體檔 column."""
     model = BookkeepingClient
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
@@ -94,7 +93,7 @@ class GroupInvoiceExportView(EmployeeDataIsolationMixin, LoginRequiredMixin, Lis
                 code = INVOICE_CODE_MAP.get(inv.invoice_type, '')
                 if not code:
                     continue  # skip types without a code
-                qty = str(inv.quantity)
+                qty = str(inv.quantity).zfill(4)
                 media_line = tax_id + code + qty + period + FIXED_SUFFIX + ';'
                 media_lines.append(media_line)
 

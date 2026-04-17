@@ -1,8 +1,8 @@
 import json
+from core.mixins import BusinessRequiredMixin
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -10,15 +10,16 @@ from django.views import View
 from django.views.generic import UpdateView
 
 from ..models.income_tax import (
-    WithholdingTax, WithholdingDetail, WithholdingMonthlyBreakdown,
+    WithholdingTax, WithholdingDetail, WithholdingMonthlyBreakdown, FilingStatus,
 )
+from ..services.withholding_tax_notification import send_withholding_tax_notification
 
 # 月分明細的 period 清單（固定順序）
 PERIOD_CHOICES = [c[0] for c in WithholdingMonthlyBreakdown.Period.choices]
 PERIOD_LABELS = {c[0]: c[1] for c in WithholdingMonthlyBreakdown.Period.choices}
 
 
-class WithholdingTaxDetailView(LoginRequiredMixin, UpdateView):
+class WithholdingTaxDetailView(BusinessRequiredMixin, UpdateView):
     model = WithholdingTax
     fields = ['salary_payment_method', 'interest_income', 'notes']
     template_name = 'bookkeeping/income_tax/withholding_tax_detail.html'
@@ -110,6 +111,8 @@ class WithholdingTaxDetailView(LoginRequiredMixin, UpdateView):
         # Filing status fields
         wt.payment_method = self.request.POST.get('payment_method', wt.payment_method)
         wt.filing_status = self.request.POST.get('filing_status', wt.filing_status)
+        deadline_str = self.request.POST.get('tax_deadline', '')
+        wt.tax_deadline = deadline_str if deadline_str else None
         wt.is_filed = self.request.POST.get('is_filed') == 'on'
         wt.notes = self.request.POST.get('notes', '')
 
@@ -187,3 +190,28 @@ class WithholdingTaxDetailView(LoginRequiredMixin, UpdateView):
                 ))
         if breakdowns:
             WithholdingMonthlyBreakdown.objects.bulk_create(breakdowns)
+
+
+class SendWithholdingTaxNotificationView(BusinessRequiredMixin, View):
+    """
+    POST: 發送扣繳申報通知給客戶（Line/Email）
+    發送成功後將 filing_status 更新為 'waiting'
+    """
+
+    def post(self, request, client_pk, pk):
+        withholding = get_object_or_404(
+            WithholdingTax,
+            pk=pk,
+            year_record__client__pk=client_pk,
+        )
+
+        results = send_withholding_tax_notification(withholding, request)
+
+        if results['success_channels']:
+            withholding.filing_status = FilingStatus.WAITING
+            withholding.save(update_fields=['filing_status'])
+
+        return JsonResponse({
+            'success_channels': results['success_channels'],
+            'error_channels': results['error_channels'],
+        })

@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(python manage.py makemigrations bookkeeping --name=\"unique_active_tax_id\")",
-      "Bash(python manage.py shell -c \":*)"
+      "Bash(python manage.py shell -c \":*)",
+      "Bash(grep -n \"^</div>$\\\\|^</div>\" c:/Users/joe70/PythonProject/Aura/modules/internal_accounting/templates/report/balance_sheet.html)",
+      "Bash(grep -n \"is_posted\\\\|class.*FeeApportion\\\\|model.*Fee\" c:/Users/joe70/PythonProject/Aura/modules/internal_accounting/models/*.py)",
+      "Bash(python manage.py tailwind build)",
+      "Bash(python -c ':*)",
+      "Bash(python manage.py makemigrations internal_accounting --name pre_collection)",
+      "Bash(python manage.py shell -c \"from modules.system_config.models import MenuItem; items = MenuItem.objects.all\\(\\).values\\('id','title','parent_id','url_name','order'\\); [print\\(i\\) for i in items]\")",
+      "Bash(python manage.py makemigrations registration --name payment_request)",
+      "Bash(python manage.py migrate registration)",
+      "Bash(python _fix_progress_views.py)",
+      "Bash(python manage.py makemigrations registration)"
     ]
   }
 }

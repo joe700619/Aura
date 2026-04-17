@@ -49,12 +49,9 @@
         <h4 class="font-bold text-slate-800 text-sm">股東資料</h4>
     </div>
     <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1">搜尋股東 (帶入股東資料)</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">{{ form.shareholder_name.label }} *</label>
+        <div class="hidden">{{ form.shareholder_name }}</div>
         {{ form.search_shareholder }}
-    </div>
-    <div>
-        <label for="{{ form.shareholder_name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.shareholder_name.label }}</label>
-        {{ form.shareholder_name }}
         {{ form.shareholder_name.errors }}
     </div>
     <div>
@@ -141,11 +138,10 @@
         {{ form.total_amount }}
         {{ form.total_amount.errors }}
     </div>
-    <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-md border border-slate-200">
+    <div>
+        <label for="{{ form.is_completed.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">{{ form.is_completed.label }}</label>
         {{ form.is_completed }}
-        <label for="{{ form.is_completed.id_for_label }}" class="text-sm font-semibold text-slate-700 cursor-pointer">
-            {{ form.is_completed.label }}
-        </label>
+        {{ form.is_completed.errors }}
     </div>
 </div>
 {% endblock %}

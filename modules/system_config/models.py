@@ -1,6 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import Group
-
 class MenuItem(models.Model):
     """
     Represents a dynamic menu item in the sidebar.
@@ -19,13 +17,11 @@ class MenuItem(models.Model):
     icon_svg = models.TextField("SVG 圖示", blank=True, help_text="Paste the full <svg> code here")
     order = models.PositiveIntegerField("排序", default=0)
     
-    # Permissions: If empty, visible to everyone (or authenticated only).
-    # If set, user must belong to at least one of these groups.
-    roles = models.ManyToManyField(
-        Group, 
-        blank=True, 
-        verbose_name="可見角色",
-        help_text="留空則對所有登入使用者可見"
+    required_permission = models.CharField(
+        "需要的 Permission",
+        max_length=100,
+        blank=True,
+        help_text="格式：app_label.codename，例如 hr.view_employee。設定後以此 permission 取代 roles 判斷。"
     )
 
     is_active = models.BooleanField("是否啟用", default=True)

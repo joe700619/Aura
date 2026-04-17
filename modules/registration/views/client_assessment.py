@@ -1,7 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from core.mixins import ListActionMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, FilterMixin, SearchMixin, SoftDeleteMixin, SortMixin
 from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -17,31 +16,50 @@ from modules.workflow.services import (
     get_effective_approver
 )
 
-class ClientAssessmentListView(ListActionMixin, LoginRequiredMixin, ListView):
+class ClientAssessmentListView(SortMixin, FilterMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = ClientAssessment
     template_name = 'client_assessment/list.html'
     context_object_name = 'assessments'
-    paginate_by = 20
+    paginate_by = 25
     create_button_label = '新增評估表'
+    search_fields = ['company_name', 'unified_business_no', 'main_contact']
+    filter_choices = {
+        'NORMAL': {'risk_level': 0},
+        'HIGH':   {'risk_level': 1},
+    }
+    allowed_sort_fields = ['company_name', 'unified_business_no', 'main_contact', 'risk_level']
+    default_sort = ['company_name']
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['model_name'] = 'registration:client_assessment'
         context['model_app_label'] = 'registration'
+        context['count_all']    = context['filter_counts']['ALL']
+        context['count_normal'] = context['filter_counts']['NORMAL']
+        context['count_high']   = context['filter_counts']['HIGH']
         return context
 
-class ClientAssessmentCreateView(LoginRequiredMixin, CreateView):
+class ClientAssessmentCreateView(BusinessRequiredMixin, CreateView):
     model = ClientAssessment
     form_class = ClientAssessmentForm
     template_name = 'client_assessment/form.html'
-    success_url = reverse_lazy('registration:client_assessment_list')
 
-class ClientAssessmentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:client_assessment_update', kwargs={'pk': self.object.pk})
+
+class ClientAssessmentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = ClientAssessment
     form_class = ClientAssessmentForm
     template_name = 'client_assessment/form.html'
-    success_url = reverse_lazy('registration:client_assessment_list')
     prev_next_order_field = 'created_at'
+
+    def get_success_url(self):
+        messages.success(self.request, '儲存成功！')
+        return reverse_lazy('registration:client_assessment_update', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -49,17 +67,29 @@ class ClientAssessmentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
             context['case_assessment_formset'] = CaseAssessmentFormSet(self.request.POST, instance=self.object)
         else:
             context['case_assessment_formset'] = CaseAssessmentFormSet(instance=self.object)
-            
+
         # 添加核准相關 context
         approval_request = self.object.get_approval_request()
         context['approval_request'] = approval_request
-        
+
         # 檢查當前使用者是否可以核准
         if approval_request:
             context['can_approve'] = self.object.can_user_approve(self.request.user)
         else:
             context['can_approve'] = False
-            
+
+        # 編修紀錄
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
+
         return context
 
     def form_valid(self, form):
@@ -73,7 +103,7 @@ class ClientAssessmentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class ClientAssessmentDeleteView(LoginRequiredMixin, DeleteView):
+class ClientAssessmentDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = ClientAssessment
     success_url = reverse_lazy('registration:client_assessment_list')
     template_name = 'client_assessment/confirm_delete.html'

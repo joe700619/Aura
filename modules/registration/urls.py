@@ -4,7 +4,8 @@ from .views.progress import (
     ProgressCreateView,
     ProgressUpdateView,
     ProgressDeleteView,
-    PaymentLinkGenerateView,
+    PaymentRequestCreateView,
+    PaymentRequestCancelView,
     ProgressTransferToARView,
 )
 from .views.client_assessment import (
@@ -64,7 +65,8 @@ urlpatterns = [
     path('progress/add/', ProgressCreateView.as_view(), name='progress_create'),
     path('progress/<int:pk>/edit/', ProgressUpdateView.as_view(), name='progress_edit'),
     path('progress/<int:pk>/delete/', ProgressDeleteView.as_view(), name='progress_delete'),
-    path('progress/<int:pk>/payment-link/', PaymentLinkGenerateView.as_view(), name='progress_generate_link'),
+    path('progress/<int:pk>/payment-requests/create/', PaymentRequestCreateView.as_view(), name='payment_request_create'),
+    path('progress/payment-requests/<int:pk>/cancel/', PaymentRequestCancelView.as_view(), name='payment_request_cancel'),
     path('progress/<int:pk>/transfer-ar/', ProgressTransferToARView.as_view(), name='progress_transfer_ar'),
     path('payment/<uuid:token>/', PublicPaymentView.as_view(), name='public_payment'),
     

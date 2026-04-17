@@ -10,3 +10,13 @@
 @source "../../../templates/**/*.{html,js}";
 @source "../../../modules/**/*.{html,py,js}";
 @source "../../../**/forms.py";
+
+@layer base {
+  html, body {
+    @apply text-sm text-slate-800 antialiased;
+  }
+
+  input, select, textarea, button {
+    @apply text-sm;
+  }
+}

@@ -1,0 +1,306 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}所得稅申報進度表{% endblock %}
+{% block header_title %}所得稅申報進度表{% endblock %}
+{% block header_description %}依年度查看所有客戶的所得稅相關申報狀況{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in periods %}
+    {
+        "id": {{ item.pk }},
+        "category": "ALL",
+        "content": "{{ item.year_record.client.name|escapejs }} {{ item.year_record.client.tax_id|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block actions %}
+<form method="get" class="flex items-center gap-2">
+    <input type="hidden" name="tab" value="{{ active_tab }}">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    {% if current_filter != 'ALL' %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
+    <select name="year" onchange="this.form.submit()"
+        class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} 年度</option>
+        {% empty %}
+        <option value="">-- 無年度 --</option>
+        {% endfor %}
+    </select>
+</form>
+<a href="{% url 'bookkeeping:income_tax_list' %}"
+   class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 shadow-sm transition-colors">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+    回清單
+</a>
+{% endblock %}
+
+{% block extra_toolbar %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 overflow-x-auto">
+    <nav class="flex border-b border-slate-200">
+        <a href="?tab=provisional&year={{ selected_year }}{% if q %}&q={{ q }}{% endif %}"
+            class="whitespace-nowrap px-6 py-4 border-b-2 font-semibold text-base transition-all duration-200
+            {% if active_tab == 'provisional' %}border-amber-500 text-amber-600 bg-amber-50{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50{% endif %}">
+            暫繳申報
+        </a>
+        <a href="?tab=withholding&year={{ selected_year }}{% if q %}&q={{ q }}{% endif %}"
+            class="whitespace-nowrap px-6 py-4 border-b-2 font-semibold text-base transition-all duration-200
+            {% if active_tab == 'withholding' %}border-blue-500 text-blue-600 bg-blue-50{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50{% endif %}">
+            扣繳申報
+        </a>
+        <a href="?tab=dividend&year={{ selected_year }}{% if q %}&q={{ q }}{% endif %}"
+            class="whitespace-nowrap px-6 py-4 border-b-2 font-semibold text-base transition-all duration-200
+            {% if active_tab == 'dividend' %}border-green-500 text-green-600 bg-green-50{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50{% endif %}">
+            股利申報
+        </a>
+        <a href="?tab=filing&year={{ selected_year }}{% if q %}&q={{ q }}{% endif %}"
+            class="whitespace-nowrap px-6 py-4 border-b-2 font-semibold text-base transition-all duration-200
+            {% if active_tab == 'filing' %}border-purple-500 text-purple-600 bg-purple-50{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50{% endif %}">
+            所得稅申報
+        </a>
+    </nav>
+</div>
+{% endblock %}
+
+{% block filters %}
+<a href="?tab={{ active_tab }}&year={{ selected_year }}&filter=ALL{% if q %}&q={{ q }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?tab={{ active_tab }}&year={{ selected_year }}&filter=not_notified{% if q %}&q={{ q }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'not_notified' %}bg-red-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    尚未通知 ({{ filter_counts.not_notified }})
+</a>
+<a href="?tab={{ active_tab }}&year={{ selected_year }}&filter=waiting{% if q %}&q={{ q }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'waiting' %}bg-yellow-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    等待回覆 ({{ filter_counts.waiting }})
+</a>
+<a href="?tab={{ active_tab }}&year={{ selected_year }}&filter=paid{% if q %}&q={{ q }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'paid' %}bg-green-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    繳納完成 ({{ filter_counts.paid }})
+</a>
+<a href="?tab={{ active_tab }}&year={{ selected_year }}&filter=no_payment_needed{% if q %}&q={{ q }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'no_payment_needed' %}bg-slate-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    無須繳納 ({{ filter_counts.no_payment_needed }})
+</a>
+{% endblock %}
+
+{% block bulk_actions %}
+<button type="button"
+    @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-export-modal', { appLabel: 'bookkeeping', modelName: '{{ model_name }}', ids: selectedRows }))"
+    class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
+    <svg class="w-4 h-4 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    下載 Excel
+</button>
+<button type="button"
+    @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-email-modal', { appLabel: 'bookkeeping', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+    class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left">
+    <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+    寄出 Email
+</button>
+<button type="button"
+    @click="selectedRows.length === 0 ? showToast('請至少選擇一筆資料') : (open = false, $dispatch('open-line-modal', { appLabel: 'bookkeeping', modelName: '{{ model_name }}', objectIds: selectedRows }))"
+    class="w-full flex items-center px-4 py-3 text-sm text-slate-700 hover:bg-green-50 hover:text-green-600 transition-colors text-left">
+    <svg class="w-4 h-4 mr-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 3.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+    傳送 Line
+</button>
+{% endblock %}
+
+{% block table_headers %}
+    {% if active_tab == 'provisional' %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="amount">暫繳金額 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="deadline">繳稅截止日 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="payment">繳稅方式 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="status">繳納狀態 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-12">詳情</th>
+    {% elif active_tab == 'withholding' %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="tax">應納稅額 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="deadline">繳稅截止日 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="filingdate">申報日期 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="status">繳納狀態 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-12">詳情</th>
+    {% elif active_tab == 'dividend' %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="distributed">分配金額 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="surtax">未分配加徵 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="deadline">繳稅截止日 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="status">繳納狀態 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-12">詳情</th>
+    {% else %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right" data-sort="selfpay">應補繳稅額 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="deadline">繳稅截止日 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="filingdate">申報日期 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="status">繳納狀態 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-12">詳情</th>
+    {% endif %}
+{% endblock %}
+
+{% block table_rows %}
+    {% for item in periods %}
+    {% with client=item.year_record.client %}
+    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0
+        {% if item.filing_status == 'paid' %}bg-green-50/40
+        {% elif item.filing_status == 'no_payment_needed' %}bg-slate-50/50
+        {% elif item.filing_status == 'waiting' %}bg-yellow-50/40
+        {% elif item.filing_status == 'not_notified' %}bg-red-50/30{% endif %}"
+        :class="selectedRows.includes({{ item.pk }}) ? '!bg-blue-50/30' : ''"
+        data-assistant="{{ client.bookkeeping_assistant.name|default:''|escapejs }}"
+        data-name="{{ client.name|escapejs }}"
+        data-status="{{ item.filing_status }}">
+        {% include "components/row_checkbox.html" with value=item.pk %}
+        <td class="px-4 py-3">
+            {% if client.bookkeeping_assistant %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">{{ client.bookkeeping_assistant.name }}</span>
+            {% else %}<span class="text-slate-300 text-xs">-</span>{% endif %}
+        </td>
+        <td class="px-4 py-3">
+            <div class="font-medium text-slate-800">{{ client.name }}</div>
+            <div class="text-xs text-slate-400">{{ client.tax_id|default:'' }}</div>
+        </td>
+
+        {% if active_tab == 'provisional' %}
+        <td class="px-4 py-3 text-right font-mono font-semibold {% if item.provisional_amount > 0 %}text-red-600{% else %}text-slate-400{% endif %}">
+            {{ item.provisional_amount|default:0 }}
+        </td>
+        <td class="px-4 py-3 text-center text-sm">
+            {% if item.tax_deadline %}
+            <span class="{% if item.tax_deadline < today and item.filing_status != 'paid' and item.filing_status != 'no_payment_needed' %}text-red-600 font-semibold{% else %}text-slate-600{% endif %}">
+                {{ item.tax_deadline|date:"Y/m/d" }}
+            </span>
+            {% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+            {% if item.payment_method == 'auto_debit' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">自動扣款</span>
+            {% elif item.payment_method == 'office_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">事務所代繳</span>
+            {% elif item.payment_method == 'self_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">自行繳納</span>
+            {% elif item.payment_method == 'no_payment' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-400">不需繳納</span>
+            {% else %}<span class="text-slate-300 text-xs">-</span>{% endif %}
+        </td>
+
+        {% elif active_tab == 'withholding' %}
+        <td class="px-4 py-3 text-right font-mono font-semibold {% if item.payable_tax > 0 %}text-red-600{% elif item.payable_tax < 0 %}text-green-600{% else %}text-slate-400{% endif %}">
+            {{ item.payable_tax|default:0 }}
+        </td>
+        <td class="px-4 py-3 text-center text-sm">
+            {% if item.tax_deadline %}
+            <span class="{% if item.tax_deadline < today and item.filing_status != 'paid' and item.filing_status != 'no_payment_needed' %}text-red-600 font-semibold{% else %}text-slate-600{% endif %}">
+                {{ item.tax_deadline|date:"Y/m/d" }}
+            </span>
+            {% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center text-sm text-slate-600">
+            {% if item.filing_date %}{{ item.filing_date|date:"Y/m/d" }}{% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+
+        {% elif active_tab == 'dividend' %}
+        <td class="px-4 py-3 text-right font-mono font-semibold {% if item.distributed_amount > 0 %}text-slate-700{% else %}text-slate-400{% endif %}">
+            {{ item.distributed_amount|default:0 }}
+        </td>
+        <td class="px-4 py-3 text-right font-mono font-semibold {% if item.undistributed_surtax > 0 %}text-red-600{% else %}text-slate-400{% endif %}">
+            {{ item.undistributed_surtax|default:0 }}
+        </td>
+        <td class="px-4 py-3 text-center text-sm">
+            {% if item.tax_deadline %}
+            <span class="{% if item.tax_deadline < today and item.filing_status != 'paid' and item.filing_status != 'no_payment_needed' %}text-red-600 font-semibold{% else %}text-slate-600{% endif %}">
+                {{ item.tax_deadline|date:"Y/m/d" }}
+            </span>
+            {% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+
+        {% else %}{# filing #}
+        <td class="px-4 py-3 text-right font-mono font-semibold {% if item.self_pay_amount > 0 %}text-red-600{% else %}text-slate-400{% endif %}">
+            {{ item.self_pay_amount|default:0 }}
+        </td>
+        <td class="px-4 py-3 text-center text-sm">
+            {% if item.tax_deadline %}
+            <span class="{% if item.tax_deadline < today and item.filing_status != 'paid' and item.filing_status != 'no_payment_needed' %}text-red-600 font-semibold{% else %}text-slate-600{% endif %}">
+                {{ item.tax_deadline|date:"Y/m/d" }}
+            </span>
+            {% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center text-sm text-slate-600">
+            {% if item.filing_date %}{{ item.filing_date|date:"Y/m/d" }}{% else %}<span class="text-slate-300">-</span>{% endif %}
+        </td>
+        {% endif %}
+
+        <td class="px-4 py-3 text-center">
+            {% if item.filing_status == 'paid' %}<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">✓ 繳納完成</span>
+            {% elif item.filing_status == 'waiting' %}<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">⏳ 等待回覆</span>
+            {% elif item.filing_status == 'no_payment_needed' %}<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">— 無須繳納</span>
+            {% else %}<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-600">● 尚未通知</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+            {% if active_tab == 'provisional' %}
+            <a href="{% url 'bookkeeping:provisional_tax_detail' client.pk item.pk %}"
+               class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+            {% elif active_tab == 'withholding' %}
+            <a href="{% url 'bookkeeping:withholding_tax_detail' client.pk item.pk %}"
+               class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+            {% elif active_tab == 'dividend' %}
+            <a href="{% url 'bookkeeping:dividend_tax_detail' client.pk item.pk %}"
+               class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+            {% else %}
+            <a href="{% url 'bookkeeping:income_tax_filing_detail' client.pk item.pk %}"
+               class="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
+            {% endif %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+            </a>
+        </td>
+    </tr>
+    {% endwith %}
+    {% endfor %}
+
+    {% if not periods %}
+    <tr>
+        <td colspan="7" class="px-4 py-12 text-center text-slate-500 bg-white rounded-b-lg">
+            <div class="flex flex-col items-center justify-center">
+                <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p>目前沒有符合條件的資料</p>
+            </div>
+        </td>
+    </tr>
+    {% endif %}
+{% endblock %}
+
+{% block pagination_info %}
+共 {{ paginator.count }} 筆・{{ selected_year }} 年度
+{% if active_tab == 'provisional' %}暫繳申報
+{% elif active_tab == 'withholding' %}扣繳申報
+{% elif active_tab == 'dividend' %}股利申報
+{% else %}所得稅申報
+{% endif %}
+{% endblock %}
+
+{% block extra_pagination_params %}&year={{ selected_year }}&tab={{ active_tab }}{% if current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}&year={{ selected_year }}&tab={{ active_tab }}{% if current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}&year={{ selected_year }}&tab={{ active_tab }}{% if current_filter != 'ALL' %}&filter={{ current_filter }}{% endif %}{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}

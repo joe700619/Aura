@@ -1,0 +1,124 @@
+{% extends 'components/list_view.html' %}
+{% load humanize %}
+
+{% block page_title %}財產目錄{% endblock %}
+{% block header_title %}財產目錄{% endblock %}
+
+{% block extra_header_buttons %}
+<a href="{% url 'internal_accounting:fixed_asset_report' %}" class="bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 px-3 py-1.5 rounded-md text-sm font-bold flex items-center shadow-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    期末明細報表
+</a>
+<a href="{% url 'internal_accounting:voucher_list' %}" class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-md text-sm font-bold flex items-center shadow-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+    </svg>
+    返回會計傳票
+</a>
+{% endblock %}
+
+{% block search_form %}
+{% include 'components/search_form.html' with search_placeholder='搜尋財產編號、名稱...' %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for asset in assets %}
+    {
+        "id": {{ asset.pk }},
+        "category": "{{ asset.status|escapejs }}",
+        "content": "{{ asset.asset_no|escapejs }} {{ asset.name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block filters %}
+<button @click="filter = 'ALL'"
+    :class="filter === 'ALL' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">全部</button>
+<button @click="filter = 'ACTIVE'"
+    :class="filter === 'ACTIVE' ? 'bg-green-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">使用中</button>
+<button @click="filter = 'SCRAPPED'"
+    :class="filter === 'SCRAPPED' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已報廢</button>
+<button @click="filter = 'SOLD'"
+    :class="filter === 'SOLD' ? 'bg-slate-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">已出售</button>
+{% endblock %}
+
+{% block table_headers %}
+<th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="name">財產編號 / 名稱 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="date">取得日期 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="cost">取得成本 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="depreciation">累計折舊 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider" data-sort="net">帳面淨值 <span class="sort-icon text-slate-400 ml-1">↕</span></th>
+<th class="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">耐用月數</th>
+<th class="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">狀態</th>
+<th class="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for asset in assets %}
+<tr x-show="matches('{{ asset.status|escapejs }}', '{{ asset.asset_no|escapejs }} {{ asset.name|escapejs }}')" class="hover:bg-slate-50 transition-colors group cursor-pointer" data-url="{% url 'internal_accounting:fixed_asset_update' asset.pk %}" onclick="if(event.target.type !== 'checkbox') window.location.href=this.dataset.url;">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <input type="checkbox" value="{{ asset.pk }}" x-model.number="selectedRows" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" onclick="event.stopPropagation()">
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-indigo-100 text-indigo-500 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <div class="ml-4">
+                <div class="text-sm font-bold text-indigo-600">{{ asset.name }}</div>
+                <div class="text-xs text-slate-500 font-mono">{{ asset.asset_no }}</div>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+        {{ asset.purchase_date|date:"Y-m-d" }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium text-right font-mono">
+        {{ asset.cost|floatformat:0|intcomma }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-right font-mono">
+        {{ asset.accumulated_depreciation|floatformat:0|intcomma }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold text-right font-mono">
+        {{ asset.net_value|floatformat:0|intcomma }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
+        {{ asset.useful_life_months }} 個月
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center">
+        {% if asset.status == 'ACTIVE' %}
+            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">使用中</span>
+        {% elif asset.status == 'SCRAPPED' %}
+            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">已報廢</span>
+        {% else %}
+            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">{{ asset.get_status_display }}</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-center" onclick="event.stopPropagation()">
+        <a href="{% url 'internal_accounting:fixed_asset_update' asset.pk %}" class="text-slate-400 hover:text-indigo-600 transition-colors inline-block p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="px-6 py-12 text-center text-slate-500 bg-slate-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <p class="text-sm font-medium">目前沒有財產目錄資料</p>
+        <p class="text-xs mt-1">您可以在輸入傳票借方固定資產時，快速建立財產目錄。</p>
+    </td>
+</tr>
+{% endfor %}
+{% endblock %}

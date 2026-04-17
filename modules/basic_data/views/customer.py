@@ -1,25 +1,25 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin, SoftDeleteMixin
+from core.mixins import BusinessRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
 from ..models import Customer
 from ..forms import ContactInlineFormSet, CustomerForm
 
-class CustomerListView(ListActionMixin, LoginRequiredMixin, ListView):
+class CustomerListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = Customer
     template_name = 'customer/list.html'
     context_object_name = 'customers'
     paginate_by = 10
-    
-    def get_queryset(self):
-        # 預設不顯示已軟刪除的資料
-        qs = super().get_queryset()
-        if hasattr(self.model, 'is_deleted'):
-            qs = qs.filter(is_deleted=False)
-        return qs
-    create_button_label = '新增客戶'  # Customize create button label
+    create_button_label = '新增客戶'
+    search_fields = ['name', 'tax_id', 'contact_person']
+    filter_choices = {
+        'established': {'source': 'ESTABLISHED'},
+        'transferred': {'source': 'TRANSFERRED'},
+    }
+
+    def get_base_queryset(self):
+        return super().get_base_queryset()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -27,7 +27,7 @@ class CustomerListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class CustomerCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class CustomerCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     model = Customer
     form_class = CustomerForm
     template_name = 'customer/form.html'
@@ -84,7 +84,7 @@ class CustomerCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class CustomerUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class CustomerUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = Customer
     form_class = CustomerForm
     template_name = 'customer/form.html'
@@ -142,7 +142,7 @@ class CustomerUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class CustomerDeleteView(SoftDeleteMixin, LoginRequiredMixin, DeleteView):
+class CustomerDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = Customer
     template_name = 'customer/confirm_delete.html'
     success_url = reverse_lazy('basic_data:customer_list')

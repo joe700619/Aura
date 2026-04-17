@@ -5,20 +5,48 @@
 {% block header_title %}服務項目管理{% endblock %}
 {% block header_description %}管理公司基本服務項目與收費標準{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
+{% block metadata_json %}
 [
     {% for item in service_items %}
     {
         "id": {{ item.pk }},
-        "category": "{{ item.get_department_display|escapejs }}",
-        "content": "{{ item.service_id|escapejs }} {{ item.name|escapejs }}"
+        "category": "ALL",
+        "content": "{{ item.service_id|escapejs }} {{ item.name|escapejs }} {{ item.remark|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
-</script>
-{{ block.super }}
 {% endblock %}
+
+{% block filters %}
+<a href="?filter=visa{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'visa' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    簽證 <span class="ml-1 text-xs opacity-75">({{ filter_counts.visa|default:0 }})</span>
+</a>
+<a href="?filter=bookkeeping{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'bookkeeping' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    記帳 <span class="ml-1 text-xs opacity-75">({{ filter_counts.bookkeeping|default:0 }})</span>
+</a>
+<a href="?filter=registration{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'registration' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    登記 <span class="ml-1 text-xs opacity-75">({{ filter_counts.registration|default:0 }})</span>
+</a>
+<a href="?filter=advance{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'advance' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    代墊 <span class="ml-1 text-xs opacity-75">({{ filter_counts.advance|default:0 }})</span>
+</a>
+<a href="?filter=pre_collection{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'pre_collection' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    預收 <span class="ml-1 text-xs opacity-75">({{ filter_counts.pre_collection|default:0 }})</span>
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 <span class="ml-1 text-xs opacity-75">({{ filter_counts.ALL|default:0 }})</span>
+</a>
+{% endblock %}
+
+{% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}
 
 {% block actions %}
 <a href="{% url 'basic_data:service_item_create' %}"
@@ -41,9 +69,8 @@
 
 {% block table_rows %}
 {% for item in service_items %}
-<tr class="hover:bg-slate-50 transition duration-150" data-category="{{ item.get_department_display|escapejs }}"
-    data-content="{{ item.service_id|escapejs }} {{ item.name|escapejs }}"
-    x-show="matches($el.dataset.category, $el.dataset.content)"
+<tr class="hover:bg-slate-50 transition duration-150"
+    x-show="matches('ALL', '{{ item.service_id|escapejs }} {{ item.name|escapejs }} {{ item.remark|default:''|escapejs }}')"
     :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''"
     data-serviceid="{{ item.service_id|escapejs }}"
     data-dept="{{ item.get_department_display|escapejs }}"

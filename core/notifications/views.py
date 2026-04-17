@@ -143,7 +143,10 @@ class SendLineView(LoginRequiredMixin, View):
 
         # Build Context
         context = DocumentService._build_context(obj)
-        
+
+        # 若為應收帳款，補上 payment_url
+        context['payment_url'] = _generate_receivable_payment_url(request, obj)
+
         # recipient resolution
         # 先找 room_id (群組優先)，再找 line_id (個人)
         recipient_id = getattr(obj, 'room_id', None)
@@ -159,6 +162,15 @@ class SendLineView(LoginRequiredMixin, View):
         if not recipient_id and hasattr(obj, 'customer') and obj.customer:
             customer = obj.customer
             recipient_id = getattr(customer, 'room_id', None) or getattr(customer, 'line_id', None)
+
+        # Fallback: resolve via client.tax_id → Customer (e.g. ClientBill → BookkeepingClient → Customer)
+        if not recipient_id and hasattr(obj, 'client') and obj.client and getattr(obj.client, 'tax_id', None):
+            try:
+                from modules.basic_data.models import Customer
+                customer = Customer.objects.get(tax_id=obj.client.tax_id)
+                recipient_id = getattr(customer, 'room_id', None) or getattr(customer, 'line_id', None)
+            except Exception:
+                pass
 
         if not recipient_id:
              return JsonResponse({'error': 'No Line ID found for this object'}, status=400)
@@ -263,10 +275,12 @@ class SendBulkLineView(LoginRequiredMixin, View):
 
         for obj in objects:
             context = DocumentService._build_context(obj)
+            context['payment_url'] = _generate_receivable_payment_url(request, obj)
+
             recipient_id = getattr(obj, 'room_id', None)
             if not recipient_id:
                 recipient_id = getattr(obj, 'line_id', None)
-                
+
             if not recipient_id and hasattr(obj, 'contacts'):
                  first_contact = obj.contacts.first()
                  if first_contact:
@@ -275,6 +289,14 @@ class SendBulkLineView(LoginRequiredMixin, View):
             if not recipient_id and hasattr(obj, 'customer') and obj.customer:
                 customer = obj.customer
                 recipient_id = getattr(customer, 'room_id', None) or getattr(customer, 'line_id', None)
+
+            if not recipient_id and hasattr(obj, 'client') and obj.client and getattr(obj.client, 'tax_id', None):
+                try:
+                    from modules.basic_data.models import Customer
+                    customer = Customer.objects.get(tax_id=obj.client.tax_id)
+                    recipient_id = getattr(customer, 'room_id', None) or getattr(customer, 'line_id', None)
+                except Exception:
+                    pass
 
             if recipient_id:
                 if LineService.send_message(template.code, recipient_id, context):
@@ -289,6 +311,47 @@ class SendBulkLineView(LoginRequiredMixin, View):
             'success_count': success_count,
             'fail_count': fail_count
         })
+
+
+def _generate_receivable_payment_url(request, obj):
+    """
+    若 obj 是 Receivable 且有未收餘額，自動產生綠界付款連結並回傳。
+    其他 model 或餘額為零時回傳空字串。
+    """
+    try:
+        from modules.internal_accounting.models import Receivable
+        if not isinstance(obj, Receivable):
+            return ''
+        outstanding = int(obj.outstanding_balance)
+        if outstanding <= 0:
+            return ''
+
+        import random
+        from modules.payment.models import PaymentTransaction
+        from modules.system_config.helpers import get_system_param
+
+        site_url = get_system_param('SITE_BASE_URL', '').rstrip('/')
+        if not site_url:
+            site_url = f"{request.scheme}://{request.get_host()}"
+
+        suffix = f"{random.randint(0, 9999):04d}"
+        base_no = (obj.receivable_no or str(obj.pk)).replace('-', '')
+        merchant_trade_no = f"{base_no}{suffix}"[:20]
+
+        PaymentTransaction.objects.create(
+            merchant_trade_no=merchant_trade_no,
+            total_amount=outstanding,
+            trade_desc=f"AR {obj.receivable_no or obj.pk}",
+            item_name=f"Service Fee ({obj.company_name})"[:200],
+            payment_type=PaymentTransaction.PaymentType.ECPAY,
+            related_app='internal_accounting',
+            related_model='Receivable',
+            related_id=str(obj.pk),
+        )
+        return f"{site_url}/payment/bill/{merchant_trade_no}/"
+    except Exception as e:
+        logger.warning(f"_generate_receivable_payment_url failed: {e}")
+        return ''
 
 
 def _get_system_param(key):

@@ -147,7 +147,9 @@ class ClientBill(BaseModel):
             ]
 
         return {
+            'date': self.bill_date,
             'company_name': self.client.name,
+            'assistant': self.client.bookkeeping_assistant.name if self.client.bookkeeping_assistant else '',
             'unified_business_no': self.client.tax_id,
             'main_contact': self.client.contact_person,
             'mobile': self.client.mobile,

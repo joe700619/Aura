@@ -5,19 +5,16 @@
 {% block header_title %}客戶列表{% endblock %}
 {% block header_description %}管理與查看您的客戶詳細資訊{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
+{% block metadata_json %}
 [
     {% for customer in customers %}
     {
         "id": {{ customer.pk }},
-        "category": "{{ customer.source|escapejs }}",
-        "content": "{{ customer.name|escapejs }} {{ customer.tax_id|default:''|escapejs }}"
+        "category": "ALL",
+        "content": "{{ customer.name|escapejs }} {{ customer.tax_id|default:''|escapejs }} {{ customer.contact_person|default:''|escapejs }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ]
-</script>
-{{ block.super }}
 {% endblock %}
 
 {% block overlays %}
@@ -27,22 +24,23 @@
 {% endblock %}
 
 {% block filters %}
-<button @click="filter = 'ESTABLISHED'"
-    :class="filter === 'ESTABLISHED' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    本所設立
-</button>
-<button @click="filter = 'TRANSFERRED'"
-    :class="filter === 'TRANSFERRED' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    他所轉入
-</button>
-<button @click="filter = 'ALL'"
-    :class="filter === 'ALL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'"
-    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200">
-    全部
-</button>
+<a href="?filter=established{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'established' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    本所設立 <span class="ml-1 text-xs opacity-75">({{ filter_counts.established|default:0 }})</span>
+</a>
+<a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    他所轉入 <span class="ml-1 text-xs opacity-75">({{ filter_counts.transferred|default:0 }})</span>
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+    class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 <span class="ml-1 text-xs opacity-75">({{ filter_counts.ALL|default:0 }})</span>
+</a>
 {% endblock %}
+
+{% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}
 
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="name">
@@ -65,7 +63,7 @@
 {% block table_rows %}
 {% for customer in customers %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('{{ customer.source|escapejs }}', '{{ customer.name|escapejs }}')"
+    x-show="matches('ALL', '{{ customer.name|escapejs }} {{ customer.tax_id|default:''|escapejs }} {{ customer.contact_person|default:''|escapejs }}')"
     :class="selectedRows.includes({{ customer.pk }}) ? 'bg-blue-50/30' : ''"
     data-name="{{ customer.name|escapejs }}"
     data-taxid="{{ customer.tax_id|default:''|escapejs }}">
@@ -118,6 +116,3 @@
 {% endfor %}
 {% endblock %}
 
-{% block pagination_info %}
-顯示第 1 到 {{ customers|length }} 筆，共 {{ customers|length }} 筆資料
-{% endblock %}

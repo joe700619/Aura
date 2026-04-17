@@ -9,12 +9,17 @@
         lastYearTax: {{ provisional.last_year_tax|default:'0' }},
         provisionalAmount: {{ provisional.provisional_amount|default:'0' }},
         calcAmount() {
+            if (this.anyChecked) {
+                this.provisionalAmount = 0;
+                return;
+            }
             let half = Math.floor(this.lastYearTax * 0.5);
             this.provisionalAmount = half <= 2000 ? 0 : half;
         },
         get isZeroAmount() { return this.provisionalAmount == 0; },
         checklistChecked: [{% for item in provisional.checklist %}{% if item.checked %}true{% else %}false{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}],
-        get anyChecked() { return this.checklistChecked.some(v => v); }
+        get anyChecked() { return this.checklistChecked.some(v => v); },
+        init() { this.calcAmount(); }
      }">
 
     {# ── Toolbar ── #}
@@ -141,27 +146,10 @@
                 </div>
                 <input type="number" name="provisional_amount"
                     x-model.number="provisionalAmount"
-                    step="1"
-                    class="w-full px-2 py-1.5 border border-blue-400 rounded text-sm text-right font-bold bg-blue-50 focus:ring-1 focus:ring-blue-500">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500 block mb-0.5 font-medium">暫繳截止日</label>
-                <input type="date" name="provisional_deadline" value="{{ form.provisional_deadline.value|date:'Y-m-d'|default:'' }}"
-                    class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400">
+                    step="1" readonly
+                    class="w-full px-2 py-1.5 border border-blue-300 rounded text-sm text-right font-bold bg-blue-50 cursor-default focus:outline-none">
             </div>
             {% endwith %}
-
-            {# ── Filing status checkbox ── #}
-            <div class="flex items-center gap-2 border-t border-slate-100 pt-3">
-                <input type="checkbox" name="is_filed" id="is_filed" {% if form.is_filed.value %}checked{% endif %}
-                    class="h-4.5 w-4.5 rounded border-slate-300 text-green-500 focus:ring-green-400 cursor-pointer">
-                <label for="is_filed" class="text-sm font-medium text-slate-700 cursor-pointer">已完成申報</label>
-            </div>
-            <div>
-                <label class="text-xs text-slate-500 block mb-0.5 font-medium">申報日期</label>
-                <input type="date" name="filing_date" value="{{ form.filing_date.value|date:'Y-m-d'|default:'' }}"
-                    class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400">
-            </div>
 
             {# ── File Upload (tax document only) ── #}
             <div class="border-t border-slate-100 pt-3 space-y-3">
@@ -272,7 +260,7 @@
                     class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none shadow-sm transition-colors"
                     :class="isZeroAmount ? 'opacity-50 cursor-not-allowed' : ''"
                     :disabled="isZeroAmount"
-                    @click="if(!isZeroAmount) { alert('通知功能將於後續階段實作'); }">
+                    @click="if(!isZeroAmount) { sendProvisionalNotification() }">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
@@ -329,7 +317,7 @@
                         <input type="checkbox"
                             name="checklist_{{ item.key }}"
                             {% if item.checked %}checked{% endif %}
-                            @change="checklistChecked[{{ forloop.counter0 }}] = $event.target.checked"
+                            @change="checklistChecked[{{ forloop.counter0 }}] = $event.target.checked; calcAmount()"
                             class="mt-0.5 h-4.5 w-4.5 rounded border-slate-300 text-blue-600 focus:ring-blue-400 cursor-pointer shrink-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-sm text-slate-700 group-hover:text-slate-900 leading-relaxed">
@@ -366,4 +354,29 @@
 
     </form>
 </div>
+
+<script>
+function sendProvisionalNotification() {
+    if (!confirm('確定要發送暫繳繳稅通知給 {{ client.name|escapejs }} 嗎？')) return;
+
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const url = "{% url 'bookkeeping:provisional_tax_send_notification' client.pk provisional.pk %}";
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+        body: new URLSearchParams({ csrfmiddlewaretoken: csrfToken }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success_channels && data.success_channels.length > 0) {
+            alert('已透過 ' + data.success_channels.join('、') + ' 發送通知，等待客戶回覆。');
+            location.reload();
+        } else {
+            alert('發送失敗：' + data.error_channels.join('、'));
+        }
+    })
+    .catch(() => alert('發送時發生錯誤，請稍後再試。'));
+}
+</script>
 {% endblock %}

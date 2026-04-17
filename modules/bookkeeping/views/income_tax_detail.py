@@ -1,5 +1,5 @@
 from django.views.generic import DetailView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from core.mixins import BusinessRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -12,9 +12,10 @@ from ..models.income_tax import (
     DividendTax, ShareholderDividend,
     IncomeTaxFiling,
 )
+from ..models.income_tax_media import IncomeTaxMediaData
 
 
-class IncomeTaxClientDetailView(LoginRequiredMixin, DetailView):
+class IncomeTaxClientDetailView(BusinessRequiredMixin, DetailView):
     """
     所得稅申報維護介面
     顯示特定客戶某個年度下的 4 個申報項目卡片
@@ -51,7 +52,7 @@ class IncomeTaxClientDetailView(LoginRequiredMixin, DetailView):
 
         context['current_year_obj'] = current_year_obj
 
-        # 3. 載入 4 個子項目
+        # 3. 載入 5 個子項目
         if current_year_obj:
             try:
                 context['provisional'] = current_year_obj.provisional_tax
@@ -69,12 +70,16 @@ class IncomeTaxClientDetailView(LoginRequiredMixin, DetailView):
                 context['income_filing'] = current_year_obj.income_tax_filing
             except IncomeTaxFiling.DoesNotExist:
                 context['income_filing'] = None
+            try:
+                context['media_data'] = current_year_obj.media_data
+            except IncomeTaxMediaData.DoesNotExist:
+                context['media_data'] = None
 
         context['setting'] = getattr(client, 'income_tax_setting', None)
         return context
 
 
-class AddIncomeTaxYearView(LoginRequiredMixin, View):
+class AddIncomeTaxYearView(BusinessRequiredMixin, View):
     """新增所得稅年度"""
     def post(self, request, pk):
         client = get_object_or_404(BookkeepingClient, pk=pk)
@@ -99,7 +104,7 @@ class AddIncomeTaxYearView(LoginRequiredMixin, View):
         )
 
 
-class SaveIncomeTaxSettingsView(LoginRequiredMixin, View):
+class SaveIncomeTaxSettingsView(BusinessRequiredMixin, View):
     """儲存所得稅設定"""
     def post(self, request, pk):
         client = get_object_or_404(BookkeepingClient, pk=pk)

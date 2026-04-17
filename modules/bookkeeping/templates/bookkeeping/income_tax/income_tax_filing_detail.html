@@ -31,13 +31,22 @@
             </svg>
             回年度概覽
         </a>
-        <button type="submit" form="filing-form"
-            class="inline-flex items-center px-5 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            儲存
-        </button>
+        <div class="flex items-center gap-2">
+            <button type="button" @click="openSlideover()"
+                class="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-md text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 shadow-sm focus:outline-none transition-colors">
+                <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                查閱申報書
+            </button>
+            <button type="submit" form="filing-form"
+                class="inline-flex items-center px-5 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                儲存
+            </button>
+        </div>
     </div>
 
     {# ── Period Badge ── #}
@@ -471,61 +480,75 @@
     </div>
 
     </form>
+
+    {# ── Slide-over Panel ── #}
+    {% include "bookkeeping/income_tax/_media_slideover.html" %}
+
 </div>
 
 <script>
 function filingPage() {
     var d = JSON.parse(document.getElementById('page-data').textContent);
-    return {
-        activeTab: 'checklist',
-        annualTax: d.annualTax,
-        provisionalCredit: d.provisionalCredit,
-        withholdingCredit: d.withholdingCredit,
-        selfPayAmount: d.selfPayAmount,
-        undistributedEarnings: d.undistributedEarnings,
-        undistributedSurtax: d.undistributedSurtax,
-        totalPayable: d.totalPayable,
-        checklist: d.checklist,
-        reconciliation: d.reconciliation,
+    var slideoverMixin = mediaSlideoverMixin();
+    var merged = {};
+    for (var k in slideoverMixin) { merged[k] = slideoverMixin[k]; }
+    merged.activeTab = 'checklist';
+    merged.annualTax = d.annualTax;
+    merged.provisionalCredit = d.provisionalCredit;
+    merged.withholdingCredit = d.withholdingCredit;
+    merged.selfPayAmount = d.selfPayAmount;
+    merged.undistributedEarnings = d.undistributedEarnings;
+    merged.undistributedSurtax = d.undistributedSurtax;
+    merged.totalPayable = d.totalPayable;
+    merged.checklist = d.checklist;
+    merged.reconciliation = d.reconciliation;
 
-        // 本年度應自行補繳 = 應納稅額 - 暫繳 - 扣繳
-        calcSelfPay: function() {
-            this.selfPayAmount = this.annualTax - this.provisionalCredit - this.withholdingCredit;
-            this.calcTotal();
-        },
-        // 合計 = 應自行補繳 + 未分配盈餘加徵稅額
-        calcTotal: function() {
-            this.totalPayable = this.selfPayAmount + this.undistributedSurtax;
-        },
-        // 帶入資料: 從同年度暫繳、股利帶入
-        importSiblingData: function() {
-            var sib = d.sibling;
-            this.provisionalCredit = sib.provisionalCredit || 0;
-            this.undistributedEarnings = sib.undistributedEarnings || 0;
-            this.undistributedSurtax = sib.undistributedSurtax || 0;
-            this.calcSelfPay();
-        },
-        // 扣繳調節表: 本期帳列 = 申報數 - 上期應付 + 上期預付 + 本期應付 - 本期預付 + 勞工退休金 + 其他
-        calcBookAmount: function(idx) {
-            var r = this.reconciliation[idx];
-            r.book_amount = (r.declared || 0) - (r.minus_prev_payable || 0) + (r.plus_prev_prepaid || 0)
-                          + (r.plus_curr_payable || 0) - (r.minus_curr_prepaid || 0)
-                          + (r.retirement || 0) + (r.other || 0);
-            this.calcDifference(idx);
-        },
-        // 差額 = 本期帳列 - 扣繳稅額
-        calcDifference: function(idx) {
-            var r = this.reconciliation[idx];
-            r.difference = (r.book_amount || 0) - (r.tax_withheld || 0);
-        },
-        // 合計某欄
-        reconTotal: function(field) {
-            return this.reconciliation.reduce(function(sum, r) { return sum + (r[field] || 0); }, 0);
-        },
-        prepareSubmit: function() {
-            // checklist + reconciliation serialized via hidden inputs
-        }
+    // Init slide-over
+    merged.init = function() {
+        this.initSlideover(
+            '{{ slideover_api_url }}',
+            '{{ slideover_current_year }}',
+            '{{ slideover_prior_year }}'
+        );
     };
+
+    // 本年度應自行補繳 = 應納稅額 - 暫繳 - 扣繳
+    merged.calcSelfPay = function() {
+        this.selfPayAmount = this.annualTax - this.provisionalCredit - this.withholdingCredit;
+        this.calcTotal();
+    };
+    // 合計 = 應自行補繳 + 未分配盈餘加徵稅額
+    merged.calcTotal = function() {
+        this.totalPayable = this.selfPayAmount + this.undistributedSurtax;
+    };
+    // 帶入資料: 從同年度暫繳、股利帶入
+    merged.importSiblingData = function() {
+        var sib = d.sibling;
+        this.provisionalCredit = sib.provisionalCredit || 0;
+        this.undistributedEarnings = sib.undistributedEarnings || 0;
+        this.undistributedSurtax = sib.undistributedSurtax || 0;
+        this.calcSelfPay();
+    };
+    // 扣繳調節表
+    merged.calcBookAmount = function(idx) {
+        var r = this.reconciliation[idx];
+        r.book_amount = (r.declared || 0) - (r.minus_prev_payable || 0) + (r.plus_prev_prepaid || 0)
+                      + (r.plus_curr_payable || 0) - (r.minus_curr_prepaid || 0)
+                      + (r.retirement || 0) + (r.other || 0);
+        this.calcDifference(idx);
+    };
+    merged.calcDifference = function(idx) {
+        var r = this.reconciliation[idx];
+        r.difference = (r.book_amount || 0) - (r.tax_withheld || 0);
+    };
+    merged.reconTotal = function(field) {
+        return this.reconciliation.reduce(function(sum, r) { return sum + (r[field] || 0); }, 0);
+    };
+    merged.prepareSubmit = function() {
+        // checklist + reconciliation serialized via hidden inputs
+    };
+
+    return merged;
 }
 </script>
 {% endblock %}

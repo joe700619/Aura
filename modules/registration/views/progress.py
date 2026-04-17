@@ -1,19 +1,21 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from core.mixins import PrevNextMixin
+from core.mixins import BusinessRequiredMixin, PrevNextMixin, ListActionMixin, SortMixin, SoftDeleteMixin
 from ..models.progress import Progress
 from ..forms import ProgressForm
 from django.db.models import Q
 
-class ProgressListView(LoginRequiredMixin, ListView):
+class ProgressListView(SortMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = Progress
     template_name = 'progress/list.html'
     context_object_name = 'progress_list'
-    paginate_by = 20
+    paginate_by = 25
+    create_button_label = '新增案件'
+    allowed_sort_fields = ['registration_no', 'acceptance_date', 'company_name', 'unified_business_no', 'main_contact', 'progress_status']
+    default_sort = ['-acceptance_date']
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(is_deleted=False)
         status_filter = self.request.GET.get('status')
         search_query = self.request.GET.get('q')
 
@@ -44,14 +46,13 @@ class ProgressListView(LoginRequiredMixin, ListView):
             })
             
         context['status_options'] = status_options
-        
-        # Context for list_view.html component
+        context['current_status'] = current_status
+        context['q'] = self.request.GET.get('q', '')
+        # Override ListActionMixin's auto-generated model_name for URL namespacing
         context['model_name'] = 'registration:progress'
-        context['model_app_label'] = 'registration'
-        context['create_button_label'] = '新增案件'
         return context
 
-class ProgressCreateView(LoginRequiredMixin, CreateView):
+class ProgressCreateView(BusinessRequiredMixin, CreateView):
     model = Progress
     form_class = ProgressForm
     template_name = 'progress/form.html'
@@ -64,7 +65,7 @@ class ProgressCreateView(LoginRequiredMixin, CreateView):
         context['page_title'] = '新增登記進度'
         return context
 
-class ProgressUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class ProgressUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = Progress
     form_class = ProgressForm
     template_name = 'progress/form.html'
@@ -104,7 +105,19 @@ class ProgressUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '編輯登記進度'
-        
+
+        # 付款請求清單
+        context['payment_requests'] = self.object.payment_requests.order_by('-created_at')
+
+        # 預收款項清單
+        from modules.internal_accounting.models import PreCollection
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(self.object.__class__)
+        context['pre_collections'] = PreCollection.objects.filter(
+            source_content_type=ct,
+            source_id=self.object.pk,
+        ).order_by('-date')
+
         from ..models import FilingHistory, CaseAssessment, EquityTransaction, VATEntityChange
         
         # Check if 22-1 is required based on quotation_data
@@ -167,37 +180,50 @@ class ProgressUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         }
         return context
 
-class ProgressDeleteView(LoginRequiredMixin, DeleteView):
+class ProgressDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = Progress
     success_url = reverse_lazy('registration:progress_list')
-    template_name = 'progress/confirm_delete.html' 
-
-from django.views import View
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
+    template_name = 'progress/confirm_delete.html'
 
 from django.views import View
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from modules.internal_accounting.services import ReceivableTransferService
+from ..models.payment_request import ProgressPaymentRequest
 
-class PaymentLinkGenerateView(LoginRequiredMixin, View):
+
+class PaymentRequestCreateView(BusinessRequiredMixin, View):
     def post(self, request, pk):
         progress = get_object_or_404(Progress, pk=pk)
-        
-        # Try to save the form data first
-        form = ProgressForm(request.POST, instance=progress)
-        if form.is_valid():
-            form.save()
-            messages.success(request, '資料已儲存並生成支付連結')
-        else:
-            messages.warning(request, '資料驗證失敗，僅生成支付連結 (使用現有資料)')
-            # You might want to log form.errors here for debugging
-            
-        progress.generate_payment_token()
+        amount_str = request.POST.get('amount', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not amount_str or not amount_str.isdigit() or int(amount_str) <= 0:
+            messages.error(request, '請輸入有效的請款金額。')
+            return redirect('registration:progress_edit', pk=pk)
+
+        ProgressPaymentRequest.objects.create(
+            progress=progress,
+            amount=int(amount_str),
+            description=description,
+        )
+        messages.success(request, f'已建立付款請求：{description or "付款"} ${int(amount_str):,}')
         return redirect('registration:progress_edit', pk=pk)
 
-class ProgressTransferToARView(LoginRequiredMixin, View):
+
+class PaymentRequestCancelView(BusinessRequiredMixin, View):
+    def post(self, request, pk):
+        pr = get_object_or_404(ProgressPaymentRequest, pk=pk)
+        if pr.status == ProgressPaymentRequest.Status.PAID:
+            messages.error(request, '已付款的請求無法取消。')
+        else:
+            pr.status = ProgressPaymentRequest.Status.CANCELLED
+            pr.save(update_fields=['status'])
+            messages.success(request, '付款請求已取消。')
+        return redirect('registration:progress_edit', pk=pr.progress_id)
+
+
+class ProgressTransferToARView(BusinessRequiredMixin, View):
     def post(self, request, pk):
         progress = get_object_or_404(Progress, pk=pk)
         

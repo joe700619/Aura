@@ -1,22 +1,23 @@
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.contrib import messages
-from core.mixins import CopyMixin, PrevNextMixin, ListActionMixin
+from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SortMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS
 from ..models import LeaveType, LeaveBalance, LeaveRequest
 from ..forms import LeaveTypeForm, LeaveBalanceForm, LeaveRequestForm
 
 
 # ==================== LeaveType ====================
 
-class LeaveTypeListView(ListActionMixin, LoginRequiredMixin, ListView):
+class LeaveTypeListView(SortMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = LeaveType
     template_name = 'leave_type/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增假別'
+    allowed_sort_fields = ['code', 'name', 'is_paid', 'max_hours_per_year', 'sort_order']
+    default_sort = ['sort_order']
 
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
@@ -28,7 +29,7 @@ class LeaveTypeListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class LeaveTypeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
+class LeaveTypeCreateView(CopyMixin, HRRequiredMixin, CreateView):
     model = LeaveType
     form_class = LeaveTypeForm
     template_name = 'leave_type/form.html'
@@ -47,7 +48,7 @@ class LeaveTypeCreateView(CopyMixin, LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class LeaveTypeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class LeaveTypeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
     model = LeaveType
     form_class = LeaveTypeForm
     template_name = 'leave_type/form.html'
@@ -56,6 +57,16 @@ class LeaveTypeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯假別 - {self.object.name}'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -64,38 +75,35 @@ class LeaveTypeUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:leave_type_update', pk=self.object.pk)
 
 
-class LeaveTypeDeleteView(LoginRequiredMixin, DeleteView):
+class LeaveTypeDeleteView(SoftDeleteMixin, HRRequiredMixin, DeleteView):
     model = LeaveType
     success_url = reverse_lazy('hr:leave_type_list')
-
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
 
 # ==================== LeaveBalance ====================
 
-class LeaveBalanceListView(ListActionMixin, LoginRequiredMixin, ListView):
+class LeaveBalanceListView(OwnEmployeeDataMixin, SortMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = LeaveBalance
     template_name = 'leave_balance/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     create_button_label = '新增餘額'
+    search_fields = ['employee__name', 'employee__employee_number']
+    allowed_sort_fields = ['employee__name', 'leave_type__name', 'year', 'entitled_hours', 'used_hours']
+    default_sort = ['employee__name', 'leave_type__name']
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_deleted=False).select_related('employee', 'leave_type')
         year = self.request.GET.get('year')
-        q = self.request.GET.get('q', '')
         if year:
             qs = qs.filter(year=year)
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '假期餘額'
         context['custom_create_url'] = reverse_lazy('hr:leave_balance_create')
-        context['q'] = self.request.GET.get('q', '')
         context['selected_year'] = self.request.GET.get('year', '')
         context['years'] = sorted(
             LeaveBalance.objects.filter(is_deleted=False)
@@ -105,7 +113,7 @@ class LeaveBalanceListView(ListActionMixin, LoginRequiredMixin, ListView):
         return context
 
 
-class LeaveBalanceCreateView(LoginRequiredMixin, CreateView):
+class LeaveBalanceCreateView(HRRequiredMixin, CreateView):
     model = LeaveBalance
     form_class = LeaveBalanceForm
     template_name = 'leave_balance/form.html'
@@ -124,7 +132,8 @@ class LeaveBalanceCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class LeaveBalanceUpdateView(LoginRequiredMixin, UpdateView):
+class LeaveBalanceUpdateView(OwnEmployeeDataMixin, HRRequiredMixin, UpdateView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveBalance
     form_class = LeaveBalanceForm
     template_name = 'leave_balance/form.html'
@@ -132,6 +141,16 @@ class LeaveBalanceUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯餘額 - {self.object.employee.name} / {self.object.leave_type.name}'
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
         return context
 
     def form_valid(self, form):
@@ -140,15 +159,13 @@ class LeaveBalanceUpdateView(LoginRequiredMixin, UpdateView):
         return redirect('hr:leave_balance_update', pk=self.object.pk)
 
 
-class LeaveBalanceDeleteView(LoginRequiredMixin, DeleteView):
+class LeaveBalanceDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveBalance
     success_url = reverse_lazy('hr:leave_balance_list')
 
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
 
-
-class RecalculateLeaveView(LoginRequiredMixin, View):
+class RecalculateLeaveView(HRRequiredMixin, View):
     """重算所有在職員工的特休/病假餘額"""
 
     def post(self, request):
@@ -165,19 +182,18 @@ class RecalculateLeaveView(LoginRequiredMixin, View):
 
 # ==================== LeaveRequest ====================
 
-class LeaveRequestListView(ListActionMixin, LoginRequiredMixin, ListView):
+class LeaveRequestListView(OwnEmployeeDataMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
     model = LeaveRequest
     template_name = 'leave_request/list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 25
     create_button_label = '新增請假'
+    search_fields = ['employee__name', 'leave_type__name']
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
 
     def get_queryset(self):
         qs = super().get_queryset().filter(is_deleted=False).select_related('employee', 'leave_type')
-        q = self.request.GET.get('q', '')
-        status = self.request.GET.get('status')
-        if q:
-            qs = qs.filter(employee__name__icontains=q)
+        status = self.request.GET.get('status', 'pending')
         if status:
             qs = qs.filter(status=status)
         return qs
@@ -186,18 +202,38 @@ class LeaveRequestListView(ListActionMixin, LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '請假管理'
         context['custom_create_url'] = reverse_lazy('hr:leave_request_create')
-        context['q'] = self.request.GET.get('q', '')
-        context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_status'] = self.request.GET.get('status', 'pending')
         return context
 
 
-class LeaveRequestCreateView(LoginRequiredMixin, CreateView):
+_HR_STAFF_GROUPS = ['CPA', 'management', 'Admin', '人資組']
+
+
+def _is_hr_staff(user):
+    return user.is_superuser or user.groups.filter(name__in=_HR_STAFF_GROUPS).exists()
+
+
+class LeaveRequestCreateView(HRRequiredMixin, CreateView):
     model = LeaveRequest
     form_class = LeaveRequestForm
     template_name = 'leave_request/form.html'
 
     def get_success_url(self):
         return reverse_lazy('hr:leave_request_update', kwargs={'pk': self.object.pk})
+
+    def get_initial(self):
+        initial = super().get_initial()
+        emp = getattr(self.request.user, 'employee_profile', None)
+        if emp and not _is_hr_staff(self.request.user):
+            initial['employee'] = emp
+        return initial
+
+    def get_form(self, form_class=None):
+        from django import forms as dj_forms
+        form = super().get_form(form_class)
+        if not _is_hr_staff(self.request.user):
+            form.fields['employee'].widget = dj_forms.HiddenInput()
+        return form
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -231,23 +267,41 @@ class LeaveRequestCreateView(LoginRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class LeaveRequestUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class LeaveRequestUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveRequest
     form_class = LeaveRequestForm
     template_name = 'leave_request/form.html'
     prev_next_order_field = '-start_datetime'
 
+    def get_form(self, form_class=None):
+        from django import forms as dj_forms
+        form = super().get_form(form_class)
+        if not _is_hr_staff(self.request.user):
+            form.fields['employee'].widget = dj_forms.HiddenInput()
+        return form
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'編輯請假單 - {self.object.employee.name}'
 
-        # 添加核准相關 context
         approval_request = self.object.get_approval_request()
         context['approval_request'] = approval_request
         if approval_request:
             context['can_approve'] = self.object.can_user_approve(self.request.user)
         else:
             context['can_approve'] = False
+
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
 
         return context
 
@@ -257,18 +311,16 @@ class LeaveRequestUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
         return redirect('hr:leave_request_update', pk=self.object.pk)
 
 
-class LeaveRequestDeleteView(LoginRequiredMixin, DeleteView):
+class LeaveRequestDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     """Cancel (soft delete) a leave request and rollback balance"""
+    full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveRequest
     success_url = reverse_lazy('hr:leave_request_list')
 
-    def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
+    def form_valid(self, _form):
         self.object = self.get_object()
         self.object.cancel()  # This handles status + balance rollback
-        messages.success(request, '請假單已取消，餘額已回沖。')
+        messages.success(self.request, '請假單已取消，餘額已回沖。')
         return redirect(self.success_url)
 
 

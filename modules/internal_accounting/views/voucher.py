@@ -1,31 +1,38 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone
 
 import json
-import json
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
 from ..models import Voucher, Account, VoucherImage
 from ..forms import VoucherForm, VoucherDetailFormSet
 
-class VoucherListView(LoginRequiredMixin, ListView):
+class VoucherListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = Voucher
     template_name = 'voucher/list.html'
     context_object_name = 'vouchers'
-    paginate_by = 20
+    paginate_by = 25
+    search_fields = ['voucher_no', 'description']
+    filter_choices = {
+        'DRAFT':  {'status': 'DRAFT'},
+        'POSTED': {'status': 'POSTED'},
+    }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '會計傳票列表'
-        context['model_name'] = 'internal_accounting:voucher'
-        context['model_app_label'] = 'internal_accounting'
+        context['custom_create_url'] = reverse_lazy('internal_accounting:voucher_create')
         context['create_button_label'] = '新增傳票'
+        # 便利別名，template 直接用
+        context['count_all']    = context['filter_counts']['ALL']
+        context['count_draft']  = context['filter_counts']['DRAFT']
+        context['count_posted'] = context['filter_counts']['POSTED']
         return context
 
-class VoucherCreateView(LoginRequiredMixin, CreateView):
+class VoucherCreateView(BusinessRequiredMixin, CreateView):
     model = Voucher
     form_class = VoucherForm
     template_name = 'voucher/form.html'
@@ -81,7 +88,7 @@ class VoucherCreateView(LoginRequiredMixin, CreateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class VoucherUpdateView(LoginRequiredMixin, UpdateView):
+class VoucherUpdateView(BusinessRequiredMixin, UpdateView):
     model = Voucher
     form_class = VoucherForm
     template_name = 'voucher/form.html'
@@ -96,6 +103,14 @@ class VoucherUpdateView(LoginRequiredMixin, UpdateView):
             context['details'] = VoucherDetailFormSet(instance=self.object)
             
         context['account_aux_types'] = json.dumps(dict(Account.objects.values_list('code', 'auxiliary_type')))
+        
+        # Check if period is closed
+        from modules.internal_accounting.models.period import AccountingPeriod
+        if self.object and self.object.date:
+            period = AccountingPeriod.objects.filter(year=self.object.date.year, month=self.object.date.month).first()
+            context['is_period_closed'] = period and period.status == AccountingPeriod.Status.CLOSED
+        else:
+            context['is_period_closed'] = False
         
         # Add images
         context['images'] = self.object.images.all()
@@ -154,7 +169,7 @@ class VoucherUpdateView(LoginRequiredMixin, UpdateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class VoucherDeleteView(LoginRequiredMixin, DeleteView):
+class VoucherDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = Voucher
     template_name = 'voucher/confirm_delete.html'
     success_url = reverse_lazy('internal_accounting:voucher_list')

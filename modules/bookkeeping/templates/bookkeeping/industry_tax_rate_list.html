@@ -24,18 +24,24 @@
 {% endblock %}
 
 {% block table_headers %}
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">適用年度</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">行業代號</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">行業名稱</th>
-    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">擴大書審純益率(%)</th>
-    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">淨利率(%)</th>
-    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">所得額標準(%)</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="year">適用年度 <span class="sort-icon text-slate-400">↕</span></th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="code">行業代號 <span class="sort-icon text-slate-400">↕</span></th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="name">行業名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="profit">擴大書審純益率(%) <span class="sort-icon text-slate-400">↕</span></th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="net">淨利率(%) <span class="sort-icon text-slate-400">↕</span></th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="income">所得額標準(%) <span class="sort-icon text-slate-400">↕</span></th>
 {% endblock %}
 
 {% block table_rows %}
     {% for obj in rates %}
     <tr class="hover:bg-slate-50 transition duration-150"
-        x-show="matches('{{ obj.applicable_year|escapejs }}', '{{ obj.industry_code|escapejs }} {{ obj.industry_name|escapejs }}')">
+        x-show="matches('{{ obj.applicable_year|escapejs }}', '{{ obj.industry_code|escapejs }} {{ obj.industry_name|escapejs }}')"
+        data-year="{{ obj.applicable_year }}"
+        data-code="{{ obj.industry_code|escapejs }}"
+        data-name="{{ obj.industry_name|escapejs }}"
+        data-profit="{{ obj.book_review_profit_rate|default:0 }}"
+        data-net="{{ obj.net_profit_rate|default:0 }}"
+        data-income="{{ obj.income_standard|default:0 }}">
         <td class="px-6 py-4 whitespace-nowrap">
             <label class="relative flex cursor-pointer select-none items-center">
                 <input type="checkbox" class="sr-only" value="{{ obj.pk }}" x-model.number="selectedRows">

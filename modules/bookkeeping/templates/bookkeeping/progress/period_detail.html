@@ -100,6 +100,7 @@
         <input type="hidden" name="tax_amount" value="{{ form.tax_amount.value|default:'0' }}">
         <input type="hidden" name="input_tax" value="{{ form.input_tax.value|default:'0' }}">
         <input type="hidden" name="payable_tax" value="{{ form.payable_tax.value|default:'0' }}">
+        <input type="hidden" name="filing_status" value="{{ form.filing_status.value|default:'not_filed' }}">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             <!-- Card 1: 帳務資料 -->
@@ -210,15 +211,7 @@
                 </div>
                 {% endif %}
 
-                <!-- 申報狀態（可編輯，屬於本表單) -->
-                <div class="border-t border-slate-100 pt-3">
-                    <label class="text-xs text-slate-500 block mb-0.5 font-medium">本期記帳申報狀態</label>
-                    <select name="filing_status" class="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
-                        {% for choice_val, choice_label in form.fields.filing_status.choices %}
-                        <option value="{{ choice_val }}" {% if form.filing_status.value == choice_val %}selected{% endif %}>{{ choice_label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+
             </div><!-- end card 2 -->
 
         </div><!-- end grid -->
@@ -312,7 +305,7 @@
                             <!-- 查帳申報 (2 cols) -->
                             <th colspan="2" class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold w-[25%]">查帳申報</th>
                             <!-- 書審申報 (1 col) -->
-                            <th class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold w-[15%]">書審申報</th>
+                            <th class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold w-[15%]">書審/所標申報</th>
                         </tr>
                         <tr class="bg-gray-50 text-center py-2 px-2 border border-gray-200 text-gray-700 font-bold max-w-[50%]">
                             <th class="py-1.5 px-2 border border-gray-200 w-16">科目代碼</th>
@@ -480,7 +473,10 @@
                             <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(bookNonOpExp)"></td>
                             <td class="py-2 px-2 border border-gray-200"></td>
                             <td class="py-2 px-2 text-right border border-gray-200 text-gray-800" x-text="formatNumber(auditNonOpExp)"></td>
-                            <td class="py-2 px-2 text-right border border-gray-200 text-gray-400">-</td>
+                            <td class="py-2 px-2 text-right border border-gray-200">
+                                <span x-show="bookReviewMode === 'income_standard'" class="text-gray-800" x-text="formatNumber(auditNonOpExp)"></span>
+                                <span x-show="bookReviewMode !== 'income_standard'" class="text-gray-400">-</span>
+                            </td>
                         </tr>
                         <!-- 業外支出明細 -->
                         <template x-for="item in nonOpExpItems" :key="item.code">
@@ -492,7 +488,10 @@
                                     <input type="number" x-model.number="item.exclude" class="w-full text-right bg-transparent border border-gray-300 rounded px-1.5 py-0.5 text-xs focus:ring-1 focus:ring-blue-400">
                                 </td>
                                 <td class="py-1.5 px-2 border border-gray-200 text-right font-bold text-gray-700" x-text="formatNumber(item.book - item.exclude)"></td>
-                                <td class="py-1.5 px-2 border border-gray-200 text-center text-gray-400">-</td>
+                                <td class="py-1.5 px-2 border border-gray-200 text-right">
+                                    <span x-show="bookReviewMode === 'income_standard'" class="font-medium text-gray-700" x-text="formatNumber(item.book - item.exclude)"></span>
+                                    <span x-show="bookReviewMode !== 'income_standard'" class="text-gray-400">-</span>
+                                </td>
                             </tr>
                         </template>
                     </tbody>
@@ -505,10 +504,24 @@
                             <td class="py-2 px-2 border border-gray-200"></td>
                             <td class="py-2 px-2 text-right border border-gray-200 text-gray-800 text-sm border-b-2 border-b-gray-400" x-text="formatNumber(auditNetIncome)"></td>
                             
-                            <!-- 書審所得額 = (本業收入*純益率) + 業外收入 -->
+                            <!-- 書審/所標所得額，依條件顯示 -->
                             <td class="py-2 px-2 text-right border border-gray-200 text-gray-800 text-sm border-b-2 border-b-gray-400">
-                                <span class="block text-[10px] text-gray-500 font-normal leading-tight mb-0.5">營業收入 × 纯益率 + 業外收入</span>
-                                <span x-text="formatNumber(reviewIncome)"></span>
+                                <template x-if="bookReviewMode === 'book_review'">
+                                    <div>
+                                        <span class="block text-[10px] text-gray-500 font-normal leading-tight mb-0.5">營業收入 × 純益率 + 業外收入</span>
+                                        <span x-text="formatNumber(reviewIncome)"></span>
+                                    </div>
+                                </template>
+                                <template x-if="bookReviewMode === 'income_standard'">
+                                    <div>
+                                        <span class="block text-[10px] text-amber-600 font-normal leading-tight mb-0.5" x-text="bookReviewReason"></span>
+                                        <span class="block text-[10px] text-gray-500 font-normal leading-tight mb-0.5">營業收入 × 所得額標準 + 業外收入 - 業外支出</span>
+                                        <span x-text="formatNumber(reviewIncome)"></span>
+                                    </div>
+                                </template>
+                                <template x-if="bookReviewMode === 'na'">
+                                    <div class="text-center text-amber-600 text-xs font-normal">需洽專人評估計算</div>
+                                </template>
                             </td>
                         </tr>
                         <!-- 應納稅額 -->
@@ -518,8 +531,11 @@
                             <!-- 查帳稅額 -->
                             <td class="py-3 px-2 text-right border border-gray-200 bg-gray-100 text-gray-900 text-lg shadow-inner" x-text="formatNumber(auditTax)"></td>
                             
-                            <!-- 書審稅額 -->
-                            <td class="py-3 px-2 text-right border border-gray-200 bg-gray-100 text-gray-900 text-lg shadow-inner" x-text="formatNumber(reviewTax)"></td>
+                            <!-- 書審/所標稅額 -->
+                            <td class="py-3 px-2 text-right border border-gray-200 bg-gray-100 text-gray-900 text-lg shadow-inner">
+                                <span x-show="reviewTax !== null" x-text="reviewTax !== null ? formatNumber(reviewTax) : ''"></span>
+                                <span x-show="reviewTax === null" class="text-sm text-amber-500 font-normal">需洽專人評估</span>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -535,7 +551,7 @@
                     <ul class="list-disc pl-4 text-xs space-y-0.5 text-gray-600">
                         <li><strong>科目代碼規則：</strong> 4=營業收入，5=營業成本，6=營業費用，7=業外收入，8=業外支出</li>
                         <li><strong>查帳申報：</strong> 淨利 = 營業利益 (4-5-6) + 業外收入 (7) - 業外支出 (8)</li>
-                        <li><strong>書審申報所得額：</strong> (營業收入 × 純益率) + 業外收入 <span class="text-gray-500">(預設使用「查帳申報數」作為計算基礎)</span></li>
+                        <li><strong>書審/所標申報：</strong> 正常書審 → 營業收入 × 純益率 + 業外收入；收入≥3千萬或負純益率且收入≥千萬 → 改用所得額標準（+ 業外收入 - 業外支出）；純益率為「-」→ 不適用</li>
                     </ul>
                 </div>
             </div>
@@ -576,8 +592,12 @@
                                 this.netProfitRate = data.netProfitRate;
                                 this.taxRate = data.taxRate;
                                 this.items = data.items;
+                                this.industryCd = data.industryCd || '';
+                                this.industryNm = data.industryNm || '';
                                 if (data.items && data.items.length > 0) {
+                                    this.excelLoaded = true;
                                     this.ratesLoaded = !!(this.profitRate);
+                                    this.showResults = true;
                                 }
                             }
                         } catch (e) {
@@ -630,6 +650,8 @@
                             profitRate: this.profitRate,
                             incomeStandardRate: this.incomeStandardRate,
                             netProfitRate: this.netProfitRate,
+                            industryCd: this.industryCd,
+                            industryNm: this.industryNm,
                             items: this.items
                         };
 
@@ -744,15 +766,37 @@
                     get auditNetIncome() { return this.auditOpIncome + this.auditNonOpRev - this.auditNonOpExp; },
                     get auditTax() { return Math.max(0, Math.round(this.auditNetIncome * (this.taxRate / 100))); },
 
-                    // --- 書審申報計算 ---
-                    // 先抓取營業收入 (4開頭)，乘上純益率，再加上業外收入(7開頭)
-                    get reviewIncome() {
-                        const operatingRevenue = this.sumPrefix('4', 'audit'); // 使用申報數為基準
-                        const nonOpRevenue = this.sumPrefix('7', 'audit');
-                        return Math.round(operatingRevenue * (this.profitRate / 100)) + nonOpRevenue;
+                    // --- 書審/所標申報計算 ---
+                    // bookReviewMode: 'book_review' | 'income_standard' | 'na'
+                    // 'na'            → 純益率為 "-"（null），完全不適用，不顯示金額
+                    // 'income_standard' → 收入≥3千萬，或純益率為負且收入≥千萬 → 改用所得額標準
+                    // 'book_review'   → 正常書審
+                    get bookReviewMode() {
+                        if (this.profitRate === null || this.profitRate === undefined) return 'na';
+                        if (this.auditRevenue >= 30000000) return 'income_standard';
+                        if (this.profitRate < 0 && this.auditRevenue >= 10000000) return 'income_standard';
+                        return 'book_review';
                     },
-                    get reviewTax() { 
-                        return Math.max(0, Math.round(this.reviewIncome * (this.taxRate / 100))); 
+                    get bookReviewReason() {
+                        if (this.bookReviewMode !== 'income_standard') return '';
+                        if (this.auditRevenue >= 30000000) return '收入≥3千萬，不適用書審，改用所得額標準';
+                        return '負純益率且收入≥千萬，不適用書審，改用所得額標準';
+                    },
+                    get reviewIncome() {
+                        const revenue = this.auditRevenue;
+                        const nonOpRev = this.auditNonOpRev;
+                        const nonOpExp = this.auditNonOpExp;
+                        const mode = this.bookReviewMode;
+                        if (mode === 'na') return 0;
+                        if (mode === 'income_standard') {
+                            return Math.round(revenue * (this.incomeStandardRate / 100)) + nonOpRev - nonOpExp;
+                        }
+                        // book_review: 營業收入 × 純益率 + 業外收入
+                        return Math.round(revenue * (this.profitRate / 100)) + nonOpRev;
+                    },
+                    get reviewTax() {
+                        if (this.bookReviewMode === 'na') return null;
+                        return Math.max(0, Math.round(this.reviewIncome * (this.taxRate / 100)));
                     }
                 }
             }

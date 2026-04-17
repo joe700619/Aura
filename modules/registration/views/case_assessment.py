@@ -1,7 +1,6 @@
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from core.mixins import ListActionMixin, PrevNextMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, FilterMixin, SearchMixin, SoftDeleteMixin, SortMixin
 from ..models import CaseAssessment
 from ..forms import CaseAssessmentCRUDForm
 from django.contrib import messages
@@ -17,20 +16,34 @@ from modules.workflow.services import (
     get_effective_approver
 )
 
-class CaseAssessmentListView(ListActionMixin, LoginRequiredMixin, ListView):
+class CaseAssessmentListView(SortMixin, FilterMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = CaseAssessment
     template_name = 'case_assessment/list.html'
     context_object_name = 'assessments'
-    paginate_by = 20
+    paginate_by = 25
     create_button_label = '新增案件評估表'
+    search_fields = ['company_name', 'registration_no', 'unified_business_no']
+    default_filter = 'UNCOMPLETED'
+    filter_choices = {
+        'UNCOMPLETED': {'is_completed': False},
+        'COMPLETED':   {'is_completed': True},
+    }
+    allowed_sort_fields = ['date', 'registration_no', 'company_name', 'unified_business_no', 'risk_level', 'is_completed']
+    default_sort = ['-date']
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['model_name'] = 'caseassessment'
+        context['model_name'] = 'registration:case_assessment'
         context['model_app_label'] = 'registration'
+        context['count_all']         = context['filter_counts']['ALL']
+        context['count_uncompleted'] = context['filter_counts']['UNCOMPLETED']
+        context['count_completed']   = context['filter_counts']['COMPLETED']
         return context
 
-class CaseAssessmentCreateView(LoginRequiredMixin, CreateView):
+class CaseAssessmentCreateView(BusinessRequiredMixin, CreateView):
     model = CaseAssessment
     form_class = CaseAssessmentCRUDForm
     template_name = 'case_assessment/form.html'
@@ -47,7 +60,7 @@ class CaseAssessmentCreateView(LoginRequiredMixin, CreateView):
                 pass
         return super().form_valid(form)
 
-class CaseAssessmentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
+class CaseAssessmentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     model = CaseAssessment
     form_class = CaseAssessmentCRUDForm
     template_name = 'case_assessment/form.html'
@@ -56,20 +69,32 @@ class CaseAssessmentUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # 添加核准相關 context
         approval_request = self.object.get_approval_request()
         context['approval_request'] = approval_request
-        
+
         # 檢查當前使用者是否可以核准
         if approval_request:
             context['can_approve'] = self.object.can_user_approve(self.request.user)
         else:
             context['can_approve'] = False
-        
+
+        # 編修紀錄
+        if hasattr(self.object, 'history'):
+            history_list = []
+            for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
+                history_list.append({
+                    'history_user': record.history_user,
+                    'history_date': record.history_date,
+                    'history_type': record.history_type,
+                    'history_change_reason': record.history_change_reason or '資料變更',
+                })
+            context['history'] = history_list
+
         return context
 
-class CaseAssessmentDeleteView(LoginRequiredMixin, DeleteView):
+class CaseAssessmentDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
     model = CaseAssessment
     success_url = reverse_lazy('registration:case_assessment_list')
     template_name = 'case_assessment/confirm_delete.html'

@@ -1,16 +1,18 @@
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.views.generic import ListView, DetailView, UpdateView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin
 from django.views import View
 from django.http import HttpResponseRedirect
 from django.forms import modelformset_factory
 from datetime import date
 
-from ..models import BookkeepingClient, BookkeepingYear, BookkeepingPeriod, BookkeepingSetting
+from ..models import BookkeepingClient, BookkeepingYear, BookkeepingPeriod
 
-class ProgressListView(LoginRequiredMixin, ListView):
+class ProgressListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     """
     記帳進度表列表視圖
     顯示所有已經建立過「記帳進度設定」的客戶。
@@ -18,6 +20,7 @@ class ProgressListView(LoginRequiredMixin, ListView):
     model = BookkeepingClient
     template_name = 'bookkeeping/progress/list.html'
     context_object_name = 'clients'
+    search_fields = ['name', 'tax_id']
 
     def get_queryset(self):
         # 僅列出擁有「記帳進度設定」此一對一關聯的客戶
@@ -26,7 +29,7 @@ class ProgressListView(LoginRequiredMixin, ListView):
         ).select_related('bookkeeping_setting').order_by('name')
 
 
-class ProgressDetailView(LoginRequiredMixin, DetailView):
+class ProgressDetailView(BusinessRequiredMixin, DetailView):
     """
     記帳進度表維護介面
     顯示特定客戶某個年度下所有的期別資料，讓記帳人員可以一覽並批次編輯
@@ -110,7 +113,7 @@ class ProgressDetailView(LoginRequiredMixin, DetailView):
         return self.render_to_response(context)
 
 
-class SaveExpertRuleSettingsView(LoginRequiredMixin, View):
+class SaveExpertRuleSettingsView(BusinessRequiredMixin, View):
     """儲存客戶專屬的專家系統閾值設定"""
     def post(self, request, client_pk):
         from ..models import BookkeepingClient, ClientRuleSetting
@@ -147,7 +150,7 @@ class SaveExpertRuleSettingsView(LoginRequiredMixin, View):
             url += f"?year={year_param}"
         return HttpResponseRedirect(url)
 
-class AddProgressYearView(LoginRequiredMixin, View):
+class AddProgressYearView(BusinessRequiredMixin, View):
     """快速建立記帳年度及對應6期數的 API"""
     
     def post(self, request, pk):
@@ -188,7 +191,7 @@ class AddProgressYearView(LoginRequiredMixin, View):
         return HttpResponseRedirect(f"{url}?year={year_val}")
 
 
-class ProgressPeriodDetailView(LoginRequiredMixin, UpdateView):
+class ProgressPeriodDetailView(BusinessRequiredMixin, UpdateView):
     """
     期別詳情頁：顯示並編輯單一期的完整記帳及營業稅資料
     URL: /bookkeeping/progress/<client_pk>/period/<pk>/
@@ -208,12 +211,10 @@ class ProgressPeriodDetailView(LoginRequiredMixin, UpdateView):
         )
 
     def get_success_url(self):
-        client_pk = self.kwargs['client_pk']
-        year = self.object.year_record.year
-        return (
-            reverse('bookkeeping:progress_detail', kwargs={'pk': client_pk})
-            + f'?year={year}'
-        )
+        return reverse('bookkeeping:progress_period_detail', kwargs={
+            'client_pk': self.kwargs['client_pk'],
+            'pk': self.object.pk,
+        })
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -284,7 +285,7 @@ class ProgressPeriodDetailView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class ProgressTrackerView(LoginRequiredMixin, TemplateView):
+class ProgressTrackerView(BusinessRequiredMixin, TemplateView):
     """
     記帳期別進度表
     讓記帳人員依年度/月份，一眼查閱所有客戶的帳務處理與申報狀況。
@@ -339,14 +340,17 @@ class ProgressTrackerView(LoginRequiredMixin, TemplateView):
         # 換算成期別的起月 (1, 3, 5, 7, 9, 11)
         bimonthly_month = selected_month if selected_month % 2 == 1 else selected_month - 1
 
+        q = self.request.GET.get('q', '').strip()
+        context['q'] = q
+
         periods = []
         if selected_year:
+            qs_filter = Q(year_record__year=selected_year, period_start_month=bimonthly_month)
+            if q:
+                qs_filter &= Q(year_record__client__name__icontains=q) | Q(year_record__client__tax_id__icontains=q)
             periods = list(
                 BookkeepingPeriod.objects
-                .filter(
-                    year_record__year=selected_year,
-                    period_start_month=bimonthly_month,
-                )
+                .filter(qs_filter)
                 .select_related(
                     'year_record__client',
                     'year_record__client__bookkeeping_setting',
@@ -362,19 +366,52 @@ class ProgressTrackerView(LoginRequiredMixin, TemplateView):
 
             periods.sort(key=_assistant_sort_key)
 
-        context['periods'] = periods
-
-        # 5. 統計摘要
+        # 5. 統計摘要（篩選前）
         total = len(periods)
+        count_not_started  = sum(1 for p in periods if p.account_status == 'not_started')
+        count_in_progress  = sum(1 for p in periods if p.account_status == 'in_progress')
+        count_waiting_docs = sum(1 for p in periods if p.account_status == 'waiting_docs')
+        count_completed    = sum(1 for p in periods if p.account_status == 'completed')
+
         context['stats'] = {
             'total': total,
+            'not_started':  count_not_started,
+            'in_progress':  count_in_progress,
+            'waiting_docs': count_waiting_docs,
+            'completed':    count_completed,
         }
 
+        # 6. 快速篩選（server-side）
+        status_filter = self.request.GET.get('filter', 'ALL')
+        context['current_filter'] = status_filter
+        context['filter_counts'] = {
+            'ALL':          total,
+            'not_started':  count_not_started,
+            'in_progress':  count_in_progress,
+            'waiting_docs': count_waiting_docs,
+            'completed':    count_completed,
+        }
+
+        if status_filter != 'ALL':
+            periods = [p for p in periods if p.account_status == status_filter]
+
+        # 7. 分頁
+        paginator = Paginator(periods, 25)
+        page_number = self.request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context['periods'] = list(page_obj)
+        context['page_obj'] = page_obj
+        context['paginator'] = paginator
+        context['is_paginated'] = paginator.num_pages > 1
+        context['current_per_page'] = 25
+
         context['today'] = date.today()
+        context['model_app_label'] = BookkeepingPeriod._meta.app_label
+        context['model_name'] = BookkeepingPeriod._meta.model_name
         return context
 
 
-class RunExpertSystemView(LoginRequiredMixin, View):
+class RunExpertSystemView(BusinessRequiredMixin, View):
     """
     手動執行專家診斷系統的 API 端點
     URL: /bookkeeping/progress/<client_pk>/period/<pk>/run-expert/

@@ -12,6 +12,7 @@ from .income_tax import (
     DividendTax, ShareholderDividend,
     IncomeTaxFiling,
 )
+from .income_tax_media import IncomeTaxMediaData
 from .corporate_tax import CorporateTaxFiling, TaxAdjustmentEntry
 from .billing import ServiceFee, ClientBill, ClientBillItem
 
@@ -46,4 +47,5 @@ __all__ = [
     'ClientRuleSetting',
     'RuleAlert',
     'IndustryTaxRate',
+    'IncomeTaxMediaData',
 ]

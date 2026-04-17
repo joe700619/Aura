@@ -1,12 +1,12 @@
 import logging
+from core.mixins import BusinessRequiredMixin
 from django.http import JsonResponse
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin
 from core.services.fia_api import FiaApiService
 
 logger = logging.getLogger(__name__)
 
-class FetchIndustryRatesApiView(LoginRequiredMixin, View):
+class FetchIndustryRatesApiView(BusinessRequiredMixin, View):
     """
     API endpoint to fetch industry rates from Ministry of Finance based on BAN and year.
     Used by frontend forms to auto-populate rate fields.

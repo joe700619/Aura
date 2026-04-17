@@ -5,21 +5,6 @@
 {% block header_title %}出勤紀錄{% endblock %}
 {% block header_description %}管理員工打卡與補卡紀錄{% endblock %}
 
-{% block content %}
-<script id="list-metadata" type="application/json">
-[
-    {% for item in items %}
-    {
-        "id": {{ item.pk }},
-        "category": "{{ item.source|escapejs }}",
-        "content": "{{ item.employee.name|escapejs }} {{ item.date|escapejs }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-{{ block.super }}
-{% endblock %}
-
 {% block filters %}
 <form method="get" class="flex flex-wrap items-center gap-3">
     <input type="text" name="q" value="{{ q }}" placeholder="搜尋員工姓名..."
@@ -36,6 +21,10 @@
 </form>
 {% endblock %}
 
+{% block extra_pagination_params %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% endblock %}
+
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">員工</th>
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">日期</th>
@@ -49,28 +38,27 @@
 {% block table_rows %}
 {% for item in items %}
 <tr class="hover:bg-slate-50 transition duration-150"
-    x-show="matches('{{ item.source|escapejs }}', '{{ item.employee.name|escapejs }} {{ item.date|escapejs }}')"
     :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/30' : ''">
     {% include "components/row_checkbox.html" with value=item.pk %}
-    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-800 border-b border-slate-100">
         {{ item.employee.employee_number }} - {{ item.employee.name }}
     </td>
-    <td class="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600">{{ item.date|date:"Y-m-d" }}</td>
-    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm">
+    <td class="px-4 py-4 whitespace-nowrap font-mono text-sm text-slate-600 border-b border-slate-100">{{ item.date|date:"Y-m-d" }}</td>
+    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm border-b border-slate-100">
         {% if item.clock_in %}
         <span class="text-green-600">{{ item.clock_in|time:"H:i" }}</span>
         {% else %}
         <span class="text-slate-300">-</span>
         {% endif %}
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm">
+    <td class="px-4 py-4 whitespace-nowrap text-center font-mono text-sm border-b border-slate-100">
         {% if item.clock_out %}
         <span class="text-blue-600">{{ item.clock_out|time:"H:i" }}</span>
         {% else %}
         <span class="text-slate-300">-</span>
         {% endif %}
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm border-b border-slate-100">
         {% if item.source == 'web' %}
         <span class="px-2 py-1 text-xs rounded-full font-semibold bg-blue-100 text-blue-700">網頁</span>
         {% elif item.source == 'line' %}
@@ -79,7 +67,7 @@
         <span class="px-2 py-1 text-xs rounded-full font-semibold bg-amber-100 text-amber-700">補卡</span>
         {% endif %}
     </td>
-    <td class="px-4 py-4 whitespace-nowrap text-center text-sm">
+    <td class="px-4 py-4 whitespace-nowrap text-center text-sm border-b border-slate-100">
         {% if item.clock_in and item.clock_out %}
         <span class="px-2 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-700">正常</span>
         {% elif item.clock_in or item.clock_out %}
@@ -88,11 +76,44 @@
         <span class="px-2 py-1 text-xs rounded-full font-semibold bg-red-100 text-red-700">未出勤</span>
         {% endif %}
     </td>
-    {% include "components/row_actions.html" with update_url='hr:attendance_update' delete_url='hr:attendance_delete' pk=item.pk %}
+    {% url 'hr:attendance_update' item.pk as update_url %}
+    {% url 'hr:attendance_delete' item.pk as delete_url %}
+    {% include "components/row_actions.html" with update_url=update_url delete_url=delete_url %}
 </tr>
 {% empty %}
-<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">目前沒有出勤紀錄</td></tr>
+<tr>
+    <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+        <div class="flex flex-col items-center justify-center">
+            <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-base font-medium text-slate-900">尚無資料</p>
+            <p class="text-sm text-slate-400 mt-1">目前沒有任何出勤紀錄</p>
+        </div>
+    </td>
+</tr>
 {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in items %}
+    {
+        "id": {{ item.pk }},
+        "category": "{{ item.source|escapejs }}",
+        "content": "{{ item.employee.name|escapejs }} {{ item.employee.employee_number|escapejs }} {{ item.date|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block pagination_info %}
+{% if is_paginated %}
+顯示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 筆，共 {{ paginator.count }} 筆資料
+{% else %}
+顯示第 1 到 {{ object_list|length }} 筆，共 {{ object_list|length }} 筆資料
+{% endif %}
 {% endblock %}
 
 {% block overlays %}

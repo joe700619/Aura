@@ -1,17 +1,18 @@
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from core.mixins import ListActionMixin
+from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin
 from ..models import SystemBulletin
 from ..forms import SystemBulletinCRUDForm
 
-class SystemBulletinListView(LoginRequiredMixin, ListActionMixin, ListView):
+class SystemBulletinListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = SystemBulletin
     template_name = 'administrative/bulletin/list.html'
     context_object_name = 'object_list'
+    paginate_by = 20
     create_button_label = _('新增公佈欄')
+    search_fields = ['subject', 'content']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -19,7 +20,7 @@ class SystemBulletinListView(LoginRequiredMixin, ListActionMixin, ListView):
         context['custom_create_url'] = reverse_lazy('administrative:system_bulletin_create')
         return context
 
-class SystemBulletinCreateView(LoginRequiredMixin, CreateView):
+class SystemBulletinCreateView(BusinessRequiredMixin, CreateView):
     model = SystemBulletin
     form_class = SystemBulletinCRUDForm
     template_name = 'administrative/bulletin/form.html'
@@ -30,7 +31,7 @@ class SystemBulletinCreateView(LoginRequiredMixin, CreateView):
         context['page_title'] = _('新增公佈欄')
         return context
 
-class SystemBulletinUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SystemBulletinUpdateView(BusinessRequiredMixin, SuccessMessageMixin, UpdateView):
     model = SystemBulletin
     form_class = SystemBulletinCRUDForm
     template_name = 'administrative/bulletin/form.html'
@@ -42,7 +43,7 @@ class SystemBulletinUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateVi
         context['page_title'] = _('編輯公佈欄')
         return context
 
-class SystemBulletinDeleteView(LoginRequiredMixin, DeleteView):
+class SystemBulletinDeleteView(BusinessRequiredMixin, DeleteView):
     model = SystemBulletin
     success_url = reverse_lazy('administrative:system_bulletin_list')
     

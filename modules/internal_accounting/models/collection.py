@@ -23,14 +23,22 @@ class Collection(BaseModel):
     date = models.DateField(_('收款日期'), default=timezone.now)
     method = models.CharField(_('收款方式'), max_length=20, choices=METHOD_CHOICES, default='bank')
     
-    amount = models.DecimalField(_('收款金額'), max_digits=12, decimal_places=2, default=0)
-    tax = models.DecimalField(_('扣繳稅款'), max_digits=12, decimal_places=2, default=0)
-    fee = models.DecimalField(_('手續費'), max_digits=12, decimal_places=2, default=0)
-    allowance = models.DecimalField(_('壞帳或折讓'), max_digits=12, decimal_places=2, default=0)
-    total = models.DecimalField(_('收款合計'), max_digits=12, decimal_places=2, default=0)
+    amount = models.DecimalField(_('收款金額'), max_digits=12, decimal_places=0, default=0)
+    tax = models.DecimalField(_('扣繳稅款'), max_digits=12, decimal_places=0, default=0)
+    fee = models.DecimalField(_('手續費'), max_digits=12, decimal_places=0, default=0)
+    allowance = models.DecimalField(_('壞帳或折讓'), max_digits=12, decimal_places=0, default=0)
+    total = models.DecimalField(_('收款合計'), max_digits=12, decimal_places=0, default=0)
     
+    voucher = models.ForeignKey(
+        'internal_accounting.Voucher',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='collections',
+        verbose_name=_('對應傳票')
+    )
     is_correction_needed = models.BooleanField(_('是否需補扣'), default=False)
-    reporting_amount = models.DecimalField(_('扣繳申報金額'), max_digits=12, decimal_places=2, default=0)
+    auto_created = models.BooleanField(_('系統自動建立'), default=False, help_text=_('綠界付款後由系統自動產生'))
+    reporting_amount = models.DecimalField(_('扣繳申報金額'), max_digits=12, decimal_places=0, default=0)
     is_posted = models.BooleanField(_('已過帳'), default=False)
     
     remarks = models.TextField(_('備註'), blank=True)
@@ -44,8 +52,14 @@ class Collection(BaseModel):
         return self.collection_no or f"Collection {self.pk}"
 
     def save(self, *args, **kwargs):
+        # Coerce all monetary fields to integers (strip decimals from external transfers)
+        self.amount = Decimal(str(self.amount)).quantize(Decimal('1'))
+        self.tax = Decimal(str(self.tax)).quantize(Decimal('1'))
+        self.fee = Decimal(str(self.fee)).quantize(Decimal('1'))
+        self.allowance = Decimal(str(self.allowance)).quantize(Decimal('1'))
+
         # Calculate total
-        self.total = Decimal(str(self.amount)) + Decimal(str(self.tax)) + Decimal(str(self.fee)) + Decimal(str(self.allowance))
+        self.total = self.amount + self.tax + self.fee + self.allowance
         
         # Generate collection_no if not present
         if not self.collection_no:

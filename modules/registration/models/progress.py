@@ -2,9 +2,9 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
-import uuid
+from core.models import BaseModel
 
-class Progress(models.Model):
+class Progress(BaseModel):
     class ProgressStatus(models.IntegerChoices):
         NEW_CASE = 0, _('新接案')
         DISCUSSING = 1, _('討論中')
@@ -51,21 +51,8 @@ class Progress(models.Model):
     quotation_data = models.JSONField(_('報價單資料'), default=list, blank=True)
     cost_sharing_data = models.JSONField(_('公費分攤資料'), default=list, blank=True)
 
-    # 5. Third-party Payment
-    payment_token = models.UUIDField(_('支付連結Token'), unique=True, null=True, blank=True)
-    payment_status = models.CharField(_('支付狀態'), max_length=20, default='pending', choices=[('pending', '待付款'), ('paid', '已付款'), ('failed', '失敗')])
-    
-    # Recipient Info
-    recipient_name = models.CharField(_('收件人姓名'), max_length=100, blank=True)
-    recipient_phone = models.CharField(_('收件人電話'), max_length=50, blank=True)
-    recipient_addr = models.CharField(_('收件地址'), max_length=255, blank=True)
-    pickup_method = models.CharField(_('取件方式'), max_length=20, default='mail', choices=[('mail', '郵寄'), ('self', '自取')])
-    
     is_ar_transferred = models.BooleanField(_('已拋轉應收帳款'), default=False)
     is_posted = models.BooleanField(_('已拋轉傳票過帳'), default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('登記進度表')
@@ -112,8 +99,3 @@ class Progress(models.Model):
         
         super().save(*args, **kwargs)
 
-    def generate_payment_token(self):
-        if not self.payment_token:
-            self.payment_token = uuid.uuid4()
-            self.save(update_fields=['payment_token'])
-        return self.payment_token
