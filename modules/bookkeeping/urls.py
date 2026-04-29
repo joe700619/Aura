@@ -47,6 +47,7 @@ from modules.bookkeeping.views.bill_views import (
 )
 from modules.bookkeeping.views.corporate_tax import CorporateTaxDraftAPIView, ImportCorporateTaxExcelAPIView
 from modules.bookkeeping.views.api_rates import FetchIndustryRatesApiView
+from modules.bookkeeping.views.api_progress_summary import ProgressSummaryAPIView
 
 app_name = 'bookkeeping'
 
@@ -123,6 +124,7 @@ urlpatterns = [
     path('api/corporate-tax/<int:year_id>/import/', ImportCorporateTaxExcelAPIView.as_view(), name='api_corporate_tax_import'),
     path('api/industry-rates/fetch/', FetchIndustryRatesApiView.as_view(), name='api_industry_rates_fetch'),
     path('api/income-tax/<int:client_pk>/media-data/', IncomeTaxMediaSlideoverAPI.as_view(), name='api_income_tax_media_data'),
+    path('api/progress-summary/', ProgressSummaryAPIView.as_view(), name='api_progress_summary'),
 
     # Industry Tax Rates (Master Data)
     path('industry-tax-rates/', IndustryTaxRateListView.as_view(), name='industry_tax_rate_list'),

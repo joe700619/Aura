@@ -34,9 +34,14 @@ def dashboard(request):
             context['registration_count'] = 0
 
             try:
-                from modules.internal_accounting.models import Receivable
-                receivables = Receivable.objects.filter(is_posted=False, assistant=employee.name)
-                context['unbilled_amount'] = sum(r.total_amount for r in receivables)
+                from modules.bookkeeping.models import ClientBill
+                from django.db.models import Sum
+                draft_total = ClientBill.objects.filter(
+                    status=ClientBill.BillStatus.DRAFT,
+                    client__bookkeeping_assistant=employee,
+                    is_deleted=False,
+                ).aggregate(total=Sum('total_amount'))['total'] or 0
+                context['unbilled_amount'] = draft_total
             except Exception:
                 context['unbilled_amount'] = 0
 
@@ -69,6 +74,12 @@ def dashboard(request):
             from django.utils import timezone
             context['today'] = timezone.localdate()
             context['today_record'] = None
+
+        # ── 記帳進度圖初始參數 ──
+        from datetime import date as _date
+        _today = _date.today()
+        context['roc_year']   = _today.year - 1911
+        context['roc_month']  = _today.month
 
         # ── 系統布告欄（所有登入者皆顯示）──
         try:

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block content %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -28,7 +29,7 @@
     <div class="bg-blue-50 rounded-lg shadow p-6 flex  items-start">
         <div class="flex-grow">
             <h3 class="text-gray-500 text-sm font-medium mb-1">未發帳單金額</h3>
-            <p class="text-3xl font-bold text-gray-800">NT$ {{ unbilled_amount|default:"0" }}</p>
+            <p class="text-3xl font-bold text-gray-800">NT$ {{ unbilled_amount|default:0|floatformat:0|intcomma }}</p>
         </div>
         <div class="p-3 bg-indigo-50 text-indigo-500 rounded-full">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -154,8 +155,8 @@
 
             <!-- Active Task Detail Box (Remarks) -->
             <div x-show="activeTask" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0"
-                 style="display: none;"
-                 class="mt-4 p-5 bg-white rounded-xl relative overflow-hidden" style="display:none; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e0e7ff;">
+                 style="display: none; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e0e7ff;"
+                 class="mt-4 p-5 bg-white rounded-xl relative overflow-hidden">
                 <!-- Top Decorative Line -->
                 <div class="absolute top-0 left-0 w-full" style="height: 3px; background: linear-gradient(90deg, #6366f1, #60a5fa);"></div>
                 
@@ -257,7 +258,7 @@
             <div class="text-center py-12 text-gray-500 h-full flex flex-col justify-center">
                 <p class="text-4xl mb-3">🎉</p>
                 <p class="font-medium">目前沒有待辦事項</p>
-                <p class="text-sm mt-1">您已處裡完所有的核准項目！</p>
+                <p class="text-sm mt-1">您已處理完所有的核准項目！</p>
             </div>
             {% endif %}
         </div>
@@ -379,12 +380,14 @@
                 <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                 系統公佈欄
             </h3>
+            {% if is_management_user or request.user.is_superuser %}
             <a href="{% url 'administrative:system_bulletin_create' %}" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
                 <svg class="-ml-0.5 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 新增公告
             </a>
+            {% endif %}
         </div>
         {% if system_bulletins %}
         <ul class="space-y-4">
@@ -434,63 +437,298 @@
     </div>
 </div>
 
-<!-- Footer Section: Bookkeeping Tracker -->
-<div class="bg-white rounded-lg shadow overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+<!-- Footer Section: Bookkeeping Progress Chart -->
+{% if employee and bookkeeping_count or is_management_user or request.user.is_superuser %}
+<div class="bg-white rounded-lg shadow overflow-hidden"
+     x-data="progressChart('{% url 'bookkeeping:api_progress_summary' %}', {{ roc_year }}, {{ roc_month }})"
+     x-init="init()">
+
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-wrap items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-            <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            記帳案件進度表 (尚未處理)
+            <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            記帳案件進度
         </h3>
-        <a href="{% url 'bookkeeping:progress_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
-            查看所有進度表 &rarr;
-        </a>
+        <div class="flex items-center gap-2">
+            <!-- Year selector -->
+            <select x-model.number="year" @change="onYearChange()"
+                class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white text-gray-700">
+                <template x-for="y in availableYears" :key="y">
+                    <option :value="y" x-text="y + ' 年'"></option>
+                </template>
+            </select>
+            <!-- Month selector (顯示結束月，查詢仍用 period_start_month) -->
+            <select x-model.number="month" @change="load()"
+                class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white text-gray-700">
+                <template x-for="m in availableMonths" :key="m">
+                    <option :value="m" x-text="(m + 1) + ' 月'"></option>
+                </template>
+            </select>
+            <a href="{% url 'bookkeeping:progress_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 whitespace-nowrap ml-2">
+                完整進度表 &rarr;
+            </a>
+        </div>
     </div>
-    
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 bg-gray-50 uppercase border-b border-gray-100">
-                <tr>
-                    <th scope="col" class="px-6 py-3 font-medium">客戶名稱</th>
-                    <th scope="col" class="px-6 py-3 font-medium">統編</th>
-                    <th scope="col" class="px-6 py-3 font-medium">年度</th>
-                    <th scope="col" class="px-6 py-3 font-medium">期別</th>
-                    <th scope="col" class="px-6 py-3 font-medium">帳務進度</th>
-                    <th scope="col" class="px-6 py-3 font-medium text-right">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if not_started_periods %}
-                    {% for period in not_started_periods %}
-                    <tr class="bg-white border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                            {{ period.year_record.client.name }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ period.year_record.client.tax_id|default:"-" }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ period.year_record.year }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ period.period_label }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">尚未處理</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <a href="{% url 'bookkeeping:progress_period_detail' period.year_record.client.pk period.pk %}" class="text-indigo-600 hover:text-indigo-900 font-medium">進入處理</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            您目前擔任記帳助理的客戶，皆無「尚未處理」的案件。
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+
+    <!-- Loading -->
+    <div x-show="loading" style="border-top:1px solid #f3f4f6;" class="flex justify-center items-center py-16">
+        <svg class="animate-spin w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
     </div>
+
+    <!-- Main body: left = chart, right = detail table -->
+    <!-- x-show 放外層 wrapper；flex 容器在內層不加 x-show，避免 Alpine 覆蓋 display:flex -->
+    <div x-show="!loading">
+    <div style="display:flex; flex-direction:row; align-items:stretch; border-top:1px solid #f3f4f6;">
+
+        <!-- ── LEFT: 圓餅圖 + 家數資訊並排 ── -->
+        <div style="flex:3; border-right:1px solid #f3f4f6; padding:24px; display:flex; flex-direction:row; align-items:center; gap:24px;">
+
+            <!-- Empty state -->
+            <div x-show="data && data.total === 0" class="text-center py-10 text-gray-400 w-full">
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="text-sm" x-text="'民國 ' + year + ' 年 ' + (month+1) + ' 月無記帳案件資料'"></span>
+            </div>
+
+            <!-- Doughnut -->
+            <div x-show="data && data.total > 0" style="position:relative; width:240px; height:240px; flex-shrink:0;">
+                <canvas x-ref="chartCanvas" width="240" height="240"></canvas>
+                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+                    <span class="text-4xl font-bold text-gray-800" x-text="completionRate + '%'"></span>
+                    <span class="text-sm text-gray-400 mt-1">完成率</span>
+                </div>
+            </div>
+
+            <!-- Stat list（圓餅圖右側） -->
+            <div x-show="data && data.total > 0" style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:160px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; background:#f9fafb; border-radius:8px;">
+                    <span class="text-sm font-medium text-gray-500">總計</span>
+                    <span class="text-lg font-bold text-gray-800" x-text="data ? data.total + ' 家' : ''"></span>
+                </div>
+                <button @click="toggleFilter('completed')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-radius:8px; transition:all .15s; border-width:1px;"
+                    :style="detailFilter==='completed' ? 'background:#dcfce7; border-color:#86efac;' : 'background:#fff; border-color:#f3f4f6;'">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:#10b981; flex-shrink:0;"></span>
+                        <span class="text-sm text-green-700">處理完成</span>
+                    </div>
+                    <span class="text-sm font-bold text-green-700" x-text="data ? data.completed + ' 家' : ''"></span>
+                </button>
+                <button @click="toggleFilter('in_progress')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-radius:8px; transition:all .15s; border-width:1px;"
+                    :style="detailFilter==='in_progress' ? 'background:#e0e7ff; border-color:#a5b4fc;' : 'background:#fff; border-color:#f3f4f6;'">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:#6366f1; flex-shrink:0;"></span>
+                        <span class="text-sm text-indigo-700">處理中</span>
+                    </div>
+                    <span class="text-sm font-bold text-indigo-700" x-text="data ? data.in_progress + ' 家' : ''"></span>
+                </button>
+                <button @click="toggleFilter('waiting_docs')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-radius:8px; transition:all .15s; border-width:1px;"
+                    :style="detailFilter==='waiting_docs' ? 'background:#fef3c7; border-color:#fcd34d;' : 'background:#fff; border-color:#f3f4f6;'">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:#f59e0b; flex-shrink:0;"></span>
+                        <span class="text-sm text-amber-700">缺憑證等待</span>
+                    </div>
+                    <span class="text-sm font-bold text-amber-700" x-text="data ? data.waiting_docs + ' 家' : ''"></span>
+                </button>
+                <button @click="toggleFilter('not_started')"
+                    style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-radius:8px; transition:all .15s; border-width:1px;"
+                    :style="detailFilter==='not_started' ? 'background:#f3f4f6; border-color:#d1d5db;' : 'background:#fff; border-color:#f3f4f6;'">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:#9ca3af; flex-shrink:0;"></span>
+                        <span class="text-sm text-gray-600">尚未處理</span>
+                    </div>
+                    <span class="text-sm font-bold text-gray-600" x-text="data ? data.not_started + ' 家' : ''"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── RIGHT: 客戶明細（較窄） ── -->
+        <div style="flex:2; min-width:0;" class="flex flex-col">
+            <!-- Sub-header -->
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
+                <span class="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                    查看客戶明細
+                    <span x-show="detailFilter" class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full font-medium"
+                        :class="{
+                            'bg-green-100 text-green-700':  detailFilter==='completed',
+                            'bg-indigo-100 text-indigo-700': detailFilter==='in_progress',
+                            'bg-amber-100 text-amber-700':  detailFilter==='waiting_docs',
+                            'bg-gray-200 text-gray-600':    detailFilter==='not_started',
+                        }"
+                        x-text="{completed:'處理完成',in_progress:'處理中',waiting_docs:'缺憑證等待',not_started:'尚未處理'}[detailFilter]">
+                    </span>
+                </span>
+                <button x-show="detailFilter" @click="detailFilter = null"
+                    class="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                    清除篩選 ✕
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-y-auto" style="max-height: 360px;">
+                <table class="w-full text-sm text-left">
+                    <thead class="sticky top-0 bg-gray-50 text-xs text-gray-500 uppercase border-b border-gray-100 z-10">
+                        <tr>
+                            <th class="px-4 py-3 font-medium">客戶名稱</th>
+                            <th class="px-4 py-3 font-medium">統編</th>
+                            <th class="px-4 py-3 font-medium text-center">狀態</th>
+                            <template x-if="data && data.is_full_access">
+                                <th class="px-4 py-3 font-medium">記帳助理</th>
+                            </template>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-if="!data || data.total === 0">
+                            <tr><td colspan="4" class="px-4 py-12 text-center text-gray-300">—</td></tr>
+                        </template>
+                        <template x-if="data && data.total > 0 && filteredClients.length === 0">
+                            <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">無符合條件的資料</td></tr>
+                        </template>
+                        <template x-for="(client, idx) in filteredClients" :key="client.name + client.tax_id">
+                            <tr :class="idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'"
+                                class="border-b border-gray-50 last:border-0 hover:bg-indigo-50/30 transition-colors">
+                                <td class="px-4 py-3 font-medium text-gray-800" x-text="client.name"></td>
+                                <td class="px-4 py-3 text-gray-500 font-mono text-xs" x-text="client.tax_id || '-'"></td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full"
+                                        :class="{
+                                            'bg-green-100 text-green-700':   client.status === 'completed',
+                                            'bg-indigo-100 text-indigo-700': client.status === 'in_progress',
+                                            'bg-amber-100 text-amber-700':   client.status === 'waiting_docs',
+                                            'bg-gray-100 text-gray-600':     client.status === 'not_started',
+                                        }"
+                                        x-text="client.status_display">
+                                    </span>
+                                </td>
+                                <template x-if="data && data.is_full_access">
+                                    <td class="px-4 py-3 text-gray-600" x-text="client.assistant || '-'"></td>
+                                </template>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    </div>{# /flex row #}
+    </div>{# /x-show wrapper #}
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+function progressChart(apiUrl, initYear, initMonth) {
+    return {
+        year:           initYear,
+        month:          initMonth,
+        data:           null,
+        loading:        false,
+        showDetails:    false,
+        detailFilter:   null,
+        chart:          null,
+        availableYears: [initYear],
+        availableMonths: Array.from({length: 12}, (_, i) => i + 1),
+
+        async init() {
+            await this.load();
+            // 若當月無資料，自動切換到最近一個有資料的月份
+            if (this.data && this.data.total === 0 && this.availableMonths.length > 0) {
+                this.month = this.availableMonths[this.availableMonths.length - 1];
+                await this.load();
+            }
+        },
+
+        async load() {
+            this.loading = true;
+            try {
+                const res  = await fetch(`${apiUrl}?year=${this.year}&month=${this.month}`);
+                const json = await res.json();
+                this.data           = json;
+                this.availableYears  = json.available_years.length  ? json.available_years  : [this.year];
+                this.availableMonths = json.available_months.length ? json.available_months : Array.from({length:12},(_,i)=>i+1);
+                this.$nextTick(() => this.renderChart());
+            } catch (e) {
+                console.error('Progress chart load error:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async onYearChange() {
+            await this.load();
+            // 若目前月份不在新年度可用月份中，切換至第一個可用月份
+            if (this.availableMonths.length && !this.availableMonths.includes(this.month)) {
+                this.month = this.availableMonths[0];
+                await this.load();
+            }
+        },
+
+        renderChart() {
+            const canvas = this.$refs.chartCanvas;
+            canvas.width  = 240;
+            canvas.height = 240;
+            if (!canvas || !this.data || this.data.total === 0) return;
+            if (this.chart) this.chart.destroy();
+
+            this.chart = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['處理完成', '處理中', '缺憑證等待', '尚未處理'],
+                    datasets: [{
+                        data: [
+                            this.data.completed,
+                            this.data.in_progress,
+                            this.data.waiting_docs,
+                            this.data.not_started,
+                        ],
+                        backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#d1d5db'],
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6,
+                    }],
+                },
+                options: {
+                    cutout: '72%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.label}：${ctx.raw} 家`,
+                            },
+                        },
+                    },
+                    animation: { duration: 500 },
+                },
+            });
+        },
+
+        toggleFilter(status) {
+            this.detailFilter = (this.detailFilter === status) ? null : status;
+            if (this.detailFilter) this.showDetails = true;
+        },
+
+        get completionRate() {
+            if (!this.data || this.data.total === 0) return 0;
+            return Math.round(this.data.completed / this.data.total * 100);
+        },
+
+        get filteredClients() {
+            if (!this.data) return [];
+            if (!this.detailFilter) return this.data.clients;
+            return this.data.clients.filter(c => c.status === this.detailFilter);
+        },
+    };
+}
+</script>
 {% endblock %}

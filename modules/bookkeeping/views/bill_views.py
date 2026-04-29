@@ -327,6 +327,7 @@ class ClientBillListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequ
     context_object_name = 'bills'
     create_button_label = '新增帳單'
     paginate_by = 25
+    default_filter = 'draft'
     search_fields = ['bill_no', 'client__name', 'client__tax_id']
     filter_choices = {
         'draft':   {'status': 'draft'},
