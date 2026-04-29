@@ -537,6 +537,10 @@ class IncomeTaxFiling(IncomeTaxItemBase):
         _('媒體檔'), upload_to='income_tax/media/',
         blank=True, null=True,
     )
+    tax_bill_document = models.FileField(
+        _('繳款書'), upload_to=get_income_tax_document_path,
+        blank=True, null=True,
+    )
     reconciliation = models.JSONField(
         _('扣繳調節表'),
         default=list,

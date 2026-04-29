@@ -46,6 +46,16 @@ class BookkeepingClient(BaseModel):
         OUR_FIRM = 'our_firm', '本所設立'
         TRANSFERRED = 'transferred', '他所轉入'
 
+    class NotificationMethod(models.TextChoices):
+        LINE = 'line', 'Line'
+        EMAIL = 'email', 'Email'
+        BOTH = 'both', 'Line + Email'
+
+    class PaymentMethod(models.TextChoices):
+        SELF_PAY = 'self_pay', '自行繳納'
+        OFFICE_PAY = 'office_pay', '事務所代繳'
+        AUTO_DEBIT = 'auto_debit', '自動扣款'
+
     # ── 基本資料 ──
     user = models.OneToOneField(
         'core.User', on_delete=models.SET_NULL,
@@ -60,6 +70,10 @@ class BookkeepingClient(BaseModel):
     )
     tax_id = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
     tax_registration_no = models.CharField(_('稅籍編號'), max_length=20, blank=True, null=True)
+    tax_authority_code = models.CharField(
+        _('國稅局轄區代碼'), max_length=5, blank=True, null=True,
+        help_text=_('城市代號(1碼) + 稅籍單位代碼(4碼)，例如 A0300'),
+    )
     name = models.CharField(_('公司名稱'), max_length=100)
     line_id = models.CharField(_('Line ID'), max_length=50, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=50, blank=True, null=True)
@@ -99,6 +113,22 @@ class BookkeepingClient(BaseModel):
         null=True, blank=True,
         related_name='bookkeeping_assistant_clients',
         verbose_name=_('記帳助理'),
+    )
+
+    # ── 通知與繳稅偏好 ──
+    notification_method = models.CharField(
+        _('通知方式'), max_length=10,
+        choices=NotificationMethod.choices,
+        blank=True, null=True,
+    )
+    payment_method = models.CharField(
+        _('預設繳稅方式'), max_length=20,
+        choices=PaymentMethod.choices,
+        blank=True, null=True,
+    )
+    service_remuneration_reminder_enabled = models.BooleanField(
+        _('啟用勞務報酬繳費提醒'), default=True,
+        help_text=_('每月1號自動提醒尚未繳納的勞務報酬扣繳/補充保費'),
     )
 
     # ── 備註 ──
@@ -148,9 +178,6 @@ class BookkeepingClient(BaseModel):
     )
 
     # ── 帳號密碼 (營業人) ──
-    business_password = models.CharField(
-        _('記帳客戶登入密碼'), max_length=100, blank=True, null=True
-    )
     national_tax_password = models.CharField(
         _('營業人(國稅局)密碼'), max_length=100, blank=True, null=True
     )

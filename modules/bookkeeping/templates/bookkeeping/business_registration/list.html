@@ -1,0 +1,89 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}商工登記清單{% endblock %}
+
+{% block header_title %}商工登記清單{% endblock %}
+{% block header_description %}管理與查看記帳客戶的商工登記文件{% endblock %}
+
+{% block filters %}
+<a href="?filter=active{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'active' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    承接中 ({{ count_active }})
+</a>
+<a href="?filter=suspended{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'suspended' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    暫停 ({{ count_suspended }})
+</a>
+<a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    已移交 ({{ count_transferred }})
+</a>
+{% endblock %}
+
+{% block table_headers %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="docs">文件數量</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-32">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+    {% for client in clients %}
+    <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0"
+        :class="selectedRows.includes({{ client.pk }}) ? 'bg-blue-50/30' : ''"
+        data-name="{{ client.name|escapejs }}"
+        data-taxid="{{ client.tax_id|default:''|escapejs }}"
+        data-assistant="{{ client.bookkeeping_assistant.name|default:''|escapejs }}">
+        {% include "components/row_checkbox.html" with value=client.pk %}
+        <td class="px-4 py-3">
+            <div class="font-medium text-slate-800">{{ client.name }}</div>
+        </td>
+        <td class="px-4 py-3 text-slate-600">{{ client.tax_id|default:'-' }}</td>
+        <td class="px-4 py-3 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                {{ client.business_registration.documents.count }}
+            </span>
+        </td>
+        <td class="px-4 py-3 text-center">
+            {% if client.bookkeeping_assistant %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
+                {{ client.bookkeeping_assistant.name }}
+            </span>
+            {% else %}
+            <span class="text-slate-300 text-xs">-</span>
+            {% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+            <a href="{% url 'bookkeeping:business_registration_update' client.pk %}"
+               class="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-white border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+               title="管理商工登記">
+               管理
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="6" class="px-4 py-12 text-center text-slate-500 bg-white rounded-b-lg">
+            <div class="flex flex-col items-center justify-center">
+                <svg class="h-12 w-12 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p>目前沒有商工登記資料</p>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for client in clients %}
+    {
+        "id": {{ client.pk }},
+        "category": "ALL",
+        "content": "{{ client.name|escapejs }} {{ client.tax_id|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}

@@ -13,6 +13,10 @@ import json
 
 @login_required
 def dashboard(request):
+    if getattr(request.user, 'role', None) == 'EXTERNAL':
+        from django.shortcuts import redirect
+        return redirect('client_portal:dashboard')
+
     context = {}
     if request.user.is_authenticated:
         from modules.workflow.services import get_pending_approvals

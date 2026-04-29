@@ -1,6 +1,6 @@
 from django.views.generic import DetailView, View
 from core.mixins import BusinessRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -8,8 +8,8 @@ from django.urls import reverse
 from ..models import BookkeepingClient
 from ..models.income_tax import (
     IncomeTaxSetting, IncomeTaxYear,
-    ProvisionalTax, WithholdingTax, WithholdingDetail,
-    DividendTax, ShareholderDividend,
+    ProvisionalTax, WithholdingTax,
+    DividendTax,
     IncomeTaxFiling,
 )
 from ..models.income_tax_media import IncomeTaxMediaData
@@ -111,9 +111,7 @@ class SaveIncomeTaxSettingsView(BusinessRequiredMixin, View):
         setting, _ = IncomeTaxSetting.objects.get_or_create(client=client)
 
         setting.filing_method = request.POST.get('filing_method', setting.filing_method)
-        setting.notification_method = request.POST.get('notification_method', setting.notification_method)
-        setting.payment_method = request.POST.get('payment_method', setting.payment_method)
-        setting.save()
+        setting.save(update_fields=['filing_method'])
 
         messages.success(request, '所得稅設定已儲存。')
         year = request.POST.get('current_year', '')

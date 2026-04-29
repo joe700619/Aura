@@ -1,0 +1,93 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首頁</a>
+    &rsaquo;
+    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo;
+    <a href="{% url 'admin:internal_accounting_voucher_changelist' %}">{{ opts.verbose_name_plural }}</a>
+    &rsaquo;
+    匯入
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>匯入傳票資料</h1>
+
+{% if messages %}
+<ul class="messagelist">
+    {% for message in messages %}
+    <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div style="background:#fff; padding:20px; border:1px solid #eee; border-radius:4px; max-width:640px;">
+    <p style="margin-bottom:8px; color:#444;">
+        請使用標準格式的 Excel 檔案匯入傳票資料。<br>
+        <strong>每一列代表一筆分錄</strong>；相同傳票編號的列會合併為同一張傳票。<br>
+        傳票編號若留空，系統會依日期自動產生（VOU-YYYYMMDD-序號）。<br>
+        匯入前會進行<strong>借貸平衡</strong>驗證，不平衡的傳票將不會匯入。
+    </p>
+    <p style="margin-bottom:20px;">
+        <a href="template/" style="color:#447e9b;">⬇ 下載 Excel 範本（含科目代碼參考表）</a>
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom:16px;">
+            <label for="excel_file" style="display:block; font-weight:bold; margin-bottom:6px;">
+                選擇 Excel 檔案（.xlsx）
+            </label>
+            <input type="file" name="excel_file" id="excel_file" accept=".xlsx" required style="padding:4px;">
+        </div>
+        <div>
+            <input type="submit" value="開始匯入"
+                   style="background:#417690; color:#fff; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-size:14px;">
+            <a href="{% url 'admin:internal_accounting_voucher_changelist' %}"
+               style="margin-left:12px; color:#447e9b;">取消</a>
+        </div>
+    </form>
+</div>
+
+<div style="margin-top:28px; max-width:760px;">
+    <h2 style="font-size:14px; color:#333;">Excel 欄位說明（共 {{ headers|length }} 欄）</h2>
+    <table style="border-collapse:collapse; font-size:13px; width:100%;">
+        <thead>
+            <tr style="background:#f8f8f8;">
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:center;">欄號</th>
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:left;">欄位名稱</th>
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:left;">說明</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name in headers %}
+            <tr>
+                <td style="border:1px solid #ddd; padding:5px 10px; text-align:center; color:#888;">{{ forloop.counter }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px; font-weight:bold;">{{ name }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px; color:#555;">
+                    {% if forloop.counter == 1 %}相同傳票編號的列合為一張傳票；留空則自動產生編號
+                    {% elif forloop.counter == 2 %}格式 YYYY-MM-DD，必填
+                    {% elif forloop.counter == 3 %}傳票摘要說明
+                    {% elif forloop.counter == 4 %}草稿 或 已過帳，預設草稿
+                    {% elif forloop.counter == 5 %}必填，科目代碼（見下方參考表）
+                    {% elif forloop.counter == 6 %}數字，無借方金額填 0 或留空
+                    {% elif forloop.counter == 7 %}數字，無貸方金額填 0 或留空
+                    {% elif forloop.counter == 8 %}往來對象/統一編號，可留空
+                    {% elif forloop.counter == 9 %}部門，可留空
+                    {% elif forloop.counter == 10 %}專案，可留空
+                    {% elif forloop.counter == 11 %}分錄備註，可留空
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:16px; padding:12px; background:#fffbe6; border:1px solid #ffe58f; border-radius:4px; font-size:13px; color:#614700;">
+        <strong>注意：</strong>每張傳票的借方合計必須等於貸方合計，否則該傳票整組將不匯入，並顯示錯誤訊息。
+    </div>
+</div>
+{% endblock %}

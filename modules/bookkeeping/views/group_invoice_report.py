@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.db.models import Q
 from io import BytesIO
 from ..models import BookkeepingClient, GroupInvoice
-from core.mixins import BusinessRequiredMixin, EmployeeDataIsolationMixin
+from core.mixins import BusinessRequiredMixin, EmployeeDataIsolationMixin, FilterMixin, SearchMixin
 
 # 發票代碼對照
 INVOICE_CODE_MAP = {
@@ -20,26 +20,27 @@ INVOICE_CODE_MAP = {
 FIXED_SUFFIX = '82530323'
 
 
-class GroupInvoiceReportView(EmployeeDataIsolationMixin, BusinessRequiredMixin, ListView):
+class GroupInvoiceReportView(FilterMixin, EmployeeDataIsolationMixin, SearchMixin, BusinessRequiredMixin, ListView):
     template_name = 'bookkeeping/group_invoice_report.html'
     model = BookkeepingClient
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
+    search_fields = ['name', 'tax_id']
+    default_filter = 'active'
+    filter_choices = {
+        'active':      {'acceptance_status': 'active'},
+        'suspended':   {'acceptance_status': 'suspended'},
+        'transferred': {'acceptance_status': 'transferred'},
+    }
 
-    def get_queryset(self):
-        # Base query handling the specific report requirements and mixin isolation
-        qs = super().get_queryset().filter(
-            is_deleted=False,
+    def get_base_queryset(self):
+        return super().get_base_queryset().filter(
             has_group_invoice=True,
         ).select_related(
             'group_assistant', 'bookkeeping_assistant'
         ).prefetch_related('group_invoices')
-        
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(
-                Q(name__icontains=q) | Q(tax_id__icontains=q)
-            )
-        return qs
+
+    def _base_qs_for_counts(self):
+        return self.get_base_queryset()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -59,7 +60,10 @@ class GroupInvoiceReportView(EmployeeDataIsolationMixin, BusinessRequiredMixin, 
                 })
 
         context['report_rows'] = report_rows
-        context['q'] = self.request.GET.get('q', '')
+        fc = context['filter_counts']
+        context['count_active']      = fc['active']
+        context['count_suspended']   = fc['suspended']
+        context['count_transferred'] = fc['transferred']
         return context
 
 

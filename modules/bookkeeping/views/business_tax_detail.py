@@ -1,6 +1,6 @@
 from django.views.generic import DetailView
 from core.mixins import BusinessRequiredMixin
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from django.views import View
@@ -141,24 +141,12 @@ class SaveTaxSettingsView(BusinessRequiredMixin, View):
         setting = client.tax_setting
 
         allowed_frequency = [c[0] for c in TaxFilingSetting.FilingFrequency.choices]
-        allowed_notification = [c[0] for c in TaxFilingSetting.NotificationMethod.choices]
-        allowed_payment = [c[0] for c in TaxFilingSetting.PaymentMethod.choices]
 
         filing_frequency = request.POST.get('filing_frequency', '').strip()
-        notification_method = request.POST.get('notification_method', '').strip()
-        payment_method = request.POST.get('payment_method', '').strip()
 
         if filing_frequency in allowed_frequency:
             setting.filing_frequency = filing_frequency
-        if notification_method in allowed_notification:
-            setting.notification_method = notification_method
-        elif notification_method == '':
-            setting.notification_method = None
-        if payment_method in allowed_payment:
-            setting.payment_method = payment_method
-        elif payment_method == '':
-            setting.payment_method = None
 
-        setting.save()
+        setting.save(update_fields=['filing_frequency'])
         messages.success(request, '申報設定已儲存。')
         return redirect('bookkeeping:business_tax_detail', pk=pk)

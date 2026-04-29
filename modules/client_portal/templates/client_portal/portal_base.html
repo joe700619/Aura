@@ -9,32 +9,190 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     {% load tailwind_tags %}
     {% tailwind_css %}
+    <!-- 勤信 Design System Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        [x-cloak] {
-            display: none !important;
+        /* ── 設計系統 CSS 變數 ── */
+        :root {
+            --ink-50:  #faf8f5;
+            --ink-100: #f2efe9;
+            --ink-200: #e6e2d9;
+            --ink-300: #cfc9bd;
+            --ink-400: #a8a194;
+            --ink-500: #78716c;
+            --ink-600: #4b4842;
+            --ink-700: #2e2b27;
+            --ink-800: #1a1816;
+
+            --primary:       #1a1816;
+            --primary-hover: #0d0c0b;
+            --primary-soft:  #f2efe9;
+            --primary-ring:  rgba(26,24,22,0.12);
+
+            --accent:        #a0332a;
+            --accent-hover:  #8a2a22;
+            --accent-soft:   #fbf1ef;
+
+            --success:       #5a7a4f;
+            --success-soft:  #eef3ea;
+            --warning:       #b8861b;
+            --warning-soft:  #fbf4e3;
+            --warning-border: #f0e0b8;
+
+            --fg1: #1a1816;
+            --fg2: #4b4842;
+            --fg3: #78716c;
+            --fg4: #a8a194;
+            --fg-on-primary: #faf8f5;
+
+            --bg-page:   #faf8f5;
+            --bg-panel:  #ffffff;
+            --bg-subtle: #f2efe9;
+            --bg-hover:  #f6f3ee;
+
+            --border-subtle:  #e6e2d9;
+            --border-default: #cfc9bd;
+            --border-strong:  #a8a194;
+
+            --font-serif: "Noto Serif TC", "PMingLiU", serif;
+            --font-sans:  "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+
+            --shadow-sm: 0 1px 3px rgba(26,24,22,0.06), 0 1px 2px rgba(26,24,22,0.04);
+            --shadow-md: 0 4px 12px rgba(26,24,22,0.06), 0 2px 4px rgba(26,24,22,0.04);
+
+            --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+            --dur-fast: 120ms;
+            --dur-med:  200ms;
         }
+
+        [x-cloak] { display: none !important; }
+
+        /* ── 全域字體 ── */
+        body {
+            font-family: var(--font-sans);
+            font-size: 15px;
+            color: var(--fg2);
+            background: var(--bg-page);
+            -webkit-font-smoothing: antialiased;
+        }
+        h1, h2, h3, h4, h5 {
+            font-family: var(--font-serif);
+            font-weight: 600;
+            color: var(--fg1);
+        }
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--fg1);
+            letter-spacing: 0.02em;
+        }
+        input, select, textarea, button {
+            font-family: var(--font-sans);
+            font-size: 14px;
+        }
+
+        /* ── Sidebar nav ── */
+        .portal-nav-item {
+            display: flex; align-items: center;
+            border-radius: var(--radius-md);
+            font-size: 13.5px; font-weight: 500;
+            color: var(--fg2); text-decoration: none;
+            transition: background 140ms, color 140ms;
+            position: relative;
+        }
+        .portal-nav-item:hover { background: var(--bg-hover); color: var(--fg1); }
+        .portal-nav-active { background: var(--bg-subtle) !important; color: var(--fg1) !important; }
+        .portal-nav-active::before {
+            content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+            width: 2px; background: var(--primary); border-radius: 2px;
+        }
+
+        /* ── Buttons ── */
+        .portal-btn {
+            font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+            padding: 9px 18px; border-radius: var(--radius-md); border: 1px solid transparent;
+            cursor: pointer; transition: all var(--dur-med) var(--ease-out);
+            display: inline-flex; align-items: center; gap: 6px; letter-spacing: 0.02em;
+            text-decoration: none;
+        }
+        .portal-btn-primary { background: var(--primary); color: var(--fg-on-primary); border-color: var(--primary); }
+        .portal-btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+        .portal-btn-secondary { background: #fff; color: var(--fg1); border-color: var(--border-default); }
+        .portal-btn-secondary:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+        .portal-btn-sm { padding: 6px 11px; font-size: 13px; }
+
+        /* ── Inputs ── */
+        .portal-input {
+            width: 100%; box-sizing: border-box;
+            padding: 9px 12px;
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            font-family: var(--font-sans); font-size: 14px; color: var(--fg1);
+            outline: none;
+            transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+        }
+        .portal-input:focus { border-color: var(--ink-700); box-shadow: 0 0 0 3px var(--primary-ring); }
+        .portal-input-readonly { background: var(--bg-subtle); color: var(--fg3); cursor: default; }
+        .portal-hint { font-size: 12px; color: var(--fg4); margin-top: 4px; line-height: 1.5; }
+        .portal-hint-danger { color: var(--accent); }
+
+        /* ── Card ── */
+        .portal-card { background: #fff; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+        .portal-section-header {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-page);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .portal-section-title { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--fg1); margin: 0; }
+        .portal-section-sub { font-size: 12px; color: var(--fg3); margin-top: 2px; }
+        .portal-accent-bar { width: 3px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+
+        /* ── Eyebrow ── */
+        .portal-eyebrow {
+            font-size: 11px; font-weight: 500; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--fg3);
+        }
+
+        /* ── Toast ── */
+        .portal-toast {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: var(--radius-md);
+            font-size: 13px; font-weight: 500;
+        }
+        .portal-toast-success { background: var(--success-soft); border: 1px solid #d9e4d2; color: var(--success); }
+
+        /* ── Loading spinner ── */
+        @keyframes aura-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .aura-animate-spin { animation: aura-spin 1s linear infinite !important; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900" 
-      :class="{ 'overflow-hidden': globalSubmitting }"
+<body style="overflow:hidden;" :class="{ 'overflow-hidden': globalSubmitting }"
       x-data="{ sidebarOpen: true, globalSubmitting: false }">
-    
-    <div class="flex h-screen overflow-hidden">
-        
+
+    <div style="display:flex; height:100vh; overflow:hidden;">
+
         <!-- Sidebar -->
         {% include 'client_portal/layouts/client_sidebar.html' %}
-        
+
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0;">
 
             <!-- Topbar -->
             {% include 'client_portal/layouts/client_topbar.html' %}
-            
+
             <!-- Main Scrollable Area -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 relative">
+            <main style="flex:1; overflow-x:hidden; overflow-y:auto; background:var(--bg-page); padding:32px 56px;">
                 {% block content %}{% endblock %}
             </main>
-            
+
         </div>
     </div>
 
@@ -47,34 +205,18 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; background-color: rgba(0, 0, 0, 0.7) !important; backdrop-filter: blur(8px) !important; -webkit-backdrop-filter: blur(8px) !important;">
-            
-            <div style="display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important;">
-                <div class="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center gap-6 border border-white/20" style="width: fit-content !important; max-width: 90vw !important;">
-                    <div class="relative">
-                        <!-- Optimized TailAdmin Style Spinner -->
-                        <div style="width: 64px; height: 64px; position: relative;">
-                            <!-- CSS Animation for Rotation -->
-                            <style>
-                                @keyframes aura-spin {
-                                    from { transform: rotate(0deg); }
-                                    to { transform: rotate(360deg); }
-                                }
-                                .aura-animate-spin {
-                                    animation: aura-spin 1s linear infinite !important;
-                                }
-                            </style>
-                            <!-- Static Background Circle -->
-                            <svg width="64" height="64" viewBox="0 0 36 36" style="position: absolute; top: 0; left: 0; color: #E0E7FF;">
-                                <circle cx="18" cy="18" r="16" stroke="currentColor" stroke-width="4" fill="none"></circle>
-                            </svg>
-                            <!-- Animated Foreground Path -->
-                            <svg width="64" height="64" viewBox="0 0 36 36" class="aura-animate-spin" style="position: absolute; top: 0; left: 0; color: #4f46e5;">
-                                <path d="M34 18c0-8.837-7.163-16-16-16" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none"></path>
-                            </svg>
-                        </div>
+            style="position:fixed !important; inset:0 !important; z-index:2147483647 !important; background:rgba(26,24,22,0.6) !important; backdrop-filter:blur(8px) !important;">
+            <div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%;">
+                <div style="background:#fff; padding:40px 48px; border-radius:var(--radius-lg); box-shadow:var(--shadow-md); display:flex; flex-direction:column; align-items:center; gap:20px; border:1px solid var(--border-subtle);">
+                    <div style="width:48px; height:48px; position:relative;">
+                        <svg width="48" height="48" viewBox="0 0 36 36" style="position:absolute; top:0; left:0; color:var(--ink-200);">
+                            <circle cx="18" cy="18" r="16" stroke="currentColor" stroke-width="3" fill="none"></circle>
+                        </svg>
+                        <svg width="48" height="48" viewBox="0 0 36 36" class="aura-animate-spin" style="position:absolute; top:0; left:0; color:var(--primary);">
+                            <path d="M34 18c0-8.837-7.163-16-16-16" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"></path>
+                        </svg>
                     </div>
-                    <p class="text-slate-900 font-black text-2xl tracking-tight">處理中，請稍候...</p>
+                    <p style="font-family:var(--font-serif); font-size:16px; font-weight:600; color:var(--fg1); margin:0; letter-spacing:0.02em;">處理中，請稍候…</p>
                 </div>
             </div>
         </div>

@@ -2,6 +2,25 @@
 
 {% block page_title %}帳冊及便利袋管理{% endblock %}
 
+{% block filters %}
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?filter=active{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'active' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    承接中 ({{ count_active }})
+</a>
+<a href="?filter=suspended{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'suspended' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    停業中 ({{ count_suspended }})
+</a>
+<a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    轉出/解散 ({{ count_transferred }})
+</a>
+{% endblock %}
+
 {% block table_headers %}
     <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg">客戶名稱</th>
     <th class="px-4 py-3 font-semibold text-slate-700 text-left">統一編號</th>

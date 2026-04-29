@@ -76,9 +76,9 @@
         <h4 class="font-bold text-slate-800 text-sm">來源資訊</h4>
     </div>
 
-    {% if source_object %}
+    {% if source_type == 'registration' and source_object %}
     <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-        <div class="text-xs font-semibold text-slate-500 uppercase">來源案件</div>
+        <div class="text-xs font-semibold text-slate-500 uppercase">來源登記案件</div>
         <div class="font-medium text-slate-900">{{ source_object.company_name }}</div>
         <div class="text-sm text-slate-500">登記單號：{{ source_object.registration_no }}</div>
         <a href="{% url 'registration:progress_edit' source_object.pk %}"
@@ -87,6 +87,19 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
             </svg>
             前往登記進度表
+        </a>
+    </div>
+    {% elif source_type == 'billing' and source_object %}
+    <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+        <div class="text-xs font-semibold text-slate-500 uppercase">來源記帳帳單</div>
+        <div class="font-medium text-slate-900">{{ source_object.client.name }}</div>
+        <div class="text-sm text-slate-500">帳單編號：{{ source_object.bill_no }}（{{ source_object.year }}/{{ source_object.month }}月）</div>
+        <a href="{% url 'bookkeeping:bill_update' source_object.pk %}"
+            class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+            前往帳單
         </a>
     </div>
     {% else %}
@@ -154,8 +167,127 @@
 {% block overlays %}
 {{ block.super }}
 
-{% if form.instance.status != 'matched' %}
-<!-- 預收款項過帳 Modal -->
+{% if form.instance.status != 'matched' and source_type == 'billing' %}
+<!-- 記帳帳單核銷 Modal -->
+<div x-data="{ isOpen: false, selectedId: '', selectedLabel: '' }"
+     @open-match-modal.window="isOpen = true"
+     x-show="isOpen" x-cloak
+     style="display:none; position:fixed; inset:0; z-index:50; overflow-y:auto;">
+
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="isOpen = false"></div>
+
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-8 py-5 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                        <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">核銷至應收帳款</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">選擇對應的應收帳款，系統將自動建立收款單並過帳</p>
+                    </div>
+                </div>
+                <button type="button" @click="isOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-8 py-6 space-y-5">
+
+                <!-- 預收款資訊 -->
+                <div class="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                    <div>
+                        <div class="text-xs text-slate-500 mb-1">預收單號</div>
+                        <div class="font-bold text-slate-800 font-mono">{{ form.instance.pre_collection_no }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 mb-1">收款日期</div>
+                        <div class="font-bold text-slate-800">{{ form.instance.date|date:"Y-m-d" }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 mb-1">預收金額</div>
+                        <div class="font-bold text-xl text-blue-700">${{ form.instance.amount|intcomma }}</div>
+                    </div>
+                </div>
+
+                <!-- 應收帳款選擇 -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">選擇對應的應收帳款 <span class="text-red-500">*</span></label>
+                    {% if candidate_receivables %}
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 w-10"></th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">應收單號</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">公司名稱</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">日期</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">金額</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {% for ar in candidate_receivables %}
+                                <tr class="hover:bg-blue-50 cursor-pointer transition-colors"
+                                    :class="selectedId === '{{ ar.pk }}' ? 'bg-blue-50 ring-2 ring-inset ring-blue-400' : ''"
+                                    @click="selectedId = '{{ ar.pk }}'; selectedLabel = '{{ ar.receivable_no }} - {{ ar.company_name }}'">
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="w-4 h-4 rounded-full border-2 mx-auto transition-colors"
+                                             :class="selectedId === '{{ ar.pk }}' ? 'bg-blue-500 border-blue-500' : 'border-slate-300'"></div>
+                                    </td>
+                                    <td class="px-4 py-3 font-mono font-medium text-slate-700">{{ ar.receivable_no }}</td>
+                                    <td class="px-4 py-3 text-slate-800">{{ ar.company_name }}</td>
+                                    <td class="px-4 py-3 text-slate-500">{{ ar.date|date:"Y-m-d" }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold text-slate-800">${{ ar.total_amount|intcomma }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-6 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-sm">找不到符合此公司的應收帳款。</p>
+                        <p class="text-xs mt-1">請確認應收帳款是否已建立，或手動前往應收帳款管理配對。</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div x-show="selectedId" class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                    已選擇：<span class="font-bold" x-text="selectedLabel"></span>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="flex justify-end gap-3 px-8 py-5 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
+                <button type="button" @click="isOpen = false"
+                    class="px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    取消
+                </button>
+                <form method="post" action="{% url 'internal_accounting:pre_collection_match_billing' form.instance.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="receivable_id" :value="selectedId">
+                    <button type="submit" :disabled="!selectedId"
+                        :class="selectedId ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                        class="px-6 py-2.5 text-sm font-bold rounded-lg transition-colors">
+                        確認核銷並建立收款單
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if form.instance.status != 'matched' and source_type != 'billing' %}
+<!-- 預收款項過帳 Modal（登記案件 / 其他）-->
 <div x-data="{
     isOpen: false,
     pcMethod: '{{ form.instance.method }}',

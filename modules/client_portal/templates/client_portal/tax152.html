@@ -1,0 +1,134 @@
+{% extends 'client_portal/portal_base.html' %}
+
+{% block page_title %}各類所得扣繳稅額繳款書{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;" x-data="tax152Form()">
+
+    <div style="padding-bottom:32px; border-bottom:1px solid var(--border-subtle); margin-bottom:32px;">
+        <div class="portal-eyebrow" style="margin-bottom:6px;">稅務文件</div>
+        <h1 style="margin:0; font-size:26px;">各類所得扣繳稅額繳款書</h1>
+        <p style="margin:8px 0 0; color:var(--fg3); font-size:13.5px;">
+            填寫以下資料後點選「產生繳款書」，系統將自動產生 PDF 供下載列印。
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'client_portal:tax152' %}">
+        {% csrf_token %}
+
+        <!-- 所得類別 -->
+        <div class="portal-form-group" style="margin-bottom:20px;">
+            <label class="portal-label">所得類別</label>
+            <select name="tran_type" class="portal-input" required>
+                {% for code, name in income_types.items %}
+                <option value="{{ code }}" {% if code == "152" %}selected{% endif %}>
+                    {{ code }} {{ name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 給付年月 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div class="portal-form-group">
+                <label class="portal-label">給付年度（民國）</label>
+                <input type="number" name="give_year" class="portal-input"
+                       value="{{ current_roc_year }}" min="100" max="200" required>
+            </div>
+            <div class="portal-form-group">
+                <label class="portal-label">給付月份</label>
+                <select name="give_month" class="portal-input" required>
+                    {% for m in "123456789101112"|split:"" %}
+                    {% endfor %}
+                    <option value="1">1 月</option>
+                    <option value="2">2 月</option>
+                    <option value="3">3 月</option>
+                    <option value="4">4 月</option>
+                    <option value="5">5 月</option>
+                    <option value="6">6 月</option>
+                    <option value="7">7 月</option>
+                    <option value="8">8 月</option>
+                    <option value="9">9 月</option>
+                    <option value="10">10 月</option>
+                    <option value="11">11 月</option>
+                    <option value="12">12 月</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 所得所屬年月（預設同給付）-->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div class="portal-form-group">
+                <label class="portal-label">所得所屬年度（民國）</label>
+                <input type="number" name="income_year" class="portal-input"
+                       value="{{ current_roc_year }}" min="100" max="200">
+            </div>
+            <div class="portal-form-group">
+                <label class="portal-label">所得所屬月份</label>
+                <select name="income_month" class="portal-input">
+                    <option value="1">1 月</option>
+                    <option value="2">2 月</option>
+                    <option value="3">3 月</option>
+                    <option value="4">4 月</option>
+                    <option value="5">5 月</option>
+                    <option value="6">6 月</option>
+                    <option value="7">7 月</option>
+                    <option value="8">8 月</option>
+                    <option value="9">9 月</option>
+                    <option value="10">10 月</option>
+                    <option value="11">11 月</option>
+                    <option value="12">12 月</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 金額 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div class="portal-form-group">
+                <label class="portal-label">給付所得總額</label>
+                <input type="number" name="gross_income" class="portal-input"
+                       value="0" min="0">
+            </div>
+            <div class="portal-form-group">
+                <label class="portal-label">應扣繳所得額</label>
+                <input type="number" name="taxable_income" class="portal-input"
+                       value="0" min="0">
+            </div>
+            <div class="portal-form-group">
+                <label class="portal-label">應扣繳稅額 <span style="color:var(--danger);">*</span></label>
+                <input type="number" name="pw_amt" class="portal-input"
+                       value="" min="1" required>
+            </div>
+        </div>
+
+        <!-- 扣繳義務人類別 -->
+        <div class="portal-form-group" style="margin-bottom:20px;">
+            <label class="portal-label">扣繳義務人類別</label>
+            <div style="display:flex; gap:24px; margin-top:8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="owner_cat" value="0" checked> 本國人
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="owner_cat" value="1"> 外國人
+                </label>
+            </div>
+        </div>
+
+        <!-- 自動補扣繳 -->
+        <div class="portal-form-group" style="margin-bottom:32px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" name="is_auto_repay" value="1">
+                <span class="portal-label" style="margin:0;">自動補扣繳</span>
+            </label>
+        </div>
+
+        <button type="submit" class="portal-btn portal-btn-primary" style="width:100%; padding:14px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:6px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            產生並下載繳款書 PDF
+        </button>
+    </form>
+
+</div>
+{% endblock %}

@@ -67,10 +67,31 @@ class ECPayCallbackView(View):
 
                 if transaction.related_app == 'bookkeeping' and transaction.related_model == 'ClientBill':
                     try:
+                        import datetime
+                        from modules.internal_accounting.models import PreCollection
+                        from django.contrib.contenttypes.models import ContentType
+
                         ClientBill = apps.get_model('bookkeeping', 'ClientBill')
                         bill = ClientBill.objects.get(pk=transaction.related_id)
                         bill.status = 'paid'
                         bill.save(update_fields=['status'])
+
+                        already = PreCollection.objects.filter(
+                            transaction_no=transaction.merchant_trade_no
+                        ).exists()
+                        if not already:
+                            ct = ContentType.objects.get_for_model(bill.__class__)
+                            PreCollection.objects.create(
+                                date=datetime.date.today(),
+                                company_name=bill.client.name,
+                                unified_business_no=bill.client.tax_id or '',
+                                amount=transaction.total_amount,
+                                method='ecpay',
+                                transaction_no=transaction.merchant_trade_no,
+                                remarks=f"綠界自動收款 帳單:{bill.bill_no}",
+                                source_content_type=ct,
+                                source_id=bill.pk,
+                            )
                     except Exception as e:
                         logger.error(f"Error updating ClientBill: {e}")
 

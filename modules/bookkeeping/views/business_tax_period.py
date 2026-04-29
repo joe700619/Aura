@@ -16,7 +16,7 @@ class TaxFilingPeriodDetailView(BusinessRequiredMixin, UpdateView):
     fields = [
         'invoice_received_date', 'sales_amount', 'tax_amount', 'input_amount', 'input_tax',
         'retained_tax', 'payable_tax',
-        'filing_document', 'media_file',
+        'filing_document', 'tax_bill_document', 'media_file',
         'is_filed', 'filing_date',
         'tax_deadline', 'period_payment_method',
         'filing_status', 'reply_time', 'reply_method',
@@ -51,7 +51,7 @@ class TaxFilingPeriodDetailView(BusinessRequiredMixin, UpdateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         # Make file fields optional on re-submit (don't require re-upload if already set)
-        for fname in ('filing_document', 'media_file'):
+        for fname in ('filing_document', 'tax_bill_document', 'media_file'):
             if fname in form.fields:
                 form.fields[fname].required = False
         return form

@@ -29,6 +29,7 @@ class IncomeTaxFilingDetailView(BusinessRequiredMixin, UpdateView):
         'annual_tax', 'provisional_credit', 'withholding_credit',
         'self_pay_amount', 'undistributed_earnings', 'undistributed_surtax',
         'total_payable', 'notes',
+        'filing_document', 'tax_bill_document', 'media_file',
     ]
     template_name = 'bookkeeping/income_tax/income_tax_filing_detail.html'
 
@@ -123,6 +124,8 @@ class IncomeTaxFilingDetailView(BusinessRequiredMixin, UpdateView):
         # File uploads
         if 'filing_document' in self.request.FILES:
             filing.filing_document = self.request.FILES['filing_document']
+        if 'tax_bill_document' in self.request.FILES:
+            filing.tax_bill_document = self.request.FILES['tax_bill_document']
         if 'media_file' in self.request.FILES:
             filing.media_file = self.request.FILES['media_file']
 

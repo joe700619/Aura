@@ -1,4 +1,5 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
 from .models import Employee, AdvancePayment, AttendanceRecord, LeaveBalance, LeaveType, LeaveRequest, SalaryStructure, OvertimeRecord, PayrollRecord, InsuranceBracket
 
 
@@ -8,7 +9,7 @@ restore_deleted.short_description = '還原已刪除的資料'
 
 
 @admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
+class EmployeeAdmin(ImportExportModelAdmin):
     list_display = [
         'employee_number',
         'name',
@@ -79,7 +80,7 @@ class LeaveBalanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(LeaveType)
-class LeaveTypeAdmin(admin.ModelAdmin):
+class LeaveTypeAdmin(ImportExportModelAdmin):
     list_display = ['code', 'name', 'is_paid', 'max_hours_per_year', 'requires_doc', 'sort_order', 'is_deleted', 'created_at']
     list_filter = ['is_paid', 'requires_doc', 'is_deleted']
     search_fields = ['code', 'name']
@@ -103,7 +104,7 @@ class LeaveRequestAdmin(admin.ModelAdmin):
 
 
 @admin.register(SalaryStructure)
-class SalaryStructureAdmin(admin.ModelAdmin):
+class SalaryStructureAdmin(ImportExportModelAdmin):
     list_display = ['employee', 'base_salary', 'effective_date', 'is_current', 'is_deleted', 'created_at']
     list_filter = ['is_current', 'is_deleted']
     search_fields = ['employee__name']
@@ -139,7 +140,7 @@ class PayrollRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(InsuranceBracket)
-class InsuranceBracketAdmin(admin.ModelAdmin):
+class InsuranceBracketAdmin(ImportExportModelAdmin):
     list_display = ['level_name', 'insured_salary', 'labor_employee', 'labor_employer', 'health_employee', 'health_employer', 'pension_employer', 'is_deleted', 'created_at']
     list_filter = ['is_deleted']
     search_fields = ['level_name']

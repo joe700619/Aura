@@ -366,6 +366,40 @@ class PreCollectionService:
 
         return voucher
 
+    @staticmethod
+    @transaction.atomic
+    def match_to_billing(pre_collection, receivable, user):
+        """
+        記帳帳單核銷：以預收款建立收款單 → 自動過帳 → 標記核銷。
+        傳票：借：綠界/銀行；貸：1123 應收帳款。
+        """
+        from .models.pre_collection import PreCollection
+        from .models.collection import Collection
+
+        if pre_collection.status == PreCollection.Status.MATCHED:
+            raise ValueError("此預收款項已核銷，不可重複操作。")
+
+        collection = Collection.objects.create(
+            receivable=receivable,
+            date=pre_collection.date,
+            method=pre_collection.method,
+            amount=pre_collection.amount,
+            tax=0,
+            fee=0,
+            allowance=0,
+            remarks=f"預收款核銷 {pre_collection.pre_collection_no}",
+            auto_created=False,
+        )
+
+        AccountingService.post_collection(collection, user)
+
+        pre_collection.status = PreCollection.Status.MATCHED
+        pre_collection.matched_receivable = receivable
+        pre_collection.matched_collection = collection
+        pre_collection.save(update_fields=['status', 'matched_receivable', 'matched_collection'])
+
+        return collection
+
 
 class AccountingService:
     @staticmethod

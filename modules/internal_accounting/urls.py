@@ -11,7 +11,7 @@ from .views.collection import (
 )
 from .views.pre_collection import (
     PreCollectionListView, PreCollectionUpdateView, PreCollectionDeleteView,
-    match_pre_collection_view
+    match_pre_collection_view, match_billing_pre_collection_view,
 )
 from .views.fixed_asset_views import create_fixed_asset_api, FixedAssetListView, FixedAssetCreateView, FixedAssetUpdateView, FixedAssetDeleteView
 from .views.fixed_asset_report import FixedAssetReportView
@@ -54,6 +54,7 @@ urlpatterns = [
     path('pre-collections/<int:pk>/edit/', PreCollectionUpdateView.as_view(), name='pre_collection_edit'),
     path('pre-collections/<int:pk>/delete/', PreCollectionDeleteView.as_view(), name='pre_collection_delete'),
     path('pre-collections/<int:pk>/match/', match_pre_collection_view, name='pre_collection_match'),
+    path('pre-collections/<int:pk>/match-billing/', match_billing_pre_collection_view, name='pre_collection_match_billing'),
     
     # APIs
     path('api/receivables/search/', search_receivables, name='api_receivable_search'),

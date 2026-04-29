@@ -1,33 +1,40 @@
 <!-- Client Topbar -->
-<header class="bg-white border-b border-gray-200">
-    <div class="flex items-center justify-between px-6 py-4">
-        <div class="flex items-center">
-            <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 focus:outline-none lg:text-gray-700 hover:text-indigo-600">
-                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M4 6H20M4 12H20M4 18H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-            </button>
-            
-            <h2 class="ml-4 text-xl font-bold text-gray-800">
-                {% block page_title %}{% endblock %}
-            </h2>
-        </div>
-        
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 px-2 py-1.5 rounded-md">
-                <div class="w-8 h-8 rounded-full bg-indigo-500 font-bold flex items-center justify-center text-sm shadow-inner text-white">
-                    {{ request.user.username|make_list|first|upper }}
-                </div>
-                <span class="text-sm font-medium hidden sm:block text-slate-700">{{ client.name }}</span>
-            </div>
-            
-            <form action="{% url 'client_portal:logout' %}" method="post" class="inline">
-                {% csrf_token %}
-                <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent w-full text-left">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    登出系統
-                </button>
-            </form>
-        </div>
+<header style="background:#fff; border-bottom:1px solid var(--border-subtle); padding:16px 28px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+
+    <div style="display:flex; align-items:center; gap:16px;">
+        <!-- Toggle Sidebar -->
+        <button @click="sidebarOpen = !sidebarOpen"
+                style="border:none; background:transparent; cursor:pointer; color:var(--fg3); padding:4px; display:flex; align-items:center; transition:color var(--dur-fast);"
+                onmouseover="this.style.color='var(--fg1)'" onmouseout="this.style.color='var(--fg3)'">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6H20M4 12H20M4 18H11"/></svg>
+        </button>
+
+        <h2 style="margin:0; font-family:var(--font-serif); font-size:20px; font-weight:600; color:var(--fg1); letter-spacing:-0.01em;">
+            {% block page_title %}{% endblock %}
+        </h2>
     </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+        <!-- User avatar + name -->
+        <div style="display:flex; align-items:center; gap:8px; padding:0 12px 0 0; border-right:1px solid var(--border-subtle);">
+            <div style="width:30px; height:30px; border-radius:999px; background:var(--primary); color:var(--fg-on-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-serif); font-weight:600; font-size:13px; flex-shrink:0;">
+                {{ request.user.username|make_list|first|upper }}
+            </div>
+            <div>
+                <div style="font-size:13px; font-weight:600; color:var(--fg1); line-height:1.2;">{{ client.name }}</div>
+                <div style="font-size:11px; color:var(--fg3);">統編 · {{ client.tax_id }}</div>
+            </div>
+        </div>
+
+        <!-- Logout -->
+        <form action="{% url 'client_portal:logout' %}" method="post" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="portal-btn portal-btn-secondary portal-btn-sm"
+                    style="font-size:13px;">
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                登出
+            </button>
+        </form>
+    </div>
+
 </header>

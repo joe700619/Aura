@@ -14,7 +14,7 @@
     class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
 {% endblock %}
 
-{% block form_attributes %}x-data="{ activeTab: 'tab_receive_invoice' }"{% endblock %}
+{% block form_attributes %}{% endblock %}
 
 {% block extra_errors %}
     {% if service_fee_formset.errors or invoice_formset.errors %}
@@ -65,7 +65,7 @@
         {{ form.customer }}
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-3 gap-4">
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
             <input type="text" name="{{ form.tax_id.name }}" value="{{ form.tax_id.value|default:'' }}" readonly
@@ -76,6 +76,19 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">稅籍編號</label>
             <input type="text" name="{{ form.tax_registration_no.name }}" value="{{ form.tax_registration_no.value|default:'' }}"
                 class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">稅局轄區（稽徵單位）</label>
+            <select name="{{ form.tax_authority_code.name }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="">-- 請選擇 --</option>
+                {% for unit in tax_units %}
+                <option value="{{ unit.full_code }}"
+                    {% if form.tax_authority_code.value == unit.full_code %}selected{% endif %}>
+                    {{ unit.full_code }} {{ unit.unit_name }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
     </div>
 
@@ -96,13 +109,7 @@
 
     <div class="border-t border-slate-100 pt-3 mt-1">
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">帳號密碼資訊</p>
-        <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">記帳客戶登入密碼</label>
-            <input type="text" name="{{ form.business_password.name }}" value="{{ form.business_password.value|default:'' }}"
-                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                autocomplete="off">
-        </div>
-        <div class="grid grid-cols-3 gap-4"> 
+        <div class="grid grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">營業人(國稅局)密碼</label>
                 <input type="text" name="{{ form.national_tax_password.name }}" value="{{ form.national_tax_password.value|default:'' }}"
@@ -246,6 +253,29 @@
             <option value="{{ opt.value }}" {% if opt.selected %}selected{% endif %}>{{ opt.label }}</option>
             {% endfor %}
         </select>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 mt-1">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">通知方式</label>
+            <select name="{{ form.notification_method.name }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="">-- 請選擇 --</option>
+                {% for opt in notification_method_options %}
+                <option value="{{ opt.value }}" {% if opt.selected %}selected{% endif %}>{{ opt.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">預設繳稅方式</label>
+            <select name="{{ form.payment_method.name }}"
+                class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="">-- 請選擇 --</option>
+                {% for opt in payment_method_options %}
+                <option value="{{ opt.value }}" {% if opt.selected %}selected{% endif %}>{{ opt.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
 
     <div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 mt-3">

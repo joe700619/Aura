@@ -13,11 +13,14 @@ from .income_tax import (
     IncomeTaxFiling,
 )
 from .income_tax_media import IncomeTaxMediaData
+from .business_registration import BusinessRegistration, BusinessRegistrationDocument
+from .service_remuneration import ServiceRemuneration, ServiceRemunerationTaxRate, NHIConfig
 from .corporate_tax import CorporateTaxFiling, TaxAdjustmentEntry
 from .billing import ServiceFee, ClientBill, ClientBillItem
 
 from .expert_system import ClientRuleSetting, RuleAlert
 from .industry_tax_rate import IndustryTaxRate
+from .tax_unit import TaxUnit
 
 
 __all__ = [
@@ -36,6 +39,11 @@ __all__ = [
     'DividendTax',
     'ShareholderDividend',
     'IncomeTaxFiling',
+    'BusinessRegistration',
+    'BusinessRegistrationDocument',
+    'ServiceRemuneration',
+    'ServiceRemunerationTaxRate',
+    'NHIConfig',
     'BookkeepingSetting',
     'BookkeepingYear',
     'BookkeepingPeriod',
@@ -48,4 +56,5 @@ __all__ = [
     'RuleAlert',
     'IndustryTaxRate',
     'IncomeTaxMediaData',
+    'TaxUnit',
 ]

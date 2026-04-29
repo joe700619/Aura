@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<style>
+* {
+    font-family: CJK, serif;
+    font-size: 10pt;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    margin: 12mm 14mm;
+}
+
+/* ── 標題 ── */
+.title-wrap { text-align: center; margin-bottom: 3px; }
+.title-main {
+    font-size: 20pt;
+    font-weight: bold;
+    letter-spacing: 8px;
+    border-bottom: 3px double #000;
+    padding-bottom: 2px;
+}
+.pay-date {
+    text-align: center;
+    margin: 6px 0 8px;
+    font-size: 10pt;
+}
+
+/* ── 通用表格 ── */
+.t {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 5px;
+}
+.t td, .t th {
+    border: 1px solid #444;
+    padding: 3px 5px;
+    vertical-align: middle;
+}
+.th {
+    background: #f0f0f0;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.td-tall { height: 50px; vertical-align: top; }
+
+/* ── Checkbox ── */
+.cb { margin-right: 10px; }
+.sq {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #333;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 9pt;
+    line-height: 10px;
+}
+
+/* ── 說明框 ── */
+.notes-box {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    margin-bottom: 5px;
+    font-size: 8.5pt;
+    line-height: 1.55;
+}
+.notes-title { font-weight: bold; color: #1414cc; margin-bottom: 1px; }
+.blue { color: #1414cc; }
+.bold { font-weight: bold; }
+.red { color: #cc0000; }
+
+/* ── 金額表 ── */
+.amt { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 8.5pt; }
+.amt td, .amt th { border: 1px solid #444; padding: 3px 4px; text-align: center; vertical-align: middle; }
+.amt .hd { background: #e0e0e0; font-weight: bold; line-height: 1.3; }
+.amt .sub { font-size: 7.5pt; color: #555; }
+.amt .val { height: 28px; text-align: right; padding-right: 6px; }
+
+/* ── 簽章列 ── */
+.sig-row {
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+    padding: 5px 4px;
+    margin-bottom: 4px;
+}
+.sig-blank {
+    display: inline-block;
+    border-bottom: 1px solid #333;
+    min-width: 100px;
+}
+
+/* ── 身分證區 ── */
+.id-section { border: 1px solid #444; margin-top: 4px; }
+.id-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 10pt;
+    padding: 3px 0;
+    border-bottom: 1px solid #444;
+    background: #f0f0f0;
+}
+.id-grid { width: 100%; border-collapse: collapse; }
+.id-cell {
+    width: 50%;
+    border: none;
+    padding: 6px 10px;
+    vertical-align: top;
+    min-height: 90px;
+}
+.id-cell-label { text-align: center; font-weight: bold; margin-bottom: 4px; }
+.id-img { max-width: 100%; max-height: 80px; }
+.id-paste-box {
+    border: 1px dashed #aaa;
+    height: 80px;
+    text-align: center;
+    color: #bbb;
+    font-size: 8pt;
+    padding-top: 30px;
+}
+</style>
+</head>
+<body>
+
+<!-- ① 標題 -->
+<div class="title-wrap">
+    <span class="title-main">勞　務　報　酬　單</span>
+</div>
+<div class="pay-date">
+    支付日期：{{ filing_date_roc|default:"______年______月______日" }}
+</div>
+
+<!-- ② 領款人基本資料 -->
+<table class="t">
+    <tr>
+        <td colspan="4" style="padding:4px 5px;">
+            <span class="bold">領款人基本資料：</span>
+            <span class="cb"><span class="sq">{{ nat_local }}</span>本國籍</span>
+            <span class="cb"><span class="sq">{{ nat_gte183 }}</span>外國籍（在台<span class="bold">滿</span>183天）</span>
+            <span class="cb"><span class="sq">{{ nat_lt183 }}</span>外國籍（在台<span class="bold">未滿</span>183天）</span>
+        </td>
+    </tr>
+    <tr>
+        <td class="th" style="width:68px">姓名：</td>
+        <td style="width:40%">{{ obj.recipient_name }}</td>
+        <td class="th" style="width:90px">身分證字號：</td>
+        <td>{{ obj.id_number }}</td>
+    </tr>
+    <tr>
+        <td class="th">連絡電話：</td>
+        <td>{{ obj.phone }}</td>
+        <td class="th">居留證/護照No.</td>
+        <td>&nbsp;</td>
+    </tr>
+    <tr>
+        <td class="th">戶籍地址：</td>
+        <td colspan="3">{{ obj.residence_address }}</td>
+    </tr>
+</table>
+
+<!-- ③ 勞務內容 -->
+<table class="t">
+    <tr>
+        <td class="th" style="width:68px; text-align:center; white-space:normal; line-height:1.5;">
+            勞務內容<br>（請概述）
+        </td>
+        <td class="td-tall">{{ obj.service_content }}</td>
+    </tr>
+</table>
+
+<!-- ④ 所得類別 -->
+<table class="t">
+    <tr>
+        <td class="th" style="width:68px;">所得類別</td>
+        <td style="padding:5px 6px;">
+            <span class="cb"><span class="sq">{{ inc_9a }}</span>執行業務 9A</span>
+            <span class="cb"><span class="sq">{{ inc_9b }}</span>稿費 9B</span>
+            <span class="cb"><span class="sq">{{ inc_50 }}</span>兼職薪資 50</span>
+            <span class="cb"><span class="sq">{{ inc_92 }}</span>其他所得 92</span>
+            <span class="cb"><span class="sq">{{ inc_51 }}</span>租賃所得 51</span>
+        </td>
+    </tr>
+</table>
+
+<!-- ⑤ 承攬說明 -->
+<div class="notes-box">
+    <div class="notes-title">承攬或接案者（非僱傭關係），勾選9A或9B</div>
+    <div>注1：<span class="blue bold">9A執行業務者：</span>係指律師、會計師、建築師、技師、醫師、藥師、助產士、醫事檢驗師、藝術師、不動產估價師、物理治療師、職業治療師、營養師、心理師、地政士、記帳士、<span class="bold">經紀人</span>、代書人、<span class="bold">演講人</span>、引水人、節目製作人、商標代理人、專利代理人、仲裁人及「<span class="bold">其他</span>」以技藝自力營生者。</div>
+    <div>注2：<span class="bold">9B稿費：</span>個人稿費、版稅、樂譜、作曲、演講費、稿資的統稱。</div>
+</div>
+
+<!-- ⑥ 薪資說明 -->
+<div class="notes-box">
+    <div class="notes-title">薪資關係，勾選薪資(50)：</div>
+    <div>注3：<span class="bold">已投保勞健保之員工免填</span>勞務報酬單。</div>
+    <div>注4：未投保健保之員工，若公司已成立健保單位且未加保其他受僱員工，公司須繳約<span class="bold">2.11%二代健保</span>。</div>
+</div>
+
+<!-- ⑦ 領款金額表 -->
+<table class="amt">
+    <thead>
+        <tr>
+            <th class="hd" rowspan="2" style="width:52px;">領款金額</th>
+            <th class="hd">支領金額</th>
+            <th class="hd">兼職薪資扣繳5%<br><span class="sub">（起扣額 90,501）</span></th>
+            <th class="hd">執行業務扣繳10%<br><span class="sub">（起扣額 20,001）</span></th>
+            <th class="hd">二代健保扣費2.11%<br><span class="sub">（起扣額 20,000）</span></th>
+            <th class="hd">實領金額</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="val">{{ obj.amount|floatformat:"0" }}</td>
+            <td class="val">{% if obj.income_category == '50' and obj.withholding_tax %}{{ obj.withholding_tax|floatformat:"0" }}{% endif %}</td>
+            <td class="val">{% if obj.income_category != '50' and obj.withholding_tax %}{{ obj.withholding_tax|floatformat:"0" }}{% endif %}</td>
+            <td class="val">{% if obj.supplementary_premium %}{{ obj.supplementary_premium|floatformat:"0" }}{% endif %}</td>
+            <td class="val">{{ obj.actual_payment|floatformat:"0" }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ⑧ 簽章 -->
+<table style="width:100%; border-collapse:collapse; border-top:1px solid #444; border-bottom:1px solid #444; margin-bottom:4px;">
+    <tr>
+        <td style="padding:5px 4px; width:50%;">上述資料經本人確認無誤。</td>
+        <td style="padding:5px 4px; text-align:right;">
+            所得人：<span class="sig-blank">&nbsp;{% if confirmed_date %}已於 {{ confirmed_date }} 確認{% endif %}&nbsp;</span>
+            &nbsp;<span class="red">（簽章）</span>
+        </td>
+    </tr>
+</table>
+
+<div style="text-align:center; font-size:8.5pt; margin:3px 0 6px; color:#333;">
+    請附身分證影本（外籍人士請檢附居留證/護照影本）
+</div>
+
+<!-- ⑨ 身分證黏貼區 -->
+<div class="id-section">
+    <div class="id-title">身分證（居留證/護照）影本黏貼處</div>
+    <table class="id-grid">
+        <tr>
+            <td class="id-cell" style="border-right:1px solid #444;">
+                <div class="id-cell-label">正面</div>
+                {% if obj.id_front_image %}
+                    <img src="{{ obj.id_front_image.path }}" class="id-img">
+                {% else %}
+                    <div class="id-paste-box">黏貼於此</div>
+                {% endif %}
+            </td>
+            <td class="id-cell">
+                <div class="id-cell-label">反面</div>
+                {% if obj.id_back_image %}
+                    <img src="{{ obj.id_back_image.path }}" class="id-img">
+                {% else %}
+                    <div class="id-paste-box">黏貼於此</div>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

@@ -2,17 +2,18 @@ from django.contrib import messages
 from django.db import transaction
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from core.mixins import BusinessRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
+from core.mixins import BusinessRequiredMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin, SortMixin
 from ..models import Customer
 from ..forms import ContactInlineFormSet, CustomerForm
 
-class CustomerListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
+class CustomerListView(SortMixin, FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = Customer
     template_name = 'customer/list.html'
     context_object_name = 'customers'
     paginate_by = 10
     create_button_label = '新增客戶'
     search_fields = ['name', 'tax_id', 'contact_person']
+    allowed_sort_fields = ['name', 'tax_id']
     filter_choices = {
         'established': {'source': 'ESTABLISHED'},
         'transferred': {'source': 'TRANSFERRED'},

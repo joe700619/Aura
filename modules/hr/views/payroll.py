@@ -411,6 +411,21 @@ class AdvancePaymentCreateView(HRRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('hr:advance_payment_update', kwargs={'pk': self.object.pk})
 
+    def get_initial(self):
+        from datetime import date
+        initial = super().get_initial()
+        employee = getattr(self.request.user, 'employee_profile', None)
+        if employee:
+            initial['employee'] = employee
+        initial['date_applied'] = date.today()
+        return initial
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if getattr(self.request.user, 'employee_profile', None):
+            form.fields['employee'].disabled = True
+        return form
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '新增代墊款申請'

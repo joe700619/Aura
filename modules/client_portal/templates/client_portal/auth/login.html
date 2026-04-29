@@ -1,0 +1,98 @@
+{% extends 'client_portal/auth/auth_base.html' %}
+{% block title %}Aura 客戶服務中心 | 企業登入{% endblock %}
+{% block body_style %}display:flex; min-height:100vh;{% endblock %}
+
+{% block body %}
+
+    <!-- Left panel: branding -->
+    <div id="left-panel" style="width:50%; background:#35516E; position:relative; overflow:hidden; align-items:center; justify-content:center; padding:64px; flex-shrink:0;">
+        <div style="position:absolute; top:-80px; right:-80px; width:320px; height:320px; border-radius:999px; background:rgba(255,255,255,0.04);"></div>
+        <div style="position:absolute; bottom:-60px; left:-60px; width:260px; height:260px; border-radius:999px; background:rgba(255,255,255,0.03);"></div>
+        <div style="position:relative; z-index:1; color:var(--fg-on-primary); max-width:380px;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:var(--radius-lg); margin-bottom:36px;">
+                <span style="font-family:var(--font-serif); font-size:26px; font-weight:700; color:var(--fg-on-primary);">勤</span>
+            </div>
+            <h1 style="margin:0 0 16px; font-family:var(--font-serif); font-size:36px; font-weight:600; line-height:1.25; letter-spacing:-0.01em; color:var(--fg-on-primary);">
+                專業稅務服務<br>
+                <span style="color:rgba(250,248,245,0.55);">一站式體驗</span>
+            </h1>
+            <p style="margin:0 0 36px; font-size:14px; color:rgba(250,248,245,0.6); line-height:1.75;">
+                勤信客戶服務中心提供您最安全、便捷的憑證上傳與稅務報表檢視體驗。
+            </p>
+            <div style="display:inline-flex; align-items:center; gap:8px; padding:9px 16px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:999px; font-size:13px; color:rgba(250,248,245,0.7);">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                高規格資料加密安全防護
+            </div>
+        </div>
+    </div>
+
+    <!-- Right panel: form -->
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px 24px;">
+        <div style="width:100%; max-width:380px;">
+
+            <!-- Logo (always visible) -->
+            <div style="text-align:center; margin-bottom:36px;">
+                <div style="display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; background:#35516E; border-radius:var(--radius-lg); margin-bottom:14px;">
+                    <span style="font-family:var(--font-serif); font-size:22px; font-weight:700; color:var(--fg-on-primary);">勤</span>
+                </div>
+                <div style="font-family:var(--font-serif); font-size:17px; font-weight:600; color:var(--fg1); letter-spacing:0.04em;">勤信會計</div>
+                <div style="font-size:10.5px; color:var(--fg4); letter-spacing:0.18em; text-transform:uppercase; margin-top:2px;">Client Portal</div>
+            </div>
+
+            <!-- Card -->
+            <div style="background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:32px; box-shadow:var(--shadow-md);">
+
+                <h2 style="margin:0 0 4px; font-family:var(--font-serif); font-size:22px; font-weight:600; color:var(--fg1); text-align:center;">企業登入</h2>
+                <p style="margin:0 0 26px; font-size:13px; color:var(--fg3); text-align:center;">請輸入您的統一編號與密碼</p>
+
+                {% if form.errors %}
+                <div style="display:flex; align-items:flex-start; gap:10px; background:#fbf1ef; border:1px solid #f0ccc8; border-radius:var(--radius-md); padding:12px 14px; margin-bottom:20px;">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0; color:var(--accent); margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 20h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 13.25A2 2 0 004.26 20z"/></svg>
+                    <div>
+                        <p style="margin:0 0 2px; font-size:13px; font-weight:600; color:var(--accent);">登入失敗</p>
+                        <p style="margin:0; font-size:12.5px; color:var(--fg2);">請確認您輸入的統一編號與密碼是否正確。</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'client_portal:login' %}" style="display:flex; flex-direction:column; gap:18px;">
+                    {% csrf_token %}
+
+                    <div>
+                        <label style="display:block; font-size:12.5px; font-weight:600; color:var(--fg1); margin-bottom:6px; letter-spacing:0.02em;">統一編號</label>
+                        <input id="id_username" name="username" type="text" required autofocus
+                               class="login-input" placeholder="請輸入公司統編">
+                    </div>
+
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <label style="display:block; font-size:12.5px; font-weight:600; color:var(--fg1); letter-spacing:0.02em;">登入密碼</label>
+                            <a href="{% url 'client_portal:password_reset' %}"
+                               style="font-size:12px; color:var(--fg4); text-decoration:none;"
+                               onmouseover="this.style.color='var(--fg1)'" onmouseout="this.style.color='var(--fg4)'">忘記密碼？</a>
+                        </div>
+                        <div x-data="{ showPw: false }" style="position:relative;">
+                            <input id="id_password" name="password" :type="showPw ? 'text' : 'password'" required
+                                   class="login-input" placeholder="請輸入專屬密碼" style="padding-right:40px;">
+                            <button type="button" @click="showPw = !showPw"
+                                    style="position:absolute; top:0; bottom:0; right:0; padding:0 12px; border:none; background:transparent; cursor:pointer; color:var(--fg4); display:flex; align-items:center;">
+                                <svg x-show="!showPw" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <svg x-show="showPw" x-cloak width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            style="width:100%; padding:11px; background:#35516E; color:var(--fg-on-primary); border:none; border-radius:var(--radius-md); font-family:var(--font-sans); font-size:14px; font-weight:500; letter-spacing:0.04em; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:4px; transition:background var(--dur-med) var(--ease-out);"
+                            onmouseover="this.style.background='#2a4159'" onmouseout="this.style.background='#35516E'">
+                        登入系統
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </form>
+            </div>
+
+            <p style="text-align:center; font-size:11.5px; color:var(--fg4); margin-top:24px;">&copy; 2026 Aura 會計師事務所 保留所有權利。</p>
+        </div>
+    </div>
+
+{% endblock %}

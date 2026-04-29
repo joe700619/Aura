@@ -4,6 +4,7 @@ from .document_dispatch import DocumentDispatch, DocumentDispatchItem, DocumentD
 from .seal_procurement import SealProcurement, SealProcurementItem
 from .bulletin import SystemBulletin
 from .tax_timeline import TaxTemplate, TaxTaskInstance
+from .client_tax_event import ClientTaxEvent
 from .advance_payment import AdvancePayment, AdvancePaymentDetail, AdvancePaymentImage
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     'SystemBulletin',
     'TaxTemplate',
     'TaxTaskInstance',
+    'ClientTaxEvent',
     'AdvancePayment',
     'AdvancePaymentDetail',
     'AdvancePaymentImage',

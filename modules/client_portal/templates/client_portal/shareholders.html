@@ -1,26 +1,298 @@
 {% extends 'client_portal/portal_base.html' %}
+{% load humanize %}
 
-{% block page_title %}股東管理{% endblock %}
+{% block page_title %}股東名冊{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
     <div class="sm:flex sm:justify-between sm:items-center mb-2">
-        <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">股東名冊 (準備中)</h1>
+        <div>
+            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">股東名冊</h1>
+            {% if register %}
+            <p class="text-sm text-slate-500 mt-1">{{ register.company_name }}（{{ register.unified_business_no }}）</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Placeholder Widget -->
+    {% if not register %}
     <div class="bg-white rounded-lg shadow border border-gray-200 p-12 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-4">
-            <svg class="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+            <svg class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">股東管理模組建置中</h3>
-        <p class="text-sm text-gray-500 max-w-sm mx-auto">
-            未來此區塊將連結公司登記模組，讓您可以即時檢視公司股東名冊、持有股數與相關資訊。
-        </p>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">尚無股東名簿資料</h3>
+        <p class="text-sm text-gray-500">請聯絡本所建立股東名簿後，即可在此查詢。</p>
     </div>
+
+    {% else %}
+
+    <!-- JSON data for Alpine.js -->
+    <script type="application/json" id="allTxData">{{ all_tx_json|safe }}</script>
+    <script type="application/json" id="timelineDatesData">{{ timeline_dates_json|safe }}</script>
+
+    <div x-data="{ activeTab: 'register' }">
+
+        <!-- Tabs header -->
+        <div class="border-b border-slate-200 mb-0">
+            <nav class="-mb-px flex space-x-1" aria-label="Tabs">
+                <button type="button" @click="activeTab = 'register'"
+                    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-sm transition-all duration-200"
+                    :class="activeTab === 'register' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+                    股東名簿查詢
+                </button>
+                <button type="button" @click="activeTab = 'transaction'"
+                    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-sm transition-all duration-200"
+                    :class="activeTab === 'transaction' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+                    股權交易紀錄
+                </button>
+                <button type="button" @click="activeTab = 'directors'"
+                    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-sm transition-all duration-200"
+                    :class="activeTab === 'directors' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'">
+                    董監事名單
+                </button>
+            </nav>
+        </div>
+
+        <!-- ── Tab 1: 股東名簿查詢 ── -->
+        <div x-show="activeTab === 'register'" class="bg-white rounded-b-lg rounded-tr-lg shadow border border-slate-200 border-t-0 p-6">
+            <div x-data="registerTabData()">
+
+                {% if equity_transactions %}
+                <div class="flex gap-5 min-h-[400px]">
+
+                    <!-- Left: Timeline -->
+                    <div class="w-1/4 flex-shrink-0 border-r border-slate-100 pr-4">
+                        <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            交易時間軸
+                        </h4>
+                        <div style="position:relative; padding-left:20px; margin-left:8px;">
+                            <div style="position:absolute; left:5px; top:6px; bottom:6px; width:2px; background-color:#60a5fa;"></div>
+                            {% for date, txs, unique_reasons in timeline %}
+                            <div style="position:relative; margin-bottom:24px; cursor:pointer;" data-date="{{ date|date:'Y-m-d' }}"
+                                @click="selectedDate = $el.dataset.date">
+                                <div :style="`position:absolute; left:-20px; top:2px; width:12px; height:12px; border-radius:50%; border:2px solid #3b82f6; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:all 0.15s; ${selectedDate === $el.closest('[data-date]').dataset.date ? 'background-color:#3b82f6; transform:scale(1.1);' : 'background-color:white;'}`">
+                                </div>
+                                <p style="font-size:0.875rem; font-weight:700; line-height:1.25;"
+                                    :style="selectedDate === $el.closest('[data-date]').dataset.date ? 'color:#2563eb;' : 'color:#64748b;'">{{ date|date:"Y/m/d" }}</p>
+                                <p style="font-size:10px; color:#94a3b8; margin-top:2px;">{{ unique_reasons }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Right: Snapshot -->
+                    <div class="flex-1 min-w-0">
+                        <!-- Stats -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                                <div class="p-1.5 bg-blue-100 rounded-md">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-semibold text-blue-500 uppercase tracking-wider">股份總數</p>
+                                    <p class="text-xl font-bold text-blue-800" x-text="fmt(totShares)">—</p>
+                                </div>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                                <div class="p-1.5 bg-emerald-100 rounded-md">
+                                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">金額總數</p>
+                                    <p class="text-xl font-bold text-emerald-800" x-text="fmt(totAmount)">—</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-slate-400 mb-2" x-show="selectedDate">
+                            截至 <strong class="text-slate-600" x-text="selectedDate"></strong> 之股東名簿
+                        </p>
+
+                        <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">姓名</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">身份證字號</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">股票種類</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">股數</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">面額</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">金額</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-slate-100">
+                                    <template x-for="row in rows" :key="row.id + '|' + row.stype + '|' + row.price">
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap" x-text="row.name"></td>
+                                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap font-mono text-xs" x-text="row.id"></td>
+                                            <td class="px-4 py-3 whitespace-nowrap">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                                    :class="row.stype === 'COMMON' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'"
+                                                    x-text="row.slabel"></span>
+                                            </td>
+                                            <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap" x-text="fmt(row.count)"></td>
+                                            <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap" x-text="fmt(row.price)"></td>
+                                            <td class="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap" x-text="fmt(row.amount)"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="rows.length === 0">
+                                        <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400 italic">此日期前無交易資料</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="bg-slate-50 border-t-2 border-slate-200">
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">合計</td>
+                                        <td class="px-4 py-3 text-right font-bold text-slate-900" x-text="fmt(totShares)"></td>
+                                        <td class="px-4 py-3"></td>
+                                        <td class="px-4 py-3 text-right font-bold text-slate-900" x-text="fmt(totAmount)"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- end flex -->
+
+                {% else %}
+                <div class="flex flex-col items-center justify-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                    <svg class="w-10 h-10 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="text-sm">尚無股權交易資料</p>
+                </div>
+                {% endif %}
+
+            </div><!-- end registerTabData -->
+        </div>
+
+        <!-- ── Tab 2: 股權交易紀錄 ── -->
+        <div x-show="activeTab === 'transaction'" class="bg-white rounded-b-lg rounded-tr-lg shadow border border-slate-200 border-t-0 p-6">
+            {% if equity_transactions %}
+            <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">股東姓名</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">交易日期</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">交易事由</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">股票種類</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">股數</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">面額</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-100">
+                        {% for tx in equity_transactions %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ tx.shareholder_name }}</td>
+                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ tx.transaction_date|date:"Y/m/d" }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                                    {{ tx.get_transaction_reason_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if tx.stock_type == 'COMMON' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %}">
+                                    {{ tx.get_stock_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap">{{ tx.share_count|intcomma }}</td>
+                            <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap">{{ tx.unit_price|intcomma }}</td>
+                            <td class="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap">{{ tx.total_amount|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                <p class="text-sm">尚無股權交易紀錄</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ── Tab 3: 董監事名單 ── -->
+        <div x-show="activeTab === 'directors'" class="bg-white rounded-b-lg rounded-tr-lg shadow border border-slate-200 border-t-0 p-6">
+            {% if directors %}
+            <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">職稱</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">姓名</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">身分證字號</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">國籍</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">持有股份</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">所代表法人</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-100">
+                        {% for d in directors %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                    {% if d.title == 'CHAIRMAN' %}bg-amber-100 text-amber-700
+                                    {% elif d.title == 'DIRECTOR' %}bg-blue-100 text-blue-700
+                                    {% elif d.title == 'SUPERVISOR' %}bg-emerald-100 text-emerald-700
+                                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    {{ d.get_title_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ d.name }}</td>
+                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap font-mono text-xs">{{ d.id_number }}</td>
+                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">{{ d.nationality }}</td>
+                            <td class="px-4 py-3 text-right text-slate-700 whitespace-nowrap">{{ d.shares_held|intcomma }}</td>
+                            <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+                                {% if d.entity_name %}{{ d.entity_name }}{% if d.entity_no %}（{{ d.entity_no }}）{% endif %}{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                <p class="text-sm">尚無董監事資料</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div><!-- end x-data activeTab -->
+    {% endif %}
 </div>
+
+<script>
+function registerTabData() {
+    const allTx = JSON.parse(document.getElementById('allTxData').textContent);
+    const dates = JSON.parse(document.getElementById('timelineDatesData').textContent);
+    return {
+        allTx,
+        dates,
+        selectedDate: dates.length ? dates[0] : null,
+        get rows() {
+            const filtered = this.selectedDate
+                ? this.allTx.filter(t => t.date <= this.selectedDate)
+                : this.allTx;
+            const map = {};
+            filtered.forEach(t => {
+                const k = t.id + '|' + t.stype + '|' + t.price;
+                if (!map[k]) map[k] = { name: t.name, id: t.id, stype: t.stype, slabel: t.slabel, price: t.price, count: 0, amount: 0 };
+                map[k].count += t.count;
+                map[k].amount += t.amount;
+            });
+            return Object.values(map).filter(r => r.count > 0);
+        },
+        get totShares() { return this.rows.reduce((s, r) => s + r.count, 0); },
+        get totAmount() { return this.rows.reduce((s, r) => s + r.amount, 0); },
+        fmt(n) { return Number(n).toLocaleString(); },
+    };
+}
+</script>
 {% endblock %}

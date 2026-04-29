@@ -48,6 +48,17 @@ from modules.bookkeeping.views.bill_views import (
 from modules.bookkeeping.views.corporate_tax import CorporateTaxDraftAPIView, ImportCorporateTaxExcelAPIView
 from modules.bookkeeping.views.api_rates import FetchIndustryRatesApiView
 from modules.bookkeeping.views.api_progress_summary import ProgressSummaryAPIView
+from modules.bookkeeping.views.business_registration import (
+    BusinessRegistrationListView,
+    BusinessRegistrationUpdateView,
+)
+from modules.bookkeeping.views.service_remuneration_tax_rate import (
+    ServiceRemunerationTaxRateListView,
+    ServiceRemunerationTaxRateCreateView,
+    ServiceRemunerationTaxRateUpdateView,
+    ServiceRemunerationTaxRateDeleteView,
+    NHIConfigUpdateView,
+)
 
 app_name = 'bookkeeping'
 
@@ -106,6 +117,17 @@ urlpatterns = [
     # 申報書媒體檔
     path('income-tax/<int:client_pk>/media/<int:pk>/', IncomeTaxMediaDetailView.as_view(), name='income_tax_media_detail'),
     path('income-tax/<int:client_pk>/media/<int:pk>/upload/', IncomeTaxMediaUploadView.as_view(), name='income_tax_media_upload'),
+
+    # 商工登記
+    path('business-registration/', BusinessRegistrationListView.as_view(), name='business_registration_list'),
+    path('business-registration/<int:pk>/edit/', BusinessRegistrationUpdateView.as_view(), name='business_registration_update'),
+
+    # 勞務報酬稅率設定
+    path('service-remuneration-tax-rates/', ServiceRemunerationTaxRateListView.as_view(), name='service_remuneration_tax_rate_list'),
+    path('service-remuneration-tax-rates/add/', ServiceRemunerationTaxRateCreateView.as_view(), name='service_remuneration_tax_rate_create'),
+    path('service-remuneration-tax-rates/<int:pk>/edit/', ServiceRemunerationTaxRateUpdateView.as_view(), name='service_remuneration_tax_rate_update'),
+    path('service-remuneration-tax-rates/<int:pk>/delete/', ServiceRemunerationTaxRateDeleteView.as_view(), name='service_remuneration_tax_rate_delete'),
+    path('service-remuneration-tax-rates/nhi-config/', NHIConfigUpdateView.as_view(), name='nhi_config_update'),
 
     # 客戶帳單系統
     path('bills/', ClientBillListView.as_view(), name='bill_list'),

@@ -180,7 +180,10 @@ class TaxFilingPeriod(BaseModel):
 
     # ── 文件上傳 ──
     filing_document = models.FileField(
-        _('申報書及稅單'), upload_to=get_vat_document_path, blank=True, null=True
+        _('申報書'), upload_to=get_vat_document_path, blank=True, null=True
+    )
+    tax_bill_document = models.FileField(
+        _('繳款書'), upload_to=get_vat_document_path, blank=True, null=True
     )
     media_file = models.FileField(
         _('媒體檔'), upload_to=get_vat_media_path, blank=True, null=True

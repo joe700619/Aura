@@ -19,13 +19,15 @@ class BusinessTaxListView(FilterMixin, ListActionMixin, SearchMixin, BusinessReq
 
     def get_base_queryset(self):
         return super().get_base_queryset().filter(
-            tax_setting__isnull=False
+            tax_setting__isnull=False,
+            acceptance_status='active',
         ).select_related('tax_setting', 'bookkeeping_assistant').order_by('name')
 
     def _base_qs_for_counts(self):
         return BookkeepingClient.objects.filter(
             is_deleted=False,
             tax_setting__isnull=False,
+            acceptance_status='active',
         )
 
     def get_context_data(self, **kwargs):

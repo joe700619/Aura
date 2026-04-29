@@ -38,15 +38,15 @@
 </a>
 {% endblock %}
 
-{% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
-{% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
-{% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}
+{% block extra_pagination_params %}&filter={{ current_filter }}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}&filter={{ current_filter }}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}&filter={{ current_filter }}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
 
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="name">
     客戶名稱 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
-<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="taxid">
+<th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider" data-sort="tax_id">
     統一編號 <span class="sort-icon text-slate-400 ml-1">↕</span>
 </th>
 <th scope="col" class="px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">

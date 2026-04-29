@@ -36,10 +36,13 @@ class EmployeeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
     form_class = EmployeeForm
     template_name = 'employee/form.html'
     success_url = reverse_lazy('hr:employee_list')
-    
+
     # PrevNextMixin 設定
     prev_next_order_field = 'employee_number'  # 按員工編號排序
-    
+
+    def get_nav_queryset(self):
+        return self.model.objects.filter(is_active=True)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         

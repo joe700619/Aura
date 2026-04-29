@@ -12,8 +12,8 @@ class Customer(BaseModel):
     tax_id = models.CharField(max_length=20, blank=True, null=True, verbose_name="統一編號")
     name = models.CharField(max_length=100, verbose_name="公司名稱")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
-    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="電話號碼")
-    mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name="手機號碼")
+    phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="電話號碼")
+    mobile = models.CharField(max_length=50, blank=True, null=True, verbose_name="手機號碼")
     source = models.CharField(
         max_length=20, 
         choices=SourceChoices.choices, 
@@ -32,7 +32,7 @@ class Customer(BaseModel):
     correspondence_address = models.CharField(max_length=255, blank=True, null=True, verbose_name="通訊地址")
 
     # 二、帳單資訊
-    bank_account_last5 = models.CharField(max_length=5, blank=True, null=True, verbose_name="帳號後五碼")
+    bank_account_last5 = models.CharField(max_length=20, blank=True, null=True, verbose_name="帳號後五碼")
     labor_ins_code = models.CharField(max_length=50, blank=True, null=True, verbose_name="勞保代號")
     health_ins_code = models.CharField(max_length=50, blank=True, null=True, verbose_name="健保代號")
 

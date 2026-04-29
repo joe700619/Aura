@@ -1,11 +1,12 @@
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView
 from django.views import View
 from django.db import models, transaction
 from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect, render
 from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, SearchMixin, CopyMixin, PrevNextMixin, EmployeeDataIsolationMixin, SortMixin
 from ..models import BookkeepingClient, GroupInvoice
+from ..models.tax_unit import TaxUnit
 from ..models.billing import ServiceFee
 from ..forms import BookkeepingClientForm
 from modules.hr.models import Employee
@@ -43,6 +44,7 @@ class BookkeepingClientListView(FilterMixin, EmployeeDataIsolationMixin, ListAct
         'annotated_billing_cycle'
     ]
     paginate_by = 25
+    default_filter = 'active'
     filter_choices = {
         'active':      {'acceptance_status': 'active'},
         'suspended':   {'acceptance_status': 'suspended'},
@@ -119,17 +121,26 @@ def _get_common_context(context, form, obj=None, request=None):
     )
     context['send_invoice_method_options'] = _build_select_options(
         BookkeepingClient.SendInvoiceMethod.choices,
-        form['send_invoice_method'].value() if 'send_invoice_method' in form else None,
+        form['send_invoice_method'].value(),
     )
     context['receive_invoice_method_options'] = _build_select_options(
         BookkeepingClient.ReceiveInvoiceMethod.choices,
-        form['receive_invoice_method'].value() if 'receive_invoice_method' in form else None,
+        form['receive_invoice_method'].value(),
     )
     context['client_source_options'] = _build_select_options(
         BookkeepingClient.ClientSource.choices,
-        form['client_source'].value() if 'client_source' in form else None,
+        form['client_source'].value(),
+    )
+    context['notification_method_options'] = _build_select_options(
+        BookkeepingClient.NotificationMethod.choices,
+        form['notification_method'].value(),
+    )
+    context['payment_method_options'] = _build_select_options(
+        BookkeepingClient.PaymentMethod.choices,
+        form['payment_method'].value(),
     )
     context['employees'] = Employee.objects.filter(is_active=True).order_by('name')
+    context['tax_units'] = TaxUnit.objects.order_by('city_id', 'unit_code')
     context['invoice_type_choices'] = GroupInvoice.InvoiceType.choices
     context['billing_cycle_choices'] = ServiceFee.BillingCycle.choices
 
@@ -187,7 +198,7 @@ BOOKKEEPING_CLIENT_FIELDS = [
     'receive_invoice_method', 'receive_merged_client_name',
     'last_convenience_bag_date', 'last_convenience_bag_qty',
     'notes', 'cost_sharing_data', 'client_source', 'contact_date', 'transfer_checklist',
-    'business_password', 'national_tax_password', 'e_invoice_account', 'e_invoice_password',
+    'national_tax_password', 'e_invoice_account', 'e_invoice_password',
 ]
 
 
@@ -221,12 +232,6 @@ class BookkeepingClientCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
             messages.success(self.request, '記帳客戶建立成功！')
             return redirect(self.get_success_url())
         else:
-            with open('C:/Users/joe70/PythonProject/Aura/debug_form_errors.txt', 'w', encoding='utf-8') as f:
-                f.write(f"CREATE VIEW ERRORS:\n")
-                f.write(f"Main Form: {form.errors}\n")
-                f.write(f"Invoice Formset: {invoice_formset.errors}\n")
-                f.write(f"Service Fee Formset: {service_fee_formset.errors}\n")
-                f.write(f"SF Non-form: {service_fee_formset.non_form_errors()}\n")
             from django.contrib import messages
             messages.error(self.request, '表單內容有誤，請檢查後再試。')
             return self.render_to_response(self.get_context_data(form=form))
@@ -253,7 +258,7 @@ class BookkeepingClientUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateVi
         context = self.get_context_data()
         invoice_formset = context['invoice_formset']
         service_fee_formset = context['service_fee_formset']
-        
+
         if invoice_formset.is_valid() and service_fee_formset.is_valid():
             with transaction.atomic():
                 self.object = form.save()
@@ -263,12 +268,6 @@ class BookkeepingClientUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateVi
             messages.success(self.request, '記帳客戶更新成功！')
             return redirect(self.get_success_url())
         else:
-            with open('C:/Users/joe70/PythonProject/Aura/debug_form_errors.txt', 'w', encoding='utf-8') as f:
-                f.write(f"UPDATE VIEW ERRORS:\n")
-                f.write(f"Main Form: {form.errors}\n")
-                f.write(f"Invoice Formset: {invoice_formset.errors}\n")
-                f.write(f"Service Fee Formset: {service_fee_formset.errors}\n")
-                f.write(f"SF Non-form: {service_fee_formset.non_form_errors()}\n")
             from django.contrib import messages
             messages.error(self.request, '表單內容有誤，請檢查後再試。')
             return self.render_to_response(self.get_context_data(form=form))

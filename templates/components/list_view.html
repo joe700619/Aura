@@ -289,34 +289,28 @@
     function initTableSort(table) {
         const headers = table.querySelectorAll('thead th[data-sort]');
         if (!headers.length) return;
-        const tbody = table.querySelector('tbody');
-        let currentCol = null, asc = true;
 
+        const params = new URLSearchParams(window.location.search);
+        const currentSort = params.get('sort') || '';
+
+        // 標示目前排序欄位的箭頭
         headers.forEach(function (th) {
             th.style.cursor = 'pointer';
+            const col = th.dataset.sort;
+            const icon = th.querySelector('.sort-icon');
+            if (icon) {
+                if (currentSort === col)        icon.textContent = '↑';
+                else if (currentSort === '-' + col) icon.textContent = '↓';
+                else                            icon.textContent = '↕';
+            }
+
+            // 點擊 → 換頁（後端排序，作用於全部分頁）
             th.addEventListener('click', function () {
-                const col = th.dataset.sort;
-                asc = (currentCol === col) ? !asc : true;
-                currentCol = col;
-
-                headers.forEach(function (h) {
-                    const icon = h.querySelector('.sort-icon');
-                    if (icon) icon.textContent = '↕';
-                });
-                const icon = th.querySelector('.sort-icon');
-                if (icon) icon.textContent = asc ? '↑' : '↓';
-
-                const rows = Array.from(tbody.querySelectorAll('tr[data-' + col + ']'));
-                rows.sort(function (a, b) {
-                    const av = a.dataset[col] || '';
-                    const bv = b.dataset[col] || '';
-                    const an = parseFloat(av), bn = parseFloat(bv);
-                    if (!isNaN(an) && !isNaN(bn)) {
-                        return asc ? an - bn : bn - an;
-                    }
-                    return asc ? av.localeCompare(bv, 'zh-TW', { numeric: true }) : bv.localeCompare(av, 'zh-TW', { numeric: true });
-                });
-                rows.forEach(function (r) { tbody.appendChild(r); });
+                const p = new URLSearchParams(window.location.search);
+                const cur = p.get('sort') || '';
+                p.set('sort', cur === col ? '-' + col : col);
+                p.delete('page');   // 排序後回到第 1 頁
+                window.location.href = '?' + p.toString();
             });
         });
     }

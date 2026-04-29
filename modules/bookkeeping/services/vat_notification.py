@@ -66,8 +66,7 @@ def send_vat_notification(period, request=None):
     Returns a dict: {'success': bool, 'channels': [], 'errors': []}
     """
     client = period.year_record.client
-    setting = getattr(client, 'tax_setting', None)
-    notification_method = getattr(setting, 'notification_method', None)
+    notification_method = client.notification_method
 
     context = build_vat_context(period, request)
     results = {'success_channels': [], 'error_channels': []}

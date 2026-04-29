@@ -158,6 +158,59 @@ class DocumentService:
             except Exception:
                 context['pay_url'] = ''
 
+        # Receivable: 服務項目明細、收款記錄、計算屬性
+        if obj.__class__.__name__ == 'Receivable':
+            import json as _json
+
+            # ── 服務項目明細（quotation_items）──
+            try:
+                quotation_data = obj.quotation_data or []
+                if isinstance(quotation_data, str):
+                    quotation_data = _json.loads(quotation_data)
+                quotation_items = []
+                for i, item in enumerate(quotation_data, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    amount = int(item.get('amount', 0) or 0)
+                    quotation_items.append({
+                        'no':           i,
+                        'service_code': item.get('service_code', ''),
+                        'service_name': item.get('service_name', ''),
+                        'amount':       amount,
+                        'amount_fmt':   f"{amount:,}",
+                        'remark':       item.get('remark', ''),
+                    })
+                context['quotation_items'] = quotation_items
+            except Exception:
+                context['quotation_items'] = []
+
+            # ── 計算屬性（Python property → 展平為頂層變數）──
+            try:
+                context['total_amount']          = obj.total_amount
+                context['total_amount_fmt']      = f"{int(obj.total_amount):,}"
+                context['paid_amount']           = obj.paid_amount
+                context['paid_amount_fmt']       = f"{int(obj.paid_amount):,}"
+                context['outstanding_balance']   = obj.outstanding_balance
+                context['outstanding_balance_fmt'] = f"{int(obj.outstanding_balance):,}"
+                context['status']                = obj.status
+            except Exception:
+                pass
+
+            # ── 收款紀錄（collections）──
+            try:
+                collections = []
+                for i, c in enumerate(obj.collections.filter(is_deleted=False).order_by('created_at'), start=1):
+                    collections.append({
+                        'no':     i,
+                        'date':   c.date,
+                        'amount': int(c.total),
+                        'amount_fmt': f"{int(c.total):,}",
+                        'method': c.get_method_display() if hasattr(c, 'get_method_display') else c.method,
+                    })
+                context['collections'] = collections
+            except Exception:
+                context['collections'] = []
+
         # We can also add helpers or specific related data
         # For Customer, add contacts
         if hasattr(obj, 'contacts'):

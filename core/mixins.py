@@ -38,17 +38,24 @@ class PrevNextMixin:
     """
     Mixin to add previous and next object navigation to context.
     Expects `self.object` to be set (UpdateView/DetailView).
+
+    Override `get_nav_queryset()` if navigation should skip records that are
+    still editable but shouldn't appear in prev/next (e.g. soft-deleted).
     """
+
+    def get_nav_queryset(self):
+        return self.get_queryset()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Ensure we have an object to navigate from
         if not hasattr(self, 'object') or not self.object:
             return context
 
-        # Use get_queryset() so navigation respects any filtering (e.g. is_deleted=False).
-        queryset = self.get_queryset()
+        # Use get_nav_queryset() so navigation can skip soft-deleted records
+        # even when the edit page should still load for the current object.
+        queryset = self.get_nav_queryset()
 
         current_pk = self.object.pk
 

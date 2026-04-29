@@ -1,4 +1,5 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
 from .models import ClientAssessment, CaseAssessment, Shareholder, ShareholderRegister, EquityTransaction, CompanyFiling, Progress, VATEntityChange
 
 
@@ -8,7 +9,7 @@ restore_deleted.short_description = '還原已刪除的資料'
 
 
 @admin.register(ClientAssessment)
-class ClientAssessmentAdmin(admin.ModelAdmin):
+class ClientAssessmentAdmin(ImportExportModelAdmin):
     list_display = ['company_name', 'unified_business_no', 'risk_level', 'is_deleted', 'created_at']
     list_filter = ['risk_level', 'is_deleted']
     search_fields = ['company_name', 'unified_business_no', 'main_contact']
@@ -33,7 +34,7 @@ class CaseAssessmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Shareholder)
-class ShareholderAdmin(admin.ModelAdmin):
+class ShareholderAdmin(ImportExportModelAdmin):
     list_display = ['name', 'id_number', 'nationality', 'is_active', 'is_deleted', 'created_at']
     list_filter = ['nationality', 'is_active', 'is_deleted']
     search_fields = ['name', 'id_number']
@@ -45,7 +46,7 @@ class ShareholderAdmin(admin.ModelAdmin):
 
 
 @admin.register(ShareholderRegister)
-class ShareholderRegisterAdmin(admin.ModelAdmin):
+class ShareholderRegisterAdmin(ImportExportModelAdmin):
     list_display = ['company_name', 'unified_business_no', 'service_status', 'completion_status', 'is_deleted', 'created_at']
     list_filter = ['service_status', 'completion_status', 'is_deleted']
     search_fields = ['company_name', 'unified_business_no']

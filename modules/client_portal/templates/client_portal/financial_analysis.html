@@ -1,58 +1,565 @@
 {% extends 'client_portal/portal_base.html' %}
+{% load humanize %}
 
 {% block page_title %}財務分析{% endblock %}
 
 {% block content %}
+
+<!-- JSON data for Chart.js -->
+<script type="application/json" id="chartLabelsData">{{ chart_labels|safe }}</script>
+<script type="application/json" id="chartSalesData">{{ chart_sales|safe }}</script>
+<script type="application/json" id="chartInputData">{{ chart_input|safe }}</script>
+<script type="application/json" id="pieLabelData">{{ pie_labels|safe }}</script>
+<script type="application/json" id="pieDataData">{{ pie_data|safe }}</script>
+
 <div class="space-y-6">
-    <div class="sm:flex sm:justify-between sm:items-center mb-2">
-        <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">企業財務分析報表</h1>
-            <p class="text-sm text-gray-500 mt-1">此區塊模組正在陸續開放中</p>
+
+    <!-- ── Header + Selectors ── -->
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-xl md:text-2xl font-bold text-slate-800">財務分析報表</h1>
+            <p class="text-sm text-slate-500 mt-1">{{ client.name }}</p>
+        </div>
+        <form method="get" class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-slate-600 whitespace-nowrap">年度</label>
+                <select name="year" onchange="this.form.submit()"
+                    class="text-sm border border-slate-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for yr in available_years %}
+                    <option value="{{ yr }}" {% if yr == selected_year %}selected{% endif %}>{{ yr }} 年</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if available_periods %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-slate-600 whitespace-nowrap">累計至</label>
+                <select name="period" onchange="this.form.submit()"
+                    class="text-sm border border-slate-300 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    {% for pm in available_periods %}
+                    <option value="{{ pm }}" {% if pm == selected_period %}selected{% endif %}>
+                        {{ pm|stringformat:"02d" }}-{{ pm|add:1|stringformat:"02d" }}月
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- ── KPI Cards（三欄並排）── -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 relative overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1 bg-blue-500 rounded-t-xl"></div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{{ selected_year }}年 累積銷售額</p>
+            <p class="text-2xl font-bold text-slate-800">{{ total_sales|floatformat:0|intcomma }}</p>
+            <p class="text-xs text-slate-400 mt-1">截至 {{ selected_period|stringformat:"02d" }}-{{ selected_period|add:1|stringformat:"02d" }} 月</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 relative overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1 bg-emerald-500 rounded-t-xl"></div>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{{ selected_year }}年 累計進項金額</p>
+            <p class="text-2xl font-bold text-slate-800">{{ total_input|floatformat:0|intcomma }}</p>
+            <p class="text-xs text-slate-400 mt-1">截至 {{ selected_period|stringformat:"02d" }}-{{ selected_period|add:1|stringformat:"02d" }} 月</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 relative overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-1
+                {% if review_mode == 'book_review' %}bg-indigo-500
+                {% elif review_mode == 'income_standard' %}bg-amber-500
+                {% else %}bg-slate-300{% endif %} rounded-t-xl"></div>
+            {% if audit_risk_level %}
+            <div class="absolute -right-7 top-5 w-28 rotate-45 py-0.5 text-center text-[10px] font-bold tracking-wide shadow-sm
+                {% if audit_risk_level == 'high' %}bg-red-500 text-white
+                {% elif audit_risk_level == 'medium' %}bg-amber-400 text-white
+                {% else %}bg-emerald-500 text-white{% endif %}">
+                {% if audit_risk_level == 'high' %}查核高風險
+                {% elif audit_risk_level == 'medium' %}查核中等風險
+                {% else %}查核低風險{% endif %}
+            </div>
+            {% endif %}
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">建議申報方式</p>
+            {% if review_mode == 'book_review' %}
+                <p class="text-xl font-bold text-indigo-700">書審申報</p>
+                {% if estimated_tax_savings is not None and estimated_tax_savings > 0 %}
+                <p class="text-xs text-indigo-600 mt-1 font-semibold">
+                    {% if is_full_year %}比查帳申報省稅{% else %}預估全年省稅約{% endif %}
+                    {{ estimated_tax_savings|intcomma }} 元
+                </p>
+                {% elif estimated_tax_savings is not None %}
+                <p class="text-xs text-slate-500 mt-1">與查帳申報稅額相近</p>
+                {% endif %}
+                {% if not is_full_year %}<p class="text-xs text-slate-400 mt-0.5">基於截至 {{ through_month }} 月累計，線性推估全年</p>{% endif %}
+            {% elif review_mode == 'income_standard' %}
+                <p class="text-xl font-bold text-amber-700">所得額標準申報</p>
+                {% if estimated_tax_savings is not None and estimated_tax_savings > 0 %}
+                <p class="text-xs text-amber-600 mt-1 font-semibold">
+                    {% if is_full_year %}比查帳申報省稅{% else %}預估全年省稅約{% endif %}
+                    {{ estimated_tax_savings|intcomma }} 元
+                </p>
+                {% elif estimated_tax_savings is not None %}
+                <p class="text-xs text-slate-500 mt-1">與查帳申報稅額相近</p>
+                {% endif %}
+                {% if not is_full_year %}<p class="text-xs text-slate-400 mt-0.5">基於截至 {{ through_month }} 月累計，線性推估全年</p>{% endif %}
+            {% elif review_mode == 'na' %}
+                <p class="text-xl font-bold text-slate-600">需洽專人評估</p>
+                <p class="text-xs text-slate-500 mt-1">請聯絡本所</p>
+            {% else %}
+                <p class="text-xl font-bold text-slate-400">資料尚未建立</p>
+                <p class="text-xs text-slate-400 mt-1">本年度損益表尚未輸入</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Analysis Widgets Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <!-- 401 Widget -->
-        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
-            <div class="absolute inset-x-0 top-0 h-1 bg-blue-500"></div>
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 mb-4 group-hover:bg-blue-100 transition-colors">
-                <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+    <!-- ── Industry Info Bar ── -->
+    {% if corporate_tax %}
+    <div class="bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">行業代號</span>
+            <span class="font-semibold text-slate-700">{{ corporate_tax.industry_code|default:"—" }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">行業名稱</span>
+            <span class="font-semibold text-slate-700">{{ corporate_tax.industry_name|default:"—" }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">擴大書審純益率</span>
+            <span class="font-bold text-indigo-600">{{ corporate_tax.industry_profit_rate }}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">所得額標準</span>
+            <span class="font-bold text-amber-600">{{ corporate_tax.income_standard_rate }}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">同業淨利率</span>
+            <span class="font-bold text-slate-600">{{ corporate_tax.net_profit_rate }}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-medium">稅率</span>
+            <span class="font-bold text-slate-600">{{ corporate_tax.tax_rate }}%</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── 圖表區（兩欄並排）── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Bar chart: 銷項/進項趨勢 (left 2/3) -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-4">{{ selected_year }} 年各期銷項 / 進項金額</h3>
+            <div style="position:relative; height:220px;">
+                <canvas id="vatBarChart"></canvas>
             </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">401申報統計</h3>
-            <p class="text-sm text-gray-500">視覺化呈現各期營業稅申報銷售額、稅額之趨勢分析。</p>
-            <span class="inline-block mt-4 text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">建置中</span>
+        </div>
+        <!-- Pie chart: 費用組成 (right 1/3) -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-4">費用科目組成（查帳申報數）</h3>
+            <div style="position:relative; height:220px;">
+                <canvas id="expensePieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 損益表 + 常見問題（並排）── -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+
+        <!-- 損益表（左 2/3） -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-base font-bold text-slate-800 mb-4">損益表（{{ selected_year }} 年度）</h3>
+            {% if not is_full_year and corporate_tax %}
+            <div class="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-700">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <span>以下為截至 <strong>{{ through_month }} 月</strong>的累計資料（全年共 12 個月），非全年完整數字。應納稅額欄位另提供線性推估全年參考值。</span>
+            </div>
+            {% endif %}
+            {% if not corporate_tax %}
+            <div class="flex flex-col items-center justify-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                <p class="text-sm">{{ selected_year }} 年度損益表尚未建立，請聯絡本所</p>
+            </div>
+            {% elif not revenue_items and not cost_items and not expense_items %}
+            <div class="flex flex-col items-center justify-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+                <p class="text-sm">損益明細尚未匯入，請聯絡本所</p>
+            </div>
+            {% else %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th colspan="2" class="bg-slate-50 text-center py-2 px-3 border border-slate-200 text-slate-700 font-bold text-xs">帳列數（損益表）</th>
+                            <th colspan="2" class="bg-slate-50 text-center py-2 px-3 border border-slate-200 text-slate-700 font-bold text-xs">查帳申報</th>
+                            <th class="bg-slate-50 text-center py-2 px-3 border border-slate-200 text-slate-700 font-bold text-xs">書審／所標申報</th>
+                        </tr>
+                        <tr class="bg-slate-50 text-slate-500 font-semibold text-xs">
+                            <th class="py-1.5 px-3 border border-slate-200 text-left">科目名稱</th>
+                            <th class="py-1.5 px-3 border border-slate-200 text-right">帳列金額</th>
+                            <th class="py-1.5 px-3 border border-slate-200 text-right">帳外剔除</th>
+                            <th class="py-1.5 px-3 border border-slate-200 text-right">申報數</th>
+                            <th class="py-1.5 px-3 border border-slate-200 text-right">書審申報金額</th>
+                        </tr>
+                    </thead>
+
+                    {% if revenue_items %}
+                    <tbody>
+                        <tr class="bg-blue-50 font-bold text-slate-800 text-sm">
+                            <td class="py-2 px-3 border border-slate-200">收入合計</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ book_revenue|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_revenue|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_revenue|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% for item in revenue_items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-1.5 px-3 border border-slate-200 text-slate-600 pl-6">{{ item.account_code }} {{ item.account_name }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-600">{{ item.book_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-400">{% if item.excluded_amount %}{{ item.excluded_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono font-semibold">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+
+                    {% if cost_items %}
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold text-slate-800 text-sm">
+                            <td class="py-2 px-3 border border-slate-200">成本合計</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ book_cost|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_cost|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                        {% for item in cost_items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-1.5 px-3 border border-slate-200 text-slate-600 pl-6">{{ item.account_code }} {{ item.account_name }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-600">{{ item.book_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-400">{% if item.excluded_amount %}{{ item.excluded_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono font-semibold">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold border-y-2 border-slate-300 text-sm">
+                            <td colspan="2" class="py-2 px-3 border border-slate-200 text-slate-800 text-center">營業毛利</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_gross_profit|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                    </tbody>
+
+                    {% if expense_items %}
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold text-slate-800 text-sm">
+                            <td class="py-2 px-3 border border-slate-200">費用合計</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ book_expense|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_expense|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                        {% for item in expense_items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-1.5 px-3 border border-slate-200 text-slate-600 pl-6">{{ item.account_code }} {{ item.account_name }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-600">{{ item.book_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-400">{% if item.excluded_amount %}{{ item.excluded_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono font-semibold">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold border-y-2 border-slate-300 text-sm">
+                            <td colspan="2" class="py-2 px-3 border border-slate-200 text-slate-800 text-center">營業利益</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_op_income|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right text-slate-400">—</td>
+                        </tr>
+                    </tbody>
+
+                    {% if non_op_rev_items %}
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold text-slate-800 text-sm">
+                            <td class="py-2 px-3 border border-slate-200">業外收入合計</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ book_non_op_rev|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_non_op_rev|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_non_op_rev|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% for item in non_op_rev_items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-1.5 px-3 border border-slate-200 text-slate-600 pl-6">{{ item.account_code }} {{ item.account_name }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-600">{{ item.book_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-400">{% if item.excluded_amount %}{{ item.excluded_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono font-semibold">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+
+                    {% if non_op_exp_items %}
+                    <tbody>
+                        <tr class="bg-slate-100 font-bold text-slate-800 text-sm">
+                            <td class="py-2 px-3 border border-slate-200">業外支出合計</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ book_non_op_exp|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">{{ audit_non_op_exp|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono">
+                                {% if review_mode == 'income_standard' %}{{ audit_non_op_exp|floatformat:0|intcomma }}{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% for item in non_op_exp_items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-1.5 px-3 border border-slate-200 text-slate-600 pl-6">{{ item.account_code }} {{ item.account_name }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-600">{{ item.book_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono text-slate-400">{% if item.excluded_amount %}{{ item.excluded_amount|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono font-semibold">{{ item.declared_amount|floatformat:0|intcomma }}</td>
+                            <td class="py-1.5 px-3 border border-slate-200 text-right font-mono">
+                                {% if review_mode == 'income_standard' %}{{ item.declared_amount|floatformat:0|intcomma }}{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+
+                    <tfoot class="font-bold border-t-2 border-slate-300">
+                        <tr class="bg-slate-100 text-sm">
+                            <td colspan="2" class="py-2 px-3 border border-slate-200 text-slate-900 text-center">全年所得額</td>
+                            <td class="py-2 px-3 border border-slate-200"></td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono text-slate-900 border-b-2 border-b-slate-400">{{ audit_net_income|floatformat:0|intcomma }}</td>
+                            <td class="py-2 px-3 border border-slate-200 text-right font-mono text-slate-900 border-b-2 border-b-slate-400">
+                                {% if review_mode == 'book_review' %}
+                                    <span class="block text-[10px] text-slate-400 font-normal">收入 × 純益率 + 業外收入</span>
+                                    {{ review_income|floatformat:0|intcomma }}
+                                {% elif review_mode == 'income_standard' %}
+                                    <span class="block text-[10px] text-amber-500 font-normal">收入 × 所得額標準 + 業外收入 - 業外支出</span>
+                                    {{ review_income|floatformat:0|intcomma }}
+                                {% elif review_mode == 'na' %}
+                                    <span class="text-amber-500 text-xs font-normal">需洽專人評估</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr class="text-base bg-slate-50">
+                            <td colspan="3" class="py-3 px-3 border border-slate-200 text-right text-slate-800">應納稅額（所得額 × {{ corporate_tax.tax_rate }}%）</td>
+                            <td class="py-3 px-3 border border-slate-200 text-right bg-slate-100">
+                                <span class="block text-lg font-bold text-slate-900">{{ audit_tax|intcomma }}</span>
+                                {% if not is_full_year %}
+                                <span class="block text-xs text-slate-400 font-normal">截至 {{ through_month }} 月累計</span>
+                                <span class="block text-sm font-semibold text-amber-600">預估全年 ~{{ estimated_audit_tax|intcomma }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-3 border border-slate-200 text-right bg-slate-100">
+                                {% if review_tax is not None %}
+                                <span class="block text-lg font-bold text-slate-900">{{ review_tax|intcomma }}</span>
+                                {% if not is_full_year %}
+                                <span class="block text-xs text-slate-400 font-normal">截至 {{ through_month }} 月累計</span>
+                                <span class="block text-sm font-semibold text-amber-600">預估全年 ~{{ estimated_review_tax|intcomma }}</span>
+                                {% endif %}
+                                {% else %}<span class="text-sm text-amber-500 font-normal">需洽專人評估</span>{% endif %}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-500 flex gap-2">
+                <svg class="h-4 w-4 shrink-0 text-slate-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>科目代碼：4=收入，5=成本，6=費用，7=業外收入，8=業外支出。
+                書審申報：收入×純益率+業外收入；收入≥3千萬或負純益率且收入≥千萬改用所得額標準。</span>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Profit/Loss Widget -->
-        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
-            <div class="absolute inset-x-0 top-0 h-1 bg-emerald-500"></div>
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-50 mb-4 group-hover:bg-emerald-100 transition-colors">
-                <svg class="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+        <!-- 常見問題（右 1/3） -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-base font-bold text-slate-800 mb-4">常見問題</h3>
+            <div class="space-y-3" x-data>
+                {% for q, a in faq_items %}
+                <div class="border border-slate-200 rounded-lg overflow-hidden" x-data="{ open: false }">
+                    <button type="button" @click="open = !open"
+                        class="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors">
+                        <span>{{ q }}</span>
+                        <svg :class="open ? 'rotate-180' : ''" class="w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak class="px-4 pb-3 text-sm text-slate-600 border-t border-slate-100">
+                        <p class="pt-3">{{ a }}</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">損益分析</h3>
-            <p class="text-sm text-gray-500">年度結算與期中損益狀況視覺化，輕鬆掌握營運績效。</p>
-            <span class="inline-block mt-4 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">建置中</span>
         </div>
 
-        <!-- Tax Amount Widget -->
-        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center relative overflow-hidden group">
-            <div class="absolute inset-x-0 top-0 h-1 bg-purple-500"></div>
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-50 mb-4 group-hover:bg-purple-100 transition-colors">
-                <svg class="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+    </div><!-- end bottom grid -->
+
+    <!-- ── 稅務風險評估 ── -->
+    {% if risk_checklist %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+
+        <!-- 標題列 + 風險圓圈 -->
+        <div class="flex flex-wrap items-center gap-6 mb-5">
+
+            <!-- 圓圈指標 -->
+            <div class="flex flex-col items-center gap-1 shrink-0">
+                <div class="relative w-28 h-28">
+                    <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
+                        <!-- 底色軌道 -->
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="#e2e8f0" stroke-width="12"/>
+                        <!-- 進度弧 -->
+                        <circle cx="60" cy="60" r="50" fill="none"
+                                stroke="{{ risk_color }}" stroke-width="12"
+                                stroke-dasharray="314.16"
+                                stroke-dashoffset="{{ risk_dash_offset }}"
+                                stroke-linecap="round"/>
+                    </svg>
+                    <!-- 中央文字（不旋轉） -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-base font-extrabold leading-tight
+                            {% if audit_risk_level == 'high' %}text-red-600
+                            {% elif audit_risk_level == 'medium' %}text-amber-600
+                            {% else %}text-emerald-600{% endif %}">
+                            {% if audit_risk_level == 'high' %}偏高
+                            {% elif audit_risk_level == 'medium' %}中等
+                            {% else %}偏低{% endif %}
+                        </span>
+                        <span class="text-xs text-slate-400">風險</span>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400">{{ risk_score }} / {{ risk_max_score }} 分</p>
             </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">應納稅額分析</h3>
-            <p class="text-sm text-gray-500">預估營所稅與各項稅金負擔，提早做好資金規劃準備。</p>
-            <span class="inline-block mt-4 text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">建置中</span>
+
+            <!-- 標題與說明 -->
+            <div class="flex-1 min-w-0">
+                <h3 class="text-base font-bold text-slate-800 mb-1">稅務風險評估</h3>
+                <p class="text-sm text-slate-500">綜合 {{ risk_checklist|length }} 項財務指標自動評估，分數越高代表潛在查核風險越大。</p>
+            </div>
+
+        </div>
+
+        <!-- Checklist 表格 -->
+        <div class="overflow-x-auto mb-5">
+            <table class="w-full text-sm border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 text-xs font-semibold text-slate-500">
+                        <th class="py-2 px-3 border border-slate-200 text-left w-1/5">評估項目</th>
+                        <th class="py-2 px-3 border border-slate-200 text-center w-1/6">您的現況</th>
+                        <th class="py-2 px-3 border border-slate-200 text-center w-1/6">參考標準</th>
+                        <th class="py-2 px-3 border border-slate-200 text-left">說明</th>
+                        <th class="py-2 px-3 border border-slate-200 text-center w-24">評估</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in risk_checklist %}
+                    <tr class="{% if item.status == 'danger' %}bg-red-50{% elif item.status == 'warning' %}bg-amber-50{% else %}hover:bg-slate-50{% endif %}">
+                        <td class="py-2.5 px-3 border border-slate-200 font-medium text-slate-700">{{ item.label }}</td>
+                        <td class="py-2.5 px-3 border border-slate-200 text-center font-mono font-semibold
+                            {% if item.status == 'danger' %}text-red-700{% elif item.status == 'warning' %}text-amber-700{% else %}text-slate-700{% endif %}">
+                            {{ item.your_value }}
+                        </td>
+                        <td class="py-2.5 px-3 border border-slate-200 text-center text-slate-500">{{ item.standard }}</td>
+                        <td class="py-2.5 px-3 border border-slate-200 text-slate-600">{{ item.detail }}</td>
+                        <td class="py-2.5 px-3 border border-slate-200 text-center">
+                            {% if item.status == 'ok' %}
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">✓ 正常</span>
+                            {% elif item.status == 'warning' %}
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">! 注意</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">✕ 偏高</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 因應策略 -->
+        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h4 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                因應策略
+            </h4>
+            <ul class="space-y-1.5">
+                {% for s in risk_strategies %}
+                <li class="flex items-start gap-2 text-sm text-slate-600">
+                    <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full
+                        {% if audit_risk_level == 'high' %}bg-red-400{% elif audit_risk_level == 'medium' %}bg-amber-400{% else %}bg-emerald-400{% endif %}">
+                    </span>
+                    {{ s }}
+                </li>
+                {% endfor %}
+            </ul>
         </div>
 
     </div>
+    {% endif %}
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const labels  = JSON.parse(document.getElementById('chartLabelsData').textContent);
+    const sales   = JSON.parse(document.getElementById('chartSalesData').textContent);
+    const input   = JSON.parse(document.getElementById('chartInputData').textContent);
+    const pieLbls = JSON.parse(document.getElementById('pieLabelData').textContent);
+    const pieData = JSON.parse(document.getElementById('pieDataData').textContent);
+
+    if (labels.length && document.getElementById('vatBarChart')) {
+        new Chart(document.getElementById('vatBarChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: '銷售額', data: sales, backgroundColor: 'rgba(59,130,246,0.75)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 },
+                    { label: '進項金額', data: input, backgroundColor: 'rgba(16,185,129,0.75)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } } },
+                scales: {
+                    y: { ticks: { callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString(), font: { size: 11 } } },
+                    x: { ticks: { font: { size: 11 } } },
+                },
+            },
+        });
+    } else if (document.getElementById('vatBarChart')) {
+        const ctx = document.getElementById('vatBarChart').getContext('2d');
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.fillText('本年度尚無 VAT 資料', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+
+    if (pieData.length && document.getElementById('expensePieChart')) {
+        new Chart(document.getElementById('expensePieChart'), {
+            type: 'doughnut',
+            data: {
+                labels: pieLbls,
+                datasets: [{ data: pieData, borderWidth: 1, hoverOffset: 6 }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+            },
+        });
+    } else if (document.getElementById('expensePieChart')) {
+        const ctx = document.getElementById('expensePieChart').getContext('2d');
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.fillText('無費用科目資料', ctx.canvas.width / 2, ctx.canvas.height / 2);
+    }
+}());
+</script>
 {% endblock %}

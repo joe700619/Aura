@@ -1,26 +1,774 @@
 {% extends 'client_portal/portal_base.html' %}
+{% load humanize %}
 
 {% block page_title %}勞務報酬單{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+{{ tax_rates_json|json_script:"tax-rates-data" }}
+{{ nhi_config_json|json_script:"nhi-config-data" }}
+
+<div class="space-y-6" x-data="{ activeTab: '{{ active_tab|default:'form' }}' }">
     <div class="sm:flex sm:justify-between sm:items-center mb-2">
         <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">勞務報酬單管理 (準備中)</h1>
+            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">勞務報酬單管理</h1>
+            <p class="text-sm text-slate-500 mt-1">建立、寄送與追蹤所得人勞務報酬單。</p>
         </div>
     </div>
 
-    <!-- Placeholder Widget -->
-    <div class="bg-white rounded-lg shadow border border-gray-200 p-12 text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-4">
-            <svg class="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+    <!-- Tabs -->
+    <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-6">
+            <button type="button" @click="activeTab = 'form'"
+                :class="activeTab === 'form'
+                    ? 'border-indigo-600 text-indigo-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                class="whitespace-nowrap py-3 px-2 border-b-2 font-semibold text-sm transition-all">
+                勞務報酬單
+            </button>
+            <button type="button" @click="activeTab = 'history'"
+                :class="activeTab === 'history'
+                    ? 'border-indigo-600 text-indigo-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                class="whitespace-nowrap py-3 px-2 border-b-2 font-semibold text-sm transition-all">
+                歷史紀錄
+                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ history_records|length }}</span>
+            </button>
+        </nav>
+    </div>
+
+    {% if messages %}
+    <div class="space-y-2">
+        {% for m in messages %}
+        <div class="p-3 rounded-md text-sm {% if 'error' in m.tags %}bg-rose-50 text-rose-700 border border-rose-200{% elif 'success' in m.tags %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            {{ m }}
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">勞務報酬單模組即將開放</h3>
-        <p class="text-sm text-gray-500 max-w-sm mx-auto">
-            未來您可以在此區塊新增、查詢並下載各類勞務報酬單，協助您更有效率地管理外包與臨時人員獎金。
-        </p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tab 1: 勞務報酬單表單 -->
+    <div x-show="activeTab === 'form'" x-cloak
+         x-data="serviceRemunerationForm()"
+         x-init="init()">
+        <!-- 流程圖 -->
+        <div class="bg-white rounded-lg border border-slate-200 p-4 mb-4">
+            <ol class="flex items-center w-full">
+                <li class="flex w-full items-center" :class="step >= 1 ? 'text-indigo-600' : 'text-slate-400'">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 font-bold"
+                        :class="step >= 1 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'">1</span>
+                    <span class="ml-2 text-sm font-medium">類型</span>
+                    <div class="flex-1 mx-4 h-0.5" :class="step >= 2 ? 'bg-indigo-300' : 'bg-slate-200'"></div>
+                </li>
+                <li class="flex w-full items-center" :class="step >= 2 ? 'text-indigo-600' : 'text-slate-400'">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 font-bold"
+                        :class="step >= 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'">2</span>
+                    <span class="ml-2 text-sm font-medium">填寫</span>
+                    <div class="flex-1 mx-4 h-0.5" :class="step >= 3 ? 'bg-indigo-300' : 'bg-slate-200'"></div>
+                </li>
+                <li class="flex items-center" :class="step >= 3 ? 'text-indigo-600' : 'text-slate-400'">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 font-bold"
+                        :class="step >= 3 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100'">3</span>
+                    <span class="ml-2 text-sm font-medium" x-text="formType === 'rental' ? '完成' : '送出'"></span>
+                </li>
+            </ol>
+        </div>
+
+        <form method="post" action="{% url 'client_portal:service_remuneration_save' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if editing_pk %}<input type="hidden" name="edit_pk" value="{{ editing_pk }}">{% endif %}
+
+            <!-- ═══ Step 1: 選擇類型 ═══ -->
+            <div x-show="step === 1" x-cloak>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                    <button type="button"
+                        @click="formType = 'labor'; data.income_category = '9A'; step = 2"
+                        class="p-8 rounded-lg border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all text-left">
+                        <div class="flex items-center gap-3 mb-3">
+                            <svg class="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="text-lg font-bold text-slate-800">勞務報酬單</span>
+                        </div>
+                        <p class="text-sm text-slate-500">稿費、執行業務、薪資、其他所得（9A、9B、50、92）</p>
+                    </button>
+                    <button type="button"
+                        @click="formType = 'rental'; data.income_category = '51'; step = 2"
+                        class="p-8 rounded-lg border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/30 transition-all text-left">
+                        <div class="flex items-center gap-3 mb-3">
+                            <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            <span class="text-lg font-bold text-slate-800">租賃所得</span>
+                        </div>
+                        <p class="text-sm text-slate-500">租金所得（51），填寫完成即可，無需寄送確認。</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ═══ Step 2: 填寫（左表單 + 右預覽） ═══ -->
+            <div x-show="step === 2" x-cloak>
+            <div :class="formType === 'labor' ? 'grid grid-cols-1 lg:grid-cols-3 gap-6 items-start' : 'max-w-xl'">
+
+                <!-- ── 左：表單 ── -->
+                <div :class="formType === 'labor' ? 'lg:col-span-1 space-y-4' : 'space-y-4'">
+
+                    <!-- 基本資料 -->
+                    <div class="bg-white rounded-lg border border-slate-200 p-5">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>
+                            所得人基本資料
+                        </h3>
+                        <div class="space-y-3">
+                            <!-- 姓名（永遠顯示） + Email（僅勞務） -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">姓名 *</label>
+                                    <input type="text" name="recipient_name" x-model="data.recipient_name" required
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div x-show="formType === 'labor'">
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                                    <input type="email" name="recipient_email" x-model="data.recipient_email"
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="name@example.com">
+                                </div>
+                            </div>
+                            <!-- 國籍（僅勞務） -->
+                            <div x-show="formType === 'labor'">
+                                <label class="block text-xs font-medium text-slate-600 mb-1">國籍</label>
+                                <select name="nationality" x-model="data.nationality"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="local">本國人</option>
+                                    <option value="foreign_lt_183">外國人在臺未滿183天</option>
+                                    <option value="foreign_gte_183">外國人在臺滿183天</option>
+                                </select>
+                            </div>
+                            <!-- 身分證 + 聯絡電話（身分證永遠，電話僅勞務） -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">身分證字號</label>
+                                    <input type="text" name="id_number" x-model="data.id_number"
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                                </div>
+                                <div x-show="formType === 'labor'">
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">聯絡電話</label>
+                                    <input type="text" name="phone" x-model="data.phone"
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                                </div>
+                            </div>
+                            <!-- 戶籍地址（永遠） -->
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">戶籍地址</label>
+                                <input type="text" name="residence_address" x-model="data.residence_address"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                            </div>
+                            <!-- 工會（僅勞務） -->
+                            <div class="flex gap-4" x-show="formType === 'labor'">
+                                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                    <input type="checkbox" name="joined_union" x-model="data.joined_union" value="on"
+                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    已加入工會
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 勞報資料 -->
+                    <div class="bg-white rounded-lg border border-slate-200 p-5">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>
+                            所得資料
+                        </h3>
+                        <div class="space-y-3">
+                            <div x-show="formType === 'labor'">
+                                <label class="block text-xs font-medium text-slate-600 mb-1">申報類別</label>
+                                <select x-model="data.income_category"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                                    <option value="9B">9B 稿費</option>
+                                    <option value="9A">9A 執行業務所得</option>
+                                    <option value="50">50 薪資所得</option>
+                                    <option value="92">92 其他所得</option>
+                                </select>
+                            </div>
+                            <div x-show="formType === 'rental'">
+                                <label class="block text-xs font-medium text-slate-600 mb-1">申報類別</label>
+                                <div class="w-full px-3 py-1.5 border border-slate-200 rounded text-sm bg-slate-50 text-slate-500">51 租金（租賃所得）</div>
+                            </div>
+                            <input type="hidden" name="income_category" :value="data.income_category">
+                            <input type="hidden" name="professional_category" :value="data.professional_category">
+                            <input type="hidden" name="company_name" :value="data.company_name">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">金額</label>
+                                <input type="number" name="amount" x-model="data.amount" min="0"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">開始日期</label>
+                                    <input type="date" name="service_start_date" x-model="data.service_start_date"
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">結束日期</label>
+                                    <input type="date" name="service_end_date" x-model="data.service_end_date"
+                                        class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">支付日期</label>
+                                <input type="date" name="filing_date" x-model="data.filing_date"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">內容</label>
+                                <textarea name="service_content" x-model="data.service_content" rows="3"
+                                    :placeholder="formType === 'rental' ? rentalContentPlaceholder : '請大概填寫提供勞務內容，例如程式設計、派報等等'"
+                                    class="w-full px-3 py-1.5 border border-slate-300 rounded text-sm"></textarea>
+                            </div>
+
+                            <!-- 即時試算 -->
+                            <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
+                                <div>
+                                    <p class="text-slate-400">所得總金額</p>
+                                    <p class="font-bold text-slate-800">$<span x-text="formatNumber(parseInt(data.amount) || 0)"></span></p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-400">代扣所得稅</p>
+                                    <p class="font-bold text-rose-600">$<span x-text="formatNumber(calc.withholdingTax)"></span></p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-400">二代健保補充保費</p>
+                                    <p class="font-bold text-amber-600">$<span x-text="formatNumber(calc.supplementaryPremium)"></span></p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-400">實際支付金額</p>
+                                    <p class="font-bold text-emerald-700">$<span x-text="formatNumber(calc.actualPayment)"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 附件圖片（僅勞務） -->
+                    <div class="bg-white rounded-lg border border-slate-200 p-5" x-show="formType === 'labor'">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <span class="w-1 h-4 bg-rose-500 rounded-full"></span>
+                            附件圖片（選填）
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">身分證正面</label>
+                                <input type="file" name="id_front_image" accept="image/*"
+                                    @change="handleFile($event, 'front')"
+                                    class="block w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700">
+                                <div x-show="idFrontPreview" class="mt-2 w-full h-24 rounded border border-slate-200 overflow-hidden bg-slate-50">
+                                    <img :src="idFrontPreview" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">身分證反面</label>
+                                <input type="file" name="id_back_image" accept="image/*"
+                                    @change="handleFile($event, 'back')"
+                                    class="block w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700">
+                                <div x-show="idBackPreview" class="mt-2 w-full h-24 rounded border border-slate-200 overflow-hidden bg-slate-50">
+                                    <img :src="idBackPreview" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between pb-4">
+                        <button type="button" @click="step = 1"
+                            class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-sm font-medium">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            重新選擇類型
+                        </button>
+                        <button type="button" @click="step = 3"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm font-medium shadow-sm">
+                            <span x-text="formType === 'rental' ? '下一步：完成' : '下一步：送出'"></span>
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ── 右：預覽（僅勞務） ── -->
+                <div class="lg:col-span-2 sticky top-4" x-show="formType === 'labor'">
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span class="text-xs font-medium text-slate-500">預覽（即時更新）</span>
+                        </div>
+                        <div class="overflow-y-auto max-h-[80vh] p-6 text-sm text-slate-800">
+
+                            <!-- 標題 -->
+                            <div class="text-center mb-1">
+                                <p class="text-xs text-slate-400" x-text="data.company_name || ''"></p>
+                                <h2 class="text-xl font-bold tracking-widest border-b-2 border-double border-slate-800 inline-block pb-0.5 mt-1">勞　務　報　酬　單</h2>
+                            </div>
+
+                            <!-- 支付日期 -->
+                            <div class="text-center text-xs text-slate-600 my-2">
+                                支付日期：<span x-text="data.filing_date ? rocDateLabel(data.filing_date) : '______年______月______日'"></span>
+                            </div>
+
+                            <!-- 領款人基本資料 -->
+                            <table class="w-full border-collapse border border-slate-400 mb-2 text-xs">
+                                <tr>
+                                    <td colspan="4" class="border border-slate-400 px-2 py-1.5">
+                                        <span class="font-bold">領款人基本資料：</span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.nationality === 'local'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>本國籍
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.nationality === 'foreign_gte_183'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>外國籍（在台<strong>滿</strong>183天）
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.nationality === 'foreign_lt_183'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>外國籍（在台<strong>未滿</strong>183天）
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-slate-400 px-2 bg-slate-50 font-medium whitespace-nowrap w-20 h-7">姓名：</td>
+                                    <td class="border border-slate-400 px-2 font-bold h-7 max-w-0 truncate" x-text="data.recipient_name || ''"></td>
+                                    <td class="border border-slate-400 px-2 bg-slate-50 font-medium whitespace-nowrap h-7">身分證字號：</td>
+                                    <td class="border border-slate-400 px-2 h-7 max-w-0 truncate" x-text="data.id_number || ''"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-slate-400 px-2 bg-slate-50 font-medium whitespace-nowrap h-7">連絡電話：</td>
+                                    <td colspan="3" class="border border-slate-400 px-2 h-7 max-w-0 truncate" x-text="data.phone || ''"></td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-slate-400 px-2 bg-slate-50 font-medium whitespace-nowrap h-7">戶籍地址：</td>
+                                    <td colspan="3" class="border border-slate-400 px-2 h-7 max-w-0 truncate" x-text="data.residence_address || ''"></td>
+                                </tr>
+                            </table>
+
+                            <!-- 勞務內容 -->
+                            <table class="w-full border-collapse border border-slate-400 mb-2 text-xs">
+                                <tr>
+                                    <td class="border border-slate-400 px-2 py-1 bg-slate-50 font-medium text-center leading-relaxed w-16">
+                                        勞務內容<br>（請概述）
+                                    </td>
+                                    <td class="border border-slate-400 px-2 py-2 min-h-12 whitespace-pre-wrap" x-text="data.service_content || ''"></td>
+                                </tr>
+                            </table>
+
+                            <!-- 所得類別 -->
+                            <table class="w-full border-collapse border border-slate-400 mb-2 text-xs">
+                                <tr>
+                                    <td class="border border-slate-400 px-2 py-1 bg-slate-50 font-medium whitespace-nowrap w-16">所得類別</td>
+                                    <td class="border border-slate-400 px-2 py-1.5">
+                                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.income_category === '9A'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>執行業務 9A
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.income_category === '9B'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>稿費 9B
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.income_category === '50'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>兼職薪資 50
+                                        </span>
+                                        <span style="display:inline-flex;align-items:center;gap:4px;">
+                                            <span style="display:inline-block;width:14px;height:14px;border:2px solid #334155;position:relative;vertical-align:middle;background:#fff;">
+                                                <span x-show="data.income_category === '92'"
+                                                      style="position:absolute;inset:-2px;display:flex;align-items:center;justify-content:center;background:#334155;color:#fff;font-size:11px;font-weight:bold;line-height:1;">✓</span>
+                                            </span>其他所得 92
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 注1, 注2 -->
+                            <div class="border border-slate-400 px-3 py-2 mb-2 text-xs leading-relaxed">
+                                <p class="font-bold text-blue-700 mb-1">承攬或接案者（非僱傭關係），勾選9A或9B</p>
+                                <p>注1：<span class="font-bold text-blue-700">9A執行業務者：</span>係指律師、會計師、建築師、技師、醫師、藥師、助產士、醫事檢驗師、藝術師、不動產估價師、物理治療師、職業治療師、營養師、心理師、地政士、記帳士、<span class="font-bold">經紀人</span>、代書人、<span class="font-bold">演講人</span>、引水人、節目製作人、商標代理人、專利代理人、仲裁人及「<span class="font-bold">其他</span>」以技藝自力營生者。</p>
+                                <p>注2：<span class="font-bold">9B稿費：</span>個人稿費、版稅、樂譜、作曲、演講費、稿資的統稱。</p>
+                            </div>
+
+                            <!-- 注3, 注4 -->
+                            <div class="border border-slate-400 px-3 py-2 mb-2 text-xs leading-relaxed">
+                                <p class="font-bold text-blue-700 mb-1">薪資關係，勾選薪資(50)：</p>
+                                <p>注3：<span class="font-bold">已投保勞健保之員工免填</span>勞務報酬單。</p>
+                                <p>注4：未投保健保之員工，若公司已成立健保單位且未加保其他受僱員工，公司須繳約<span class="font-bold">2.11%二代健保</span>。（健保局每年會更新）</p>
+                            </div>
+
+                            <!-- 領款金額表 -->
+                            <table class="w-full border-collapse border border-slate-400 mb-2 text-xs">
+                                <thead>
+                                    <tr>
+                                        <th class="border border-slate-400 px-2 py-1 bg-slate-100 font-bold text-center leading-tight">支領金額</th>
+                                        <th class="border border-slate-400 px-2 py-1 bg-slate-100 font-bold text-center leading-tight">兼職薪資扣繳5%<br><span class="text-slate-500 font-normal">（起扣額 40,001）</span></th>
+                                        <th class="border border-slate-400 px-2 py-1 bg-slate-100 font-bold text-center leading-tight">執行業務扣繳10%<br><span class="text-slate-500 font-normal">（起扣額 20,001）</span></th>
+                                        <th class="border border-slate-400 px-2 py-1 bg-slate-100 font-bold text-center leading-tight">二代健保扣費2.11%<br><span class="text-slate-500 font-normal">（起扣額 20,000）</span></th>
+                                        <th class="border border-slate-400 px-2 py-1 bg-slate-100 font-bold text-center">實領金額</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="border border-slate-400 px-2 py-3 text-right" x-text="data.amount ? '$' + formatNumber(parseInt(data.amount)) : ''"></td>
+                                        <td class="border border-slate-400 px-2 py-3 text-right text-rose-600"
+                                            x-text="(calc.withholdingTax > 0 && data.income_category === '50') ? '$' + formatNumber(calc.withholdingTax) : ''"></td>
+                                        <td class="border border-slate-400 px-2 py-3 text-right text-rose-600"
+                                            x-text="(calc.withholdingTax > 0 && data.income_category !== '50') ? '$' + formatNumber(calc.withholdingTax) : ''"></td>
+                                        <td class="border border-slate-400 px-2 py-3 text-right text-amber-600"
+                                            x-text="calc.supplementaryPremium > 0 ? '$' + formatNumber(calc.supplementaryPremium) : ''"></td>
+                                        <td class="border border-slate-400 px-2 py-3 text-right font-bold text-emerald-700"
+                                            x-text="data.amount ? '$' + formatNumber(calc.actualPayment) : ''"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- 簽章列 -->
+                            <div class="flex items-center border-t border-b border-slate-400 py-2 mb-2 text-xs">
+                                <span class="flex-1">上述資料經本人確認無誤。</span>
+                                <span class="flex-1 text-right">所得人：<span class="inline-block border-b border-slate-400 w-28 mx-2">&nbsp;</span><span class="text-rose-600">（簽章）</span></span>
+                            </div>
+
+                            <p class="text-center text-xs text-slate-500 mb-2">請附身分證影本（外籍人士請檢附居留證/護照影本）</p>
+
+                            <!-- 身分證黏貼區 -->
+                            <div class="border border-slate-400">
+                                <div class="text-center font-bold text-xs py-1.5 bg-slate-100 border-b border-slate-400">
+                                    身分證（居留證/護照）影本黏貼處
+                                </div>
+                                <div class="grid grid-cols-2">
+                                    <div class="p-3 border-r border-slate-400">
+                                        <p class="text-center font-bold text-xs mb-2">正面</p>
+                                        <div x-show="idFrontPreview" class="w-full h-20 overflow-hidden rounded bg-slate-50">
+                                            <img :src="idFrontPreview" class="w-full h-full object-cover">
+                                        </div>
+                                        <div x-show="!idFrontPreview"
+                                            class="border border-dashed border-slate-300 h-20 flex items-center justify-center text-slate-300 text-xs">
+                                            黏貼於此
+                                        </div>
+                                    </div>
+                                    <div class="p-3">
+                                        <p class="text-center font-bold text-xs mb-2">反面</p>
+                                        <div x-show="idBackPreview" class="w-full h-20 overflow-hidden rounded bg-slate-50">
+                                            <img :src="idBackPreview" class="w-full h-full object-cover">
+                                        </div>
+                                        <div x-show="!idBackPreview"
+                                            class="border border-dashed border-slate-300 h-20 flex items-center justify-center text-slate-300 text-xs">
+                                            黏貼於此
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><!-- end preview body -->
+                    </div>
+                </div><!-- end right col -->
+            </div><!-- end step 1 grid -->
+            </div><!-- end step 1 x-show -->
+
+            <!-- ═══ Step 3: 送出 / 完成 ═══ -->
+            <div x-show="step === 3" x-cloak class="max-w-2xl">
+                <!-- 租賃：完成訊息 -->
+                <div x-show="formType === 'rental'" class="bg-white rounded-lg border border-emerald-200 p-8 text-center">
+                    <svg class="w-14 h-14 text-emerald-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">填寫完成</h3>
+                    <p class="text-sm text-slate-500 mb-2">租賃所得資料已填寫完畢，請點選下方按鈕儲存。</p>
+                    <p class="text-sm text-slate-400 mb-6">所得人：<strong x-text="data.recipient_name || '—'"></strong></p>
+                    <div class="flex justify-center gap-3">
+                        <button type="button" @click="step = 2"
+                            class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-sm font-medium">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            返回修改
+                        </button>
+                        <button type="submit" name="action" value="skip"
+                            class="inline-flex items-center px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm font-medium shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            儲存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 勞務：送出方式 -->
+                <div x-show="formType === 'labor'" class="bg-white rounded-lg border border-slate-200 p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-1">選擇送出方式</h3>
+                    <p class="text-sm text-slate-500 mb-6">您可選擇直接儲存（不寄信），或寄送 Email 給所得人進行確認。</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button type="submit" name="action" value="skip"
+                            class="block p-6 rounded-lg border-2 border-slate-200 hover:border-slate-400 transition-all text-left">
+                            <div class="flex items-center gap-3 mb-2">
+                                <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                <span class="font-bold text-slate-700">直接儲存（跳過 Email）</span>
+                            </div>
+                            <p class="text-sm text-slate-500">儲存資料，不寄送確認信。</p>
+                        </button>
+                        <button type="submit" name="action" value="send"
+                            class="block p-6 rounded-lg border-2 border-indigo-200 hover:border-indigo-500 bg-indigo-50/30 transition-all text-left"
+                            :disabled="!data.recipient_email"
+                            :class="!data.recipient_email ? 'opacity-50 cursor-not-allowed' : ''">
+                            <div class="flex items-center gap-3 mb-2">
+                                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                <span class="font-bold text-indigo-700">寄送 Email 給所得人確認</span>
+                            </div>
+                            <p class="text-sm text-slate-500">系統會寄信至 <strong x-text="data.recipient_email || '(尚未填寫 Email)'"></strong>，內含確認連結。</p>
+                        </button>
+                    </div>
+
+                    <div class="mt-6">
+                        <button type="button" @click="step = 2"
+                            class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded text-sm font-medium">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            回上一步修改
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab 2: 歷史紀錄 -->
+    <div x-show="activeTab === 'history'" x-cloak>
+        <div class="bg-white shadow rounded-lg border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="table-auto w-full text-sm">
+                    <thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left">日期</th>
+                            <th class="px-4 py-3 text-left">所得人</th>
+                            <th class="px-4 py-3 text-left">內容</th>
+                            <th class="px-4 py-3 text-left">類別</th>
+                            <th class="px-4 py-3 text-right">金額</th>
+                            <th class="px-4 py-3 text-right">扣繳稅額</th>
+                            <th class="px-4 py-3 text-right">補充保費</th>
+                            <th class="px-4 py-3 text-center">確認狀態</th>
+                            <th class="px-4 py-3 text-center">繳納狀態</th>
+                            <th class="px-4 py-3 text-center">動作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for r in history_records %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap">{{ r.filing_date|date:'Y/m/d'|default:'-' }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-800">{{ r.recipient_name }}</td>
+                            <td class="px-4 py-3 text-slate-600 max-w-xs truncate" title="{{ r.service_content }}">{{ r.service_content|truncatechars:30 }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-slate-600">{{ r.get_income_category_display }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right">${{ r.amount|intcomma }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right text-rose-600">${{ r.withholding_tax|intcomma }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right text-amber-600">${{ r.supplementary_premium|intcomma }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                {% if r.confirmation_status == 'confirmed' %}
+                                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">已確認</span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">待確認</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                {% if r.payment_status == 'paid' %}
+                                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">已繳納</span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">待繳納</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-1" x-data="{ openMenu: false }">
+                                    <a href="{% url 'client_portal:service_remuneration_download_slip' r.pk %}"
+                                       class="text-indigo-600 hover:text-indigo-800 px-2 py-1 text-xs" title="下載扣繳繳款書">
+                                        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    </a>
+                                    <button type="button" @click="openMenu = !openMenu" @click.away="openMenu = false"
+                                        class="text-slate-600 hover:text-slate-800 px-2 py-1 text-xs relative">
+                                        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/></svg>
+                                        <div x-show="openMenu" x-cloak
+                                            class="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-md shadow-lg z-30 text-left">
+                                            <a href="{% url 'client_portal:service_remuneration_pdf' r.pk %}"
+                                               target="_blank"
+                                               class="block px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50">
+                                                下載勞務報酬單 PDF
+                                            </a>
+                                            {% if r.income_category != '50' %}
+                                            <a href="{% url 'client_portal:service_remuneration_tax152_pdf' r.pk %}"
+                                               class="block px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50">
+                                                下載扣繳稅額繳款書 PDF
+                                            </a>
+                                            {% endif %}
+                                            <label class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                                                <input type="file"
+                                                    @change="if($event.target.files.length){
+                                                        const fd = new FormData();
+                                                        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                                                        fd.append('slip_type', 'withholding');
+                                                        fd.append('slip', $event.target.files[0]);
+                                                        fetch('{% url 'client_portal:service_remuneration_upload_slip' r.pk %}', {method:'POST', body:fd})
+                                                            .then(()=>window.location.reload());
+                                                    }"
+                                                    class="hidden">
+                                                上傳扣繳繳款單
+                                            </label>
+                                            <label class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                                                <input type="file"
+                                                    @change="if($event.target.files.length){
+                                                        const fd = new FormData();
+                                                        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                                                        fd.append('slip_type', 'supplementary');
+                                                        fd.append('slip', $event.target.files[0]);
+                                                        fetch('{% url 'client_portal:service_remuneration_upload_slip' r.pk %}', {method:'POST', body:fd})
+                                                            .then(()=>window.location.reload());
+                                                    }"
+                                                    class="hidden">
+                                                上傳補充保費繳款單
+                                            </label>
+                                            <a href="?tab=form&source_id={{ r.pk }}"
+                                                class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">複製一筆</a>
+                                            <a href="?tab=form&edit={{ r.pk }}"
+                                                class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">編輯</a>
+                                            <form method="post" action="{% url 'client_portal:service_remuneration_delete' r.pk %}"
+                                                onsubmit="return confirm('確定刪除這筆勞務報酬單？');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50">刪除</button>
+                                            </form>
+                                        </div>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    <span class="text-sm">尚未建立任何勞務報酬單。</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+function serviceRemunerationForm() {
+    return {
+        step: 1,
+        formType: '',
+        idFrontPreview: null,
+        idBackPreview: null,
+        data: {
+            recipient_name:        '{{ form.recipient_name.value|default:""|escapejs }}',
+            recipient_email:       '{{ form.recipient_email.value|default:""|escapejs }}',
+            nationality:           '{{ form.nationality.value|default:"local"|escapejs }}',
+            id_number:             '{{ form.id_number.value|default:""|escapejs }}',
+            joined_union:          {% if form.joined_union.value %}true{% else %}false{% endif %},
+            residence_address:     '{{ form.residence_address.value|default:""|escapejs }}',
+            phone:                 '{{ form.phone.value|default:""|escapejs }}',
+            income_category:       '{{ form.income_category.value|default:"9A"|escapejs }}',
+            professional_category: '{{ form.professional_category.value|default:""|escapejs }}',
+            amount:                '{{ form.amount.value|default:"0" }}',
+            company_name:          '{{ form.company_name.value|default:""|escapejs }}',
+            service_content:       '{{ form.service_content.value|default:""|escapejs }}',
+            service_start_date:    '{{ form.service_start_date.value|date:"Y-m-d"|default:"" }}',
+            service_end_date:      '{{ form.service_end_date.value|date:"Y-m-d"|default:"" }}',
+            filing_date:           '{{ form.filing_date.value|date:"Y-m-d"|default:"" }}',
+            payment_method:        '',
+            bank_code:             '',
+            branch_name:           '',
+            bank_account:          '',
+            account_holder:        '',
+        },
+        taxRates: {},
+        nhiConfig: { threshold: 20000, rate: 2.11 },
+
+        init() {
+            try {
+                this.taxRates = JSON.parse(document.getElementById('tax-rates-data').textContent);
+                this.nhiConfig = JSON.parse(document.getElementById('nhi-config-data').textContent);
+            } catch (e) { console.error(e); }
+        },
+
+        handleFile: function(e, side) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var self = this;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                if (side === 'front') self.idFrontPreview = ev.target.result;
+                else self.idBackPreview = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+
+        rentalContentPlaceholder: function() {
+            var d = this.data.filing_date || this.data.service_end_date;
+            if (d) {
+                var dt = new Date(d);
+                if (!isNaN(dt)) {
+                    return (dt.getMonth() + 1) + '月租金';
+                }
+            }
+            return '請填寫月份，例如：5月租金';
+        },
+
+        rocDateLabel(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d)) return dateStr;
+            const roc = d.getFullYear() - 1911;
+            return roc + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+        },
+
+        get resolvedRateCode() {
+            if (this.data.nationality === 'foreign_lt_183') return 'FOREIGN_LT_183';
+            if (this.data.nationality === 'foreign_gte_183') return 'FOREIGN_GTE_183';
+            if (this.data.income_category === '9A' && this.data.professional_category) {
+                return '9A-' + this.data.professional_category;
+            }
+            return this.data.income_category;
+        },
+
+        get calc() {
+            const amount = parseFloat(this.data.amount) || 0;
+            const cat = this.data.income_category;
+            const nhiRate = (this.nhiConfig.rate || 2.11) / 100;
+
+            // 扣繳稅額
+            let withholdingTax = 0;
+            if (cat === '50') {
+                if (amount >= 90501) withholdingTax = Math.round(amount * 0.05);
+            } else if (cat !== '92') {
+                const tentative = Math.round(amount * 0.1);
+                if (tentative > 2000) withholdingTax = tentative;
+            }
+
+            // 補充保費（工會免扣）
+            let supplementaryPremium = 0;
+            if (!this.data.joined_union) {
+                if (cat === '50') {
+                    if (amount > 29500) supplementaryPremium = Math.round(amount * nhiRate);
+                } else if (cat !== '92') {
+                    if (amount >= 20000) supplementaryPremium = Math.round(Math.min(amount, 10000000) * nhiRate);
+                }
+            }
+
+            return {
+                withholdingTax,
+                supplementaryPremium,
+                actualPayment: amount - withholdingTax - supplementaryPremium,
+            };
+        },
+
+        formatNumber(n) {
+            return (n || 0).toLocaleString('en-US');
+        },
+    };
+}
+</script>
 {% endblock %}

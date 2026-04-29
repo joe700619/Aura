@@ -6,24 +6,36 @@
 {% block header_description %}管理所有綠界付款產生的預收款項，並執行核銷作業。{% endblock %}
 
 {% block filters %}
-<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
    全部 ({{ count_all }})</a>
-<a href="?filter=UNMATCHED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+<a href="?filter=UNMATCHED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'UNMATCHED' %}bg-amber-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
    未核銷 ({{ count_unmatched }})</a>
-<a href="?filter=MATCHED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+<a href="?filter=MATCHED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
    class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'MATCHED' %}bg-green-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
    已核銷 ({{ count_matched }})</a>
 {% endblock %}
 
 {% block table_headers %}
     <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">預收單號</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">收款日期</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">登記單號</th>
-    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">交易編號</th>
-    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">金額</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none"
+        @click="serverSort('date')">
+        收款日期
+        <span class="ml-1 inline-block">{% if current_sort == 'date' %}↑{% elif current_sort == '-date' %}↓{% else %}<span class="text-slate-300">↕</span>{% endif %}</span>
+    </th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none"
+        @click="serverSort('company_name')">
+        公司名稱
+        <span class="ml-1 inline-block">{% if current_sort == 'company_name' %}↑{% elif current_sort == '-company_name' %}↓{% else %}<span class="text-slate-300">↕</span>{% endif %}</span>
+    </th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">來源單號</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">綠界交易編號</th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none"
+        @click="serverSort('amount')">
+        金額
+        <span class="ml-1 inline-block">{% if current_sort == 'amount' %}↑{% elif current_sort == '-amount' %}↓{% else %}<span class="text-slate-300">↕</span>{% endif %}</span>
+    </th>
     <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
     <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
 {% endblock %}
@@ -44,10 +56,17 @@
         {% endif %}
     </td>
     <td class="px-4 py-4">
-        {% with src=item.source_object %}
-        {% if src and src.registration_no %}
-        <a href="{% url 'registration:progress_edit' src.pk %}" target="_blank"
-           class="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline">{{ src.registration_no }}</a>
+        {% with src=item.source_object ct=item.source_content_type %}
+        {% if src and ct %}
+            {% if ct.model == 'progress' %}
+            <a href="{% url 'registration:progress_edit' src.pk %}" target="_blank"
+               class="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline">{{ src.registration_no }}</a>
+            {% elif ct.model == 'clientbill' %}
+            <a href="{% url 'bookkeeping:bill_update' src.pk %}" target="_blank"
+               class="font-mono text-xs text-purple-600 hover:text-purple-800 hover:underline">{{ src.bill_no }}</a>
+            {% else %}
+            <span class="text-xs text-slate-400">-</span>
+            {% endif %}
         {% else %}
         <span class="text-xs text-slate-400">-</span>
         {% endif %}

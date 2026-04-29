@@ -31,8 +31,7 @@ def send_provisional_tax_notification(provisional, request=None):
     Returns a dict: {'success_channels': [...], 'error_channels': [...]}
     """
     client = provisional.year_record.client
-    setting = getattr(client, 'income_tax_setting', None)
-    notification_method = getattr(setting, 'notification_method', None)
+    notification_method = client.notification_method
 
     context = build_provisional_tax_context(provisional, request)
     results = {'success_channels': [], 'error_channels': []}

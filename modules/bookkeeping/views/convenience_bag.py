@@ -1,7 +1,6 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, UpdateView
-from django.db.models import Q
-from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, EmployeeDataIsolationMixin
+from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, PrevNextMixin, EmployeeDataIsolationMixin, SearchMixin
 from ..models import BookkeepingClient, ConvenienceBagLog, AccountingBookLog
 from django.forms import inlineformset_factory
 from django import forms
@@ -27,32 +26,37 @@ class ConvenienceBagForm(forms.ModelForm):
         }
 
 
-class ConvenienceBagListView(EmployeeDataIsolationMixin, ListActionMixin, BusinessRequiredMixin, ListView):
+class ConvenienceBagListView(FilterMixin, EmployeeDataIsolationMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = BookkeepingClient
     template_name = 'bookkeeping/convenience_bag/list.html'
     context_object_name = 'clients'
     employee_filter_fields = ['group_assistant', 'bookkeeping_assistant']
+    search_fields = ['name', 'tax_id']
     paginate_by = 25
+    default_filter = 'active'
+    filter_choices = {
+        'active':      {'acceptance_status': 'active'},
+        'suspended':   {'acceptance_status': 'suspended'},
+        'transferred': {'acceptance_status': 'transferred'},
+    }
 
     # We do NOT allow creating a new client from here, this is just for updating bag info.
     create_button_label = None
 
-    def get_queryset(self):
-        qs = super().get_queryset().filter(
-            is_deleted=False
-        ).select_related(
+    def get_base_queryset(self):
+        return super().get_base_queryset().select_related(
             'group_assistant', 'bookkeeping_assistant'
         )
-        q = self.request.GET.get('q', '')
-        if q:
-            qs = qs.filter(
-                Q(name__icontains=q) | Q(tax_id__icontains=q)
-            )
-        return qs
+
+    def _base_qs_for_counts(self):
+        return self.get_base_queryset()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['q'] = self.request.GET.get('q', '')
+        fc = context['filter_counts']
+        context['count_active']      = fc['active']
+        context['count_suspended']   = fc['suspended']
+        context['count_transferred'] = fc['transferred']
         return context
 
 # ── Inline Formsets ──

@@ -19,7 +19,7 @@ class BookkeepingClientForm(forms.ModelForm):
     class Meta:
         model = BookkeepingClient
         fields = [
-            'customer', 'tax_id', 'tax_registration_no', 'name', 'line_id', 'room_id',
+            'customer', 'tax_id', 'tax_registration_no', 'tax_authority_code', 'name', 'line_id', 'room_id',
             'contact_person', 'phone', 'mobile', 'email',
             'correspondence_address', 'registered_address',
             'acceptance_status', 'billing_status', 'service_type',
@@ -29,7 +29,8 @@ class BookkeepingClientForm(forms.ModelForm):
             'receive_invoice_method', 'receive_merged_client_name',
             'last_convenience_bag_date', 'last_convenience_bag_qty',
             'notes', 'cost_sharing_data', 'client_source', 'contact_date', 'transfer_checklist',
-            'business_password', 'national_tax_password', 'e_invoice_account', 'e_invoice_password',
+            'national_tax_password', 'e_invoice_account', 'e_invoice_password',
+            'notification_method', 'payment_method',
         ]
         widgets = {
             'customer': ModalSelectWidget(

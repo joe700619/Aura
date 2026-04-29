@@ -1,0 +1,97 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">首頁</a>
+    &rsaquo;
+    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo;
+    <a href="{% url 'admin:administrative_sealprocurement_changelist' %}">{{ opts.verbose_name_plural }}</a>
+    &rsaquo;
+    匯入
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>匯入印章採購資料</h1>
+
+{% if messages %}
+<ul class="messagelist">
+    {% for message in messages %}
+    <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div style="background:#fff; padding:20px; border:1px solid #eee; border-radius:4px; max-width:600px;">
+    <p style="margin-bottom:16px; color:#444;">
+        請使用標準格式的 Excel 檔案匯入印章採購資料。<br>
+        相同<strong>統一編號</strong>且<strong>採購日期</strong>相同的列，會合併為同一張採購單。<br>
+        匯入後所有採購單會自動設為「<strong>轉為庫存</strong>」。
+    </p>
+
+    <p style="margin-bottom:20px;">
+        <a href="template/" style="color:#447e9b;">
+            ⬇ 下載 Excel 範本
+        </a>
+    </p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom:16px;">
+            <label for="excel_file" style="display:block; font-weight:bold; margin-bottom:6px;">
+                選擇 Excel 檔案（.xlsx）
+            </label>
+            <input type="file" name="excel_file" id="excel_file" accept=".xlsx" required
+                   style="padding:4px;">
+        </div>
+        <div>
+            <input type="submit" value="開始匯入"
+                   style="background:#417690; color:#fff; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-size:14px;">
+            <a href="{% url 'admin:administrative_sealprocurement_changelist' %}"
+               style="margin-left:12px; color:#447e9b;">取消</a>
+        </div>
+    </form>
+</div>
+
+<div style="margin-top:28px; max-width:700px;">
+    <h2 style="font-size:14px; color:#333;">Excel 欄位說明</h2>
+    <table style="border-collapse:collapse; font-size:13px; width:100%;">
+        <thead>
+            <tr style="background:#f8f8f8;">
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:left;">欄位</th>
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:left;">說明</th>
+                <th style="border:1px solid #ddd; padding:6px 10px; text-align:left;">範例</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in column_info %}
+            <tr>
+                <td style="border:1px solid #ddd; padding:5px 10px; font-weight:bold;">{{ row.name }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px; color:#555;">{{ row.note }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px; font-family:monospace;">{{ row.example }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 style="font-size:14px; color:#333; margin-top:20px;">印章種類代碼</h2>
+    <table style="border-collapse:collapse; font-size:13px;">
+        <thead>
+            <tr style="background:#f8f8f8;">
+                <th style="border:1px solid #ddd; padding:6px 10px;">代碼</th>
+                <th style="border:1px solid #ddd; padding:6px 10px;">名稱</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for code, label in seal_type_choices %}
+            <tr>
+                <td style="border:1px solid #ddd; padding:5px 10px; font-family:monospace;">{{ code }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px;">{{ label }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

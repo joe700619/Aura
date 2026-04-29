@@ -1,0 +1,175 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}商工登記 - {{ client.name }}{% endblock %}
+{% block header_title %}商工登記 - {{ client.name }}{% endblock %}
+
+{% block toolbar_actions %}
+<!-- Save Button -->
+<button type="button"
+    @click="if(!globalSubmitting) { document.getElementById('main-form').requestSubmit() }"
+    :disabled="globalSubmitting"
+    class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-75 disabled:cursor-not-allowed">
+    <template x-if="!globalSubmitting">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </template>
+    <template x-if="globalSubmitting">
+        <svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+    </template>
+    <span x-text="globalSubmitting ? '儲存中...' : '儲存'"></span>
+</button>
+{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'bookkeeping:business_registration_list' %}"
+    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block extra_errors %}
+    {% if document_formset.errors or document_formset.non_form_errors %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+        <p class="text-sm text-red-700 font-bold">請修正以下錯誤：</p>
+        <ul class="text-sm text-red-600 list-disc pl-5 mt-1 text-left">
+            {% for form in document_formset %}
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>第 {{ forloop.parentloop.counter }} 列 - {{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>第 {{ forloop.counter }} 列: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for error in document_formset.non_form_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block form_top_block %}
+<div class="space-y-4" x-data="{
+    addRow() {
+        const totalInput = document.getElementById('id_documents-TOTAL_FORMS');
+        const idx = parseInt(totalInput.value);
+        const tbody = this.$refs.docBody;
+        const template = this.$refs.emptyRow.innerHTML.replace(/__prefix__/g, idx);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors';
+        tr.innerHTML = template;
+        tbody.appendChild(tr);
+        totalInput.value = idx + 1;
+    },
+    removeRow(el) {
+        const row = el.closest('tr');
+        const delCheckbox = row.querySelector('input[type=checkbox][id$=-DELETE]');
+        if (delCheckbox) {
+            delCheckbox.checked = true;
+            row.style.display = 'none';
+        } else {
+            row.remove();
+        }
+    }
+}">
+    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+        <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+        <h4 class="font-bold text-slate-800 text-sm">商工登記文件</h4>
+    </div>
+
+    {{ document_formset.management_form }}
+
+    <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+        <table class="w-full text-sm">
+            <thead class="bg-blue-50 border-b border-blue-100">
+                <tr>
+                    <th class="px-4 py-2 font-semibold text-blue-800 text-left w-44">日期</th>
+                    <th class="px-4 py-2 font-semibold text-blue-800 text-left">名稱</th>
+                    <th class="px-4 py-2 font-semibold text-blue-800 text-left">檔案</th>
+                    <th class="px-4 py-2 font-semibold text-blue-800 text-center w-16">刪除</th>
+                </tr>
+            </thead>
+            <tbody x-ref="docBody" class="divide-y divide-slate-100 bg-white">
+                {% for doc_form in document_formset %}
+                <tr class="hover:bg-slate-50 transition-colors" {% if doc_form.DELETE.value %}style="display:none"{% endif %}>
+                    <td class="px-4 py-2">
+                        {{ doc_form.id }}
+                        <input type="date" name="{{ doc_form.document_date.html_name }}" id="{{ doc_form.document_date.auto_id }}"
+                            value="{% if doc_form.is_bound %}{{ doc_form.document_date.value|default:'' }}{% else %}{{ doc_form.document_date.value|date:'Y-m-d'|default:'' }}{% endif %}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="text" name="{{ doc_form.name.html_name }}" id="{{ doc_form.name.auto_id }}"
+                            value="{{ doc_form.name.value|default:'' }}"
+                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="例：公司設立登記函">
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            {% if doc_form.instance.file %}
+                            <a href="{{ doc_form.instance.file.url }}" target="_blank"
+                               class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                下載
+                            </a>
+                            {% endif %}
+                            <input type="file" name="{{ doc_form.file.html_name }}" id="{{ doc_form.file.auto_id }}"
+                                class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        <div style="display:none">{{ doc_form.DELETE }}</div>
+                        <button type="button" @click="removeRow($el)" class="text-red-400 hover:text-red-600">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Empty row template -->
+    <template x-ref="emptyRow">
+        <td class="px-4 py-2">
+            <input type="date" name="{{ document_formset.empty_form.document_date.html_name }}"
+                class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </td>
+        <td class="px-4 py-2">
+            <input type="text" name="{{ document_formset.empty_form.name.html_name }}"
+                class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="例：公司設立登記函">
+        </td>
+        <td class="px-4 py-2">
+            <input type="file" name="{{ document_formset.empty_form.file.html_name }}"
+                class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        </td>
+        <td class="px-4 py-2 text-center">
+            <button type="button" @click="removeRow($el)" class="text-red-400 hover:text-red-600">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </td>
+    </template>
+
+    <div class="mt-3">
+        <button type="button" @click="addRow()"
+            class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 text-sm font-medium transition">
+            <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            新增文件
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block form_tabs %}{% endblock %}

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>勞務報酬單</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: '標楷體', 'DFKai-SB', 'BiauKai', 'KaiTi', serif;
+    font-size: 11pt;
+    background: #e8e8e8;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+}
+
+.page {
+    background: #fff;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 14mm 16mm 12mm 16mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+}
+
+/* ── Title ── */
+.title-wrap { text-align: center; margin-bottom: 2px; }
+.title-main {
+    font-size: 22pt;
+    font-weight: bold;
+    letter-spacing: 6px;
+    display: inline-block;
+    border-bottom: 3px double #000;
+    padding-bottom: 2px;
+}
+.pay-date {
+    text-align: center;
+    margin: 8px 0 10px;
+    font-size: 10.5pt;
+}
+.blank-line {
+    display: inline-block;
+    border-bottom: 1px solid #333;
+    min-width: 44px;
+    margin: 0 2px;
+    vertical-align: bottom;
+}
+
+/* ── Tables ── */
+.t {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+    font-size: 10.5pt;
+}
+.t td, .t th {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    vertical-align: middle;
+}
+.th {
+    background: #f2f2f2;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.td-tall { height: 54px; vertical-align: top; }
+
+/* ── Checkbox ── */
+.cb { display: inline-flex; align-items: center; gap: 3px; margin-right: 14px; }
+.sq {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 1.5px solid #333;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+/* ── Notes box ── */
+.notes-box {
+    border: 1px solid #444;
+    padding: 5px 8px;
+    margin-bottom: 6px;
+    font-size: 9.2pt;
+    line-height: 1.65;
+}
+.notes-title { font-weight: bold; color: #1414cc; margin-bottom: 2px; }
+.blue { color: #1414cc; }
+.bold { font-weight: bold; }
+.red { color: #cc0000; }
+
+/* ── Amount table ── */
+.amt { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 9.5pt; }
+.amt td, .amt th { border: 1px solid #444; padding: 4px 5px; text-align: center; vertical-align: middle; }
+.amt .hd { background: #e0e0e0; font-weight: bold; line-height: 1.4; }
+.amt .sub { font-size: 8.5pt; color: #555; }
+.amt .val { height: 32px; }
+.amt .lbl { font-weight: bold; }
+
+/* ── Signature row ── */
+.sig-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+    padding: 6px 4px;
+    margin-bottom: 5px;
+    font-size: 10.5pt;
+}
+.sig-blank {
+    display: inline-block;
+    border-bottom: 1px solid #333;
+    min-width: 110px;
+}
+
+/* ── ID card area ── */
+.id-section { border: 1px solid #444; }
+.id-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 11pt;
+    padding: 4px 0;
+    border-bottom: 1px solid #444;
+    background: #f0f0f0;
+}
+.id-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.id-side { padding: 8px 12px; min-height: 110px; }
+.id-side:first-child { border-right: 1px solid #444; }
+.id-side-label { text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 8px; }
+.id-paste {
+    border: 1px dashed #aaa;
+    height: 90px;
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 9pt; background: #fafafa;
+}
+
+/* ── Print button ── */
+.print-btn {
+    position: fixed; top: 20px; right: 20px;
+    background: #4f46e5; color: #fff;
+    border: none; padding: 10px 22px;
+    border-radius: 8px; font-size: 14px;
+    cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,0.4);
+    z-index: 999;
+}
+.print-btn:hover { background: #4338ca; }
+
+@media print {
+    body { background: #fff; padding: 0; }
+    .page { box-shadow: none; padding: 8mm 12mm; width: 100%; }
+    .print-btn { display: none; }
+}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ 列印 / 存 PDF</button>
+
+<div class="page">
+
+    <!-- ① 標題 -->
+    <div class="title-wrap">
+        <span class="title-main">勞　務　報　酬　單</span>
+    </div>
+    <div class="pay-date">
+        支付日期：<span class="blank-line" style="min-width:54px">&nbsp;</span>年
+        <span class="blank-line" style="min-width:32px">&nbsp;</span>月
+        <span class="blank-line" style="min-width:32px">&nbsp;</span>日
+    </div>
+
+    <!-- ② 領款人基本資料 -->
+    <table class="t">
+        <tr>
+            <td colspan="4" style="padding:5px 6px;">
+                <span class="bold">領款人基本資料：</span>
+                <span class="cb"><span class="sq"></span>本國籍</span>
+                <span class="cb"><span class="sq"></span>外國籍（在台<span class="bold">滿</span>183天）</span>
+                <span class="cb"><span class="sq"></span>外國籍（在台<span class="bold">未滿</span>183天）</span>
+            </td>
+        </tr>
+        <tr>
+            <td class="th" style="width:68px">姓名：</td>
+            <td style="width:42%">&nbsp;</td>
+            <td class="th" style="width:100px">身分證字號：</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="th">連絡電話：</td>
+            <td>&nbsp;</td>
+            <td class="th">居留證/護照NO.</td>
+            <td>&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="th">戶籍地址：</td>
+            <td colspan="3">&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="th">通訊地址：</td>
+            <td colspan="3">
+                <span class="cb"><span class="sq"></span>同上</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ③ 勞務內容 -->
+    <table class="t">
+        <tr>
+            <td class="th" style="width:68px; text-align:center; white-space:normal; line-height:1.6;">
+                勞務內容<br>（請概述）
+            </td>
+            <td class="td-tall">&nbsp;</td>
+        </tr>
+    </table>
+
+    <!-- ④ 所得類別 -->
+    <table class="t">
+        <tr>
+            <td class="th" style="width:68px; white-space:nowrap;">所得類別</td>
+            <td style="padding:6px 8px;">
+                <span class="cb"><span class="sq"></span>執行業務 9A－<span class="blank-line" style="min-width:48px">&nbsp;</span>（注1）</span>
+                <span class="cb"><span class="sq"></span>稿費 9B（注2）</span>
+                <span class="cb"><span class="sq"></span>兼職薪資 50（注3、4）</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ⑤ 承攬說明 -->
+    <div class="notes-box">
+        <div class="notes-title">承攬或接案者（非僱傭關係），勾選9A或9B</div>
+        <div>注1：<span class="blue bold">9A執行業務者：</span>係指律師、會計師、建築師、技師、醫師、藥師、助產士、醫事檢驗師、<span class="bold">儀式設計師</span>、藉藝術師、不動產估價師、物理治療師、職業治療師、營養師、心理師、地政士、記帳士、<span class="bold">經紀人</span>、代書人、<span class="bold">演講人</span>、引水人、節目製作人、商標代理人、專利代理人、仲裁人、書家、販賣家、管理人員、工程師、民間公證人員及「<span class="bold">其他</span>」以技藝自力營生者。</div>
+        <div>注2：<span class="bold">9B稿費：</span>個人稿費、版稅、樂譜、作曲、演講費、稿資的統稱。</div>
+    </div>
+
+    <!-- ⑥ 薪資關係說明 -->
+    <div class="notes-box">
+        <div class="notes-title">薪資關係，勾選薪資(50)：</div>
+        <div>注3：<span class="bold">已投保勞健保之員工免填</span>勞務報酬單。</div>
+        <div>注4：未投保健保之員工，若公司已成立健保單位且未加保其他受僱員工，公司須繳約<span class="bold">2.11%二代健保</span>。（健保局每年會更新）</div>
+    </div>
+
+    <!-- ⑦ 領款金額表 -->
+    <table class="amt">
+        <thead>
+            <tr>
+                <th class="hd lbl" rowspan="2" style="width:56px;">領款金額</th>
+                <th class="hd">支領金額</th>
+                <th class="hd">兼職薪資扣繳5%<br><span class="sub">（起扣額 40,001）</span></th>
+                <th class="hd">執行業務扣繳10%<br><span class="sub">（起扣額 20,001）</span></th>
+                <th class="hd">二代健保扣費2.11%<br><span class="sub">（起扣額 20,000）</span></th>
+                <th class="hd">實領金額</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="val">&nbsp;</td>
+                <td class="val">&nbsp;</td>
+                <td class="val">&nbsp;</td>
+                <td class="val">&nbsp;</td>
+                <td class="val">&nbsp;</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ⑧ 確認 & 簽章 -->
+    <div class="sig-row">
+        <span>上述資料經本人確認無誤。</span>
+        <span>
+            所得人：<span class="sig-blank">&nbsp;</span>&ensp;<span class="red">（簽章）</span>
+        </span>
+    </div>
+
+    <div style="text-align:center; font-size:9.2pt; margin: 5px 0 8px; color:#333;">
+        請附身分證影本（外籍人士請檢附居留證/護照影本）
+    </div>
+
+    <!-- ⑨ 身分證黏貼區 -->
+    <div class="id-section">
+        <div class="id-title">身分證（居留證/護照）影本黏貼處</div>
+        <div class="id-grid">
+            <div class="id-side">
+                <div class="id-side-label">正面</div>
+                <div class="id-paste">黏貼於此</div>
+            </div>
+            <div class="id-side">
+                <div class="id-side-label">反面</div>
+                <div class="id-paste">黏貼於此</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

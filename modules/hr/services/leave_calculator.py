@@ -125,7 +125,9 @@ def get_sick_leave_days() -> int:
 
 
 def _ensure_leave_types():
-    """確保特休、遞延特休和病假的 LeaveType 存在"""
+    """確保所有標準假別的 LeaveType 存在（台灣勞基法 + 性別工作平等法）"""
+
+    # ── 自動計算假別（sort_order 1~3）────────────────────────────────────
     annual_type, _ = LeaveType.objects.get_or_create(
         code='annual',
         defaults={
@@ -155,11 +157,156 @@ def _ensure_leave_types():
             'is_paid': True,
             'max_hours_per_year': Decimal(str(get_sick_leave_days() * HOURS_PER_DAY)),
             'requires_doc': True,
-            'description': '每年30天（曆年制）',
+            'description': '每年30天（曆年制），需附醫療證明（超過3天）',
             'sort_order': 3,
         },
     )
-    return annual_type, deferred_annual_type, sick_type
+
+    # ── 手動給假假別（sort_order 10 起）─────────────────────────────────
+    # 事假：勞基法第43條，每年14天，無薪
+    LeaveType.objects.get_or_create(
+        code='personal',
+        defaults={
+            'name': '事假',
+            'is_paid': False,
+            'max_hours_per_year': Decimal('112'),  # 14天 × 8h
+            'requires_doc': False,
+            'description': '勞基法第43條，每年14天，無薪',
+            'sort_order': 10,
+        },
+    )
+    # 婚假：勞工請假規則第2條，8天，有薪
+    LeaveType.objects.get_or_create(
+        code='marriage',
+        defaults={
+            'name': '婚假',
+            'is_paid': True,
+            'max_hours_per_year': Decimal('64'),  # 8天 × 8h
+            'requires_doc': True,
+            'description': '勞工請假規則第2條，8天，有薪',
+            'sort_order': 11,
+        },
+    )
+    # 喪假：勞工請假規則第3條，天數依親屬關係（人工給假時依實際情形設定）
+    LeaveType.objects.get_or_create(
+        code='bereavement',
+        defaults={
+            'name': '喪假',
+            'is_paid': True,
+            'max_hours_per_year': None,
+            'requires_doc': True,
+            'description': '勞工請假規則第3條：父母/配偶/子女8天；祖父母/配偶父母/兄弟姊妹3~6天',
+            'sort_order': 12,
+        },
+    )
+    # 公傷病假：勞基法第59條，有薪，期限依傷情不限
+    LeaveType.objects.get_or_create(
+        code='work_injury',
+        defaults={
+            'name': '公傷病假',
+            'is_paid': True,
+            'max_hours_per_year': None,
+            'requires_doc': True,
+            'description': '勞基法第59條，因公受傷或患職業病，有薪',
+            'sort_order': 13,
+        },
+    )
+    # 生理假：勞工請假規則第4條，每月1天/全年3天，半薪
+    LeaveType.objects.get_or_create(
+        code='menstrual',
+        defaults={
+            'name': '生理假',
+            'is_paid': True,  # 半薪（薪資計算時另行處理）
+            'max_hours_per_year': Decimal('24'),  # 3天 × 8h
+            'requires_doc': False,
+            'description': '勞工請假規則第4條，每月1天每年3天，半薪（超出3天併計病假）',
+            'sort_order': 14,
+        },
+    )
+    # 產假：勞基法第50條，8週（分娩）或6週（流產）
+    LeaveType.objects.get_or_create(
+        code='maternity',
+        defaults={
+            'name': '產假',
+            'is_paid': True,
+            'max_hours_per_year': None,
+            'requires_doc': True,
+            'description': '勞基法第50條，分娩前後8週有薪，滿6個月以下工作者4週',
+            'sort_order': 15,
+        },
+    )
+    # 陪產假/陪產檢假：性別工作平等法第15條，7天，有薪
+    LeaveType.objects.get_or_create(
+        code='paternity',
+        defaults={
+            'name': '陪產假',
+            'is_paid': True,
+            'max_hours_per_year': Decimal('56'),  # 7天 × 8h
+            'requires_doc': True,
+            'description': '性別工作平等法第15條，7天有薪（含陪產檢假）',
+            'sort_order': 16,
+        },
+    )
+    # 育嬰留職停薪：性別工作平等法第16條，最長2年，無薪
+    LeaveType.objects.get_or_create(
+        code='parental',
+        defaults={
+            'name': '育嬰留停',
+            'is_paid': False,
+            'max_hours_per_year': None,
+            'requires_doc': True,
+            'description': '性別工作平等法第16條，最長2年，無薪',
+            'sort_order': 17,
+        },
+    )
+    # 家庭照顧假：性別工作平等法第20條，每年7天，併計事假
+    LeaveType.objects.get_or_create(
+        code='family_care',
+        defaults={
+            'name': '家庭照顧假',
+            'is_paid': False,
+            'max_hours_per_year': Decimal('56'),  # 7天 × 8h
+            'requires_doc': False,
+            'description': '性別工作平等法第20條，每年7天無薪，併計入事假天數',
+            'sort_order': 18,
+        },
+    )
+    # 公假：勞工請假規則第7條，依法令或業務需要，有薪
+    LeaveType.objects.get_or_create(
+        code='official',
+        defaults={
+            'name': '公假',
+            'is_paid': True,
+            'max_hours_per_year': None,
+            'requires_doc': False,
+            'description': '勞工請假規則第7條，依法令或公務需要，有薪',
+            'sort_order': 19,
+        },
+    )
+
+    personal_type, _ = LeaveType.objects.get_or_create(
+        code='personal',
+        defaults={
+            'name': '事假',
+            'is_paid': False,
+            'max_hours_per_year': Decimal('112'),
+            'requires_doc': False,
+            'description': '勞基法第43條，每年14天，無薪',
+            'sort_order': 10,
+        },
+    )
+    menstrual_type, _ = LeaveType.objects.get_or_create(
+        code='menstrual',
+        defaults={
+            'name': '生理假',
+            'is_paid': True,
+            'max_hours_per_year': Decimal('24'),
+            'requires_doc': False,
+            'description': '勞工請假規則第4條，每月1天每年3天，半薪（超出3天併計病假）',
+            'sort_order': 14,
+        },
+    )
+    return annual_type, deferred_annual_type, sick_type, personal_type, menstrual_type
 
 
 def grant_leave_for_employee(employee, today: date = None):
@@ -185,7 +332,7 @@ def grant_leave_for_employee(employee, today: date = None):
         return []
 
     results = []
-    annual_type, deferred_annual_type, sick_type = _ensure_leave_types()
+    annual_type, deferred_annual_type, sick_type, personal_type, menstrual_type = _ensure_leave_types()
 
     # ==========================================
     # 1. 處理已到期的「遞延特休」-> 折算薪資
@@ -340,6 +487,59 @@ def grant_leave_for_employee(employee, today: date = None):
         'action': 'created' if sick_created else 'exists',
     })
 
+    # ==========================================
+    # 5. 事假（曆年制，每年14天）
+    # ==========================================
+    personal_hours = Decimal('112')  # 14天 × 8h
+    personal_balance, personal_created = LeaveBalance.objects.get_or_create(
+        employee=employee,
+        leave_type=personal_type,
+        year=current_year,
+        period_start=period_start,
+        defaults={
+            'period_end': period_end,
+            'entitled_hours': personal_hours,
+            'used_hours': Decimal('0'),
+            'manually_granted': False,
+        },
+    )
+    results.append({
+        'employee': employee.name,
+        'leave_type': '事假',
+        'days': 14,
+        'hours': personal_hours,
+        'period': f"{period_start} ~ {period_end}",
+        'seniority': f'{current_year}年度',
+        'action': 'created' if personal_created else 'exists',
+    })
+
+    # ==========================================
+    # 6. 生理假（曆年制，每年3天，僅女性員工）
+    # ==========================================
+    if employee.gender == 'F':
+        menstrual_hours = Decimal('24')  # 3天 × 8h
+        menstrual_balance, menstrual_created = LeaveBalance.objects.get_or_create(
+            employee=employee,
+            leave_type=menstrual_type,
+            year=current_year,
+            period_start=period_start,
+            defaults={
+                'period_end': period_end,
+                'entitled_hours': menstrual_hours,
+                'used_hours': Decimal('0'),
+                'manually_granted': False,
+            },
+        )
+        results.append({
+            'employee': employee.name,
+            'leave_type': '生理假',
+            'days': 3,
+            'hours': menstrual_hours,
+            'period': f"{period_start} ~ {period_end}",
+            'seniority': f'{current_year}年度',
+            'action': 'created' if menstrual_created else 'exists',
+        })
+
     return results
 
 
@@ -362,7 +562,7 @@ def recalculate_leave_balances(dry_run: bool = False, today: date = None) -> lis
 
     if dry_run:
         # Dry run: 只計算不寫入
-        annual_type, sick_type = _ensure_leave_types()
+        annual_type, deferred_annual_type, sick_type, personal_type, menstrual_type = _ensure_leave_types()
         for emp in employees:
             if not emp.hire_date:
                 continue
@@ -387,6 +587,25 @@ def recalculate_leave_balances(dry_run: bool = False, today: date = None) -> lis
                 'seniority': f'{today.year}年度',
                 'action': 'preview',
             })
+            results.append({
+                'employee': emp.name,
+                'leave_type': '事假',
+                'days': 14,
+                'hours': Decimal('112'),
+                'period': f"{today.year}-01-01 ~ {today.year}-12-31",
+                'seniority': f'{today.year}年度',
+                'action': 'preview',
+            })
+            if emp.gender == 'F':
+                results.append({
+                    'employee': emp.name,
+                    'leave_type': '生理假',
+                    'days': 3,
+                    'hours': Decimal('24'),
+                    'period': f"{today.year}-01-01 ~ {today.year}-12-31",
+                    'seniority': f'{today.year}年度（女性員工）',
+                    'action': 'preview',
+                })
     else:
         for emp in employees:
             emp_results = grant_leave_for_employee(emp, today)

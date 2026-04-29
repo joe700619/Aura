@@ -1,0 +1,14 @@
+POST notification_method: 'line'
+POST payment_method: 'self_pay'
+form.cleaned_data notification_method: 'line'
+form.cleaned_data payment_method: 'self_pay'
+DB after save notification_method: 'line'
+DB after save payment_method: 'self_pay'
+
+GET RENDER: notification_method='line'
+GET RENDER: payment_method='self_pay'
+GET RENDER: object.notification_method='line'
+
+GET RENDER: notification_method='line'
+GET RENDER: payment_method='self_pay'
+GET RENDER: object.notification_method='line'

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勞務報酬單確認 - {{ obj.recipient_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+</head>
+<body class="bg-slate-50">
+<div class="max-w-3xl mx-auto py-10 px-4">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-800">勞務報酬單內容確認</h1>
+        <p class="text-sm text-slate-500 mt-2">{{ obj.company_name|default:obj.client.name }} 邀請您確認以下勞務報酬內容。</p>
+    </div>
+
+    {% if just_confirmed or obj.confirmation_status == 'confirmed' %}
+    <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-md mb-6">
+        <p class="text-emerald-800 font-bold">✓ 已確認</p>
+        <p class="text-sm text-emerald-700 mt-1">您已於 {{ obj.confirmed_at|date:'Y/m/d H:i' }} 確認此勞務報酬單。如有疑問請與支付方聯繫。</p>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow border border-slate-200 p-6 space-y-6">
+        <!-- 基本資料 -->
+        <div>
+            <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span class="w-1 h-4 bg-indigo-500 rounded-full"></span>所得人基本資料
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><dt class="text-slate-500">姓名</dt><dd class="text-slate-800 font-medium">{{ obj.recipient_name }}</dd></div>
+                <div><dt class="text-slate-500">Email</dt><dd class="text-slate-800">{{ obj.recipient_email|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">國籍</dt><dd class="text-slate-800">{{ obj.get_nationality_display }}</dd></div>
+                <div><dt class="text-slate-500">身分證字號</dt><dd class="text-slate-800">{{ obj.id_number|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">是否投保健保</dt><dd class="text-slate-800">{{ obj.has_nhi|yesno:'是,否' }}</dd></div>
+                <div><dt class="text-slate-500">已加入工會</dt><dd class="text-slate-800">{{ obj.joined_union|yesno:'是,否' }}</dd></div>
+                <div class="col-span-2"><dt class="text-slate-500">戶籍地址</dt><dd class="text-slate-800">{{ obj.residence_address|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">聯絡電話</dt><dd class="text-slate-800">{{ obj.phone|default:'-' }}</dd></div>
+            </dl>
+        </div>
+
+        <!-- 勞報資料 -->
+        <div>
+            <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span class="w-1 h-4 bg-emerald-500 rounded-full"></span>勞報資料
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><dt class="text-slate-500">申報類別</dt><dd class="text-slate-800 font-medium">{{ obj.get_income_category_display }}</dd></div>
+                <div><dt class="text-slate-500">執行業務類別</dt><dd class="text-slate-800">{% if obj.professional_category %}{{ obj.get_professional_category_display }}{% else %}-{% endif %}</dd></div>
+                <div><dt class="text-slate-500">公司名稱</dt><dd class="text-slate-800">{{ obj.company_name|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">填表日期</dt><dd class="text-slate-800">{{ obj.filing_date|date:'Y/m/d'|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">勞務開始</dt><dd class="text-slate-800">{{ obj.service_start_date|date:'Y/m/d'|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">勞務結束</dt><dd class="text-slate-800">{{ obj.service_end_date|date:'Y/m/d'|default:'-' }}</dd></div>
+                <div class="col-span-2"><dt class="text-slate-500">勞務內容</dt><dd class="text-slate-800 whitespace-pre-wrap">{{ obj.service_content|default:'-' }}</dd></div>
+            </dl>
+        </div>
+
+        <!-- 金額試算 -->
+        <div class="bg-slate-50 rounded-md p-4">
+            <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span class="w-1 h-4 bg-amber-500 rounded-full"></span>金額試算
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><dt class="text-slate-500">所得總金額</dt><dd class="text-slate-800 font-semibold">${{ obj.amount|floatformat:0 }}</dd></div>
+                <div><dt class="text-slate-500">代扣所得稅</dt><dd class="text-rose-600 font-semibold">- ${{ obj.withholding_tax|floatformat:0 }}</dd></div>
+                <div><dt class="text-slate-500">二代健保補充保費</dt><dd class="text-rose-600 font-semibold">- ${{ obj.supplementary_premium|floatformat:0 }}</dd></div>
+                <div><dt class="text-slate-500">實際支付金額</dt><dd class="text-emerald-700 font-bold text-base">${{ obj.actual_payment|floatformat:0 }}</dd></div>
+            </dl>
+        </div>
+
+        <!-- 支付資料 -->
+        {% if obj.payment_method or obj.bank_code %}
+        <div>
+            <h3 class="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span class="w-1 h-4 bg-purple-500 rounded-full"></span>支付方式
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><dt class="text-slate-500">付款方式</dt><dd class="text-slate-800">{{ obj.get_payment_method_display|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">銀行</dt><dd class="text-slate-800">{{ obj.bank_code|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">分行</dt><dd class="text-slate-800">{{ obj.branch_name|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">帳號</dt><dd class="text-slate-800">{{ obj.bank_account|default:'-' }}</dd></div>
+                <div><dt class="text-slate-500">戶名</dt><dd class="text-slate-800">{{ obj.account_holder|default:'-' }}</dd></div>
+            </dl>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if obj.confirmation_status != 'confirmed' and not just_confirmed %}
+    <form method="post" class="mt-6 text-center">
+        {% csrf_token %}
+        <p class="text-sm text-slate-600 mb-4">確認以上內容無誤後，請按下「確認」按鈕。</p>
+        <button type="submit"
+            class="inline-flex items-center px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-md shadow-md text-base">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            確認內容無誤
+        </button>
+    </form>
+    {% endif %}
+
+    <p class="text-center text-xs text-slate-400 mt-8">
+        此頁面為一次性確認連結。如有疑問請聯繫 {{ obj.company_name|default:obj.client.name }}。
+    </p>
+</div>
+</body>
+</html>

@@ -164,3 +164,7 @@
 {% block overlays %}
 {% include "components/export_modal.html" %}
 {% endblock %}
+
+{% block extra_pagination_params %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}

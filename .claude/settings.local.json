@@ -6,7 +6,8 @@
       "Bash(python manage.py makemigrations internal_accounting --name=\"add_receivable_notification_collection_auto_created\")",
       "Bash(python manage.py send_overdue_notices --help)",
       "Bash(python manage.py reverse internal_accounting:collection_edit 1)",
-      "Bash(python manage.py shell -c \"from django.urls import reverse; print\\(reverse\\('internal_accounting:collection_edit', args=[1]\\)\\)\")"
+      "Bash(python manage.py shell -c \"from django.urls import reverse; print\\(reverse\\('internal_accounting:collection_edit', args=[1]\\)\\)\")",
+      "Bash(python -c ' *)"
     ]
   }
 }

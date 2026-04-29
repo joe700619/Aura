@@ -4,7 +4,7 @@
 {% block header %}統購發票查詢{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 pb-8" x-data="{
+<div class="w-full px-4 pb-8" x-data="{
     period: '',
     buildMedia(taxId, code, qty) {
         if (!this.period || !code) return '-';
@@ -53,8 +53,29 @@
 
     <!-- Search Bar -->
     <div class="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
-        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <!-- Quick Filter Buttons -->
+            <div class="inline-flex rounded-lg shadow-sm border border-slate-200 p-1 bg-white">
+                <a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}"
+                   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                    全部 ({{ filter_counts.ALL }})
+                </a>
+                <a href="?filter=active{% if q %}&q={{ q }}{% endif %}"
+                   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'active' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                    承接中 ({{ count_active }})
+                </a>
+                <a href="?filter=suspended{% if q %}&q={{ q }}{% endif %}"
+                   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'suspended' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                    停業中 ({{ count_suspended }})
+                </a>
+                <a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}"
+                   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                    轉出/解散 ({{ count_transferred }})
+                </a>
+            </div>
+
             <form method="get" class="flex items-center gap-4">
+                {% if current_filter and current_filter != 'ALL' %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
                 <div class="relative flex-1 max-w-md">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -70,8 +91,8 @@
                     查詢
                 </button>
                 {% if q %}
-                <a href="{% url 'bookkeeping:group_invoice_report' %}"
-                    class="text-slate-500 hover:text-slate-700 text-sm font-medium">清除篩選</a>
+                <a href="{% url 'bookkeeping:group_invoice_report' %}{% if current_filter and current_filter != 'ALL' %}?filter={{ current_filter }}{% endif %}"
+                    class="text-slate-500 hover:text-slate-700 text-sm font-medium">清除搜尋</a>
                 {% endif %}
             </form>
         </div>

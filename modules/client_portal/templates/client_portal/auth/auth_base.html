@@ -1,0 +1,49 @@
+{% load tailwind_tags %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Aura 客戶服務中心{% endblock %}</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% tailwind_css %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink-700:#2e2b27; --ink-300:#cfc9bd; --ink-400:#a8a194;
+            --primary:#1a1816; --primary-hover:#0d0c0b;
+            --primary-ring:rgba(26,24,22,0.12);
+            --accent:#a0332a; --accent-soft:#fbf1ef; --accent-border:#f0ccc8;
+            --success:#5a7a4f; --success-soft:#eef3ea;
+            --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194;
+            --fg-on-primary:#faf8f5;
+            --bg-page:#faf8f5;
+            --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+            --font-serif:"Noto Serif TC",serif;
+            --font-sans:"Noto Sans TC",-apple-system,"PingFang TC",sans-serif;
+            --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+            --shadow-md:0 4px 12px rgba(26,24,22,0.06),0 2px 4px rgba(26,24,22,0.04);
+            --ease-out:cubic-bezier(0.22,0.61,0.36,1);
+            --dur-fast:120ms; --dur-med:200ms;
+        }
+        [x-cloak] { display:none !important; }
+        *, *::before, *::after { box-sizing:border-box; }
+        html, body { margin:0; padding:0; font-family:var(--font-sans); background:var(--bg-page); -webkit-font-smoothing:antialiased; }
+        .login-input, .portal-input {
+            width:100%; padding:10px 12px;
+            border:1px solid var(--border-default); border-radius:var(--radius-sm);
+            background:#fff; font-family:var(--font-sans); font-size:14px; color:var(--fg1);
+            outline:none; transition:border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+        }
+        .login-input:focus, .portal-input:focus { border-color:var(--ink-700); box-shadow:0 0 0 3px var(--primary-ring); }
+        .login-input::placeholder, .portal-input::placeholder { color:var(--fg4); }
+        #left-panel { display:none; }
+        @media (min-width:1024px) { #left-panel { display:flex; } }
+    </style>
+</head>
+<body style="{% block body_style %}min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 24px;{% endblock %}">
+    {% block body %}{% endblock %}
+</body>
+</html>

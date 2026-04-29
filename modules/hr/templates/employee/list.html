@@ -4,6 +4,8 @@
 {% block header_title %}員工管理{% endblock %}
 {% block header_description %}管理公司所有員工資料{% endblock %}
 
+{% block extra_data %}filter: 'ACTIVE',{% endblock %}
+
 {% block filters %}
 <button @click="filter = 'ACTIVE'" :class="filter === 'ACTIVE' ? 'bg-blue-600 text-white' : 'text-slate-600'"
     class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">在職</button>

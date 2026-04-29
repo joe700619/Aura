@@ -2,6 +2,29 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .convenience_bag_log import ConvenienceBagLog
 
+
+@receiver(post_save, sender='basic_data.Customer')
+def sync_customer_to_bookkeeping_clients(sender, instance, **kwargs):
+    """
+    當 Customer 更新時，同步共用欄位到所有關聯的 BookkeepingClient。
+    使用 .update() 避免觸發 BookkeepingClient.post_save 造成迴圈。
+    登記模組保持快照，不在此同步範圍內。
+    """
+    if instance.is_deleted:
+        return
+    instance.bookkeeping_clients.filter(is_deleted=False).update(
+        tax_id=instance.tax_id,
+        name=instance.name,
+        line_id=instance.line_id,
+        room_id=instance.room_id,
+        contact_person=instance.contact_person,
+        phone=instance.phone,
+        mobile=instance.mobile,
+        email=instance.email,
+        correspondence_address=instance.correspondence_address,
+        registered_address=instance.registered_address,
+    )
+
 @receiver([post_save, post_delete], sender=ConvenienceBagLog)
 def update_bookkeeping_client_convenience_bag_fields(sender, instance, **kwargs):
     """
@@ -35,45 +58,43 @@ def sync_client_portal_user(sender, instance, created, **kwargs):
             User.objects.filter(pk=instance.user_id, is_active=True).update(is_active=False)
         return
 
-    # Needs a tax ID and a business password to act as an account
-    if not instance.tax_id or not instance.business_password:
+    if not instance.tax_id:
         return
-        
+
     username = str(instance.tax_id).strip()
-    password = str(instance.business_password).strip()
-    
+
     if not instance.user:
-        # Create a new User
+        # 初始密碼 = 統一編號
         try:
             user = User.objects.create_user(
                 username=username,
-                password=password,
+                password=username,
                 role='EXTERNAL',
                 first_name=instance.name[:30],
                 is_staff=False,
                 is_superuser=False,
                 email=instance.email or ''
             )
-            # Use raw query or update to avoid triggering infinite recursion
             type(instance).objects.filter(pk=instance.pk).update(user=user)
         except Exception as e:
             print(f"Failed to auto-create client portal user for {username}: {str(e)}")
     else:
-        # User already exists, update username and password if they differ
+        # 僅同步 username / email / first_name，不覆蓋使用者自行修改的密碼
         user = instance.user
         changed = False
-        
+
         if user.username != username:
             user.username = username
             changed = True
-            
-        if not user.check_password(password):
-            user.set_password(password)
-            changed = True
-            
+
         if user.first_name != instance.name[:30]:
             user.first_name = instance.name[:30]
             changed = True
-            
+
+        email = instance.email or ''
+        if user.email != email:
+            user.email = email
+            changed = True
+
         if changed:
             user.save()
