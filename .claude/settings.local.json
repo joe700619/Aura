@@ -7,7 +7,9 @@
       "Bash(python manage.py send_overdue_notices --help)",
       "Bash(python manage.py reverse internal_accounting:collection_edit 1)",
       "Bash(python manage.py shell -c \"from django.urls import reverse; print\\(reverse\\('internal_accounting:collection_edit', args=[1]\\)\\)\")",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Read(//c/Users/joe70/PythonProject/website/**)",
+      "Bash(python manage.py runserver 8765)"
     ]
   }
 }

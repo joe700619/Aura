@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block page_title %}新建案件{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto" x-data="caseCreate()"
+     data-client-lookup-url="{% url 'case_management:api_client_lookup' %}"
+     data-user-lookup-url="{% url 'case_management:api_user_lookup' %}"
+     data-current-user-id="{{ user.id|default:'' }}"
+     data-current-user-name="{{ user.get_full_name|default:user.username }}">
+  <h1 class="text-2xl font-bold text-gray-800 mb-4">＋ 新建案件</h1>
+
+  <form method="post" class="bg-white rounded-lg shadow p-6 space-y-5">
+    {% csrf_token %}
+
+    <!-- ─── 案件對象 ─── -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        案件對象 <span class="text-red-500">*</span>
+      </label>
+      <input type="hidden" name="{{ form.target_type.name }}" :value="targetType">
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" @click="setTarget('client')"
+          :class="targetType === 'client' ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200 text-indigo-700' : 'border-gray-200 hover:border-gray-300 text-gray-600'"
+          class="border-2 rounded-lg p-3 text-left transition">
+          <div class="font-medium text-sm">📂 既有記帳客戶</div>
+          <div class="text-xs text-gray-500 mt-0.5">客戶可直接從 Portal 登入查看</div>
+        </button>
+        <button type="button" @click="setTarget('other')"
+          :class="targetType === 'other' ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200 text-indigo-700' : 'border-gray-200 hover:border-gray-300 text-gray-600'"
+          class="border-2 rounded-lg p-3 text-left transition">
+          <div class="font-medium text-sm">👤 其他外部聯絡人</div>
+          <div class="text-xs text-gray-500 mt-0.5">一次性諮詢、潛在客戶</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── 模式 A：既有客戶 ─── -->
+    <div x-show="targetType === 'client'" x-transition>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        記帳客戶 <span class="text-red-500">*</span>
+      </label>
+      <input type="hidden" name="{{ form.bookkeeping_client.name }}" :value="selectedClient ? selectedClient.id : ''">
+
+      <div x-show="!selectedClient">
+        <button type="button" @click="openClientModal"
+          class="w-full border border-dashed border-gray-300 rounded-lg p-4 text-center text-gray-500 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-600 transition">
+          🔍 點擊搜尋並選擇記帳客戶
+        </button>
+      </div>
+
+      <div x-show="selectedClient" x-cloak class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex items-start gap-3">
+        <div class="text-2xl">📂</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-gray-800" x-text="selectedClient?.name"></div>
+          <div class="text-xs text-gray-500 mt-0.5">
+            <span x-show="selectedClient?.tax_id">統編 <span x-text="selectedClient?.tax_id"></span></span>
+            <span x-show="selectedClient?.email"> · <span x-text="selectedClient?.email"></span></span>
+            <span x-show="selectedClient?.mobile"> · <span x-text="selectedClient?.mobile"></span></span>
+          </div>
+          <div x-show="selectedClient?.assistant_name" class="text-xs text-indigo-600 mt-1">
+            記帳助理：<span x-text="selectedClient?.assistant_name"></span>
+            <span x-show="selectedClient?.assistant_user_id" class="text-gray-400 ml-1">（已自動指派為負責會計師）</span>
+          </div>
+        </div>
+        <button type="button" @click="openClientModal" class="text-xs text-indigo-600 hover:underline whitespace-nowrap">變更</button>
+      </div>
+    </div>
+
+    <!-- ─── 模式 B：其他外部聯絡人 ─── -->
+    <div x-show="targetType === 'other'" x-transition class="grid grid-cols-2 gap-3">
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">外部聯絡人姓名 <span class="text-red-500">*</span></label>
+        {{ form.external_contact_name }}
+        {% if form.external_contact_name.errors %}<div class="text-xs text-red-500 mt-1">{{ form.external_contact_name.errors }}</div>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        {{ form.external_contact_email }}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">電話</label>
+        {{ form.external_contact_phone }}
+      </div>
+    </div>
+
+    <hr class="border-gray-100">
+
+    <!-- ─── 案件基本資訊 ─── -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">案件標題 <span class="text-red-500">*</span></label>
+      {{ form.title }}
+      {% if form.title.errors %}<div class="text-xs text-red-500 mt-1">{{ form.title.errors }}</div>{% endif %}
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">案件摘要</label>
+      {{ form.summary }}
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">類別</label>
+        {{ form.category }}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">優先度</label>
+        {{ form.priority }}
+      </div>
+    </div>
+
+    <!-- ─── 負責會計師 ─── -->
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <label class="block text-sm font-medium text-gray-700">負責會計師 <span class="text-red-500">*</span></label>
+        <button type="button" @click="assignToMe" class="text-xs text-indigo-600 hover:underline">指派給我</button>
+      </div>
+      {{ form.owner }}
+      <button type="button" @click="openOwnerModal"
+        class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-left text-sm flex justify-between items-center hover:border-indigo-400">
+        <span x-text="ownerLabel || '請選擇...'" :class="ownerLabel ? 'text-gray-800' : 'text-gray-400'"></span>
+        <span class="text-gray-400">🔍</span>
+      </button>
+      {% if form.owner.errors %}<div class="text-xs text-red-500 mt-1">{{ form.owner.errors }}</div>{% endif %}
+    </div>
+
+    <hr class="border-gray-100">
+
+    <!-- ─── 追蹤設定 ─── -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">期望完成日</label>
+        {{ form.expected_completion_date }}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">下次追蹤日</label>
+        {{ form.next_followup_date }}
+      </div>
+    </div>
+    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+      {{ form.needs_followup }}
+      需要追蹤此案件
+    </label>
+
+    <div class="flex justify-end gap-2 pt-3 border-t">
+      <a href="{% url 'case_management:internal_list' %}" class="px-4 py-2 border rounded-lg text-sm">取消</a>
+      <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">建立</button>
+    </div>
+  </form>
+
+  <!-- ═══════════ 客戶搜尋 Modal ═══════════ -->
+  <template x-teleport="body">
+    <div x-show="modal === 'client'" x-cloak
+         class="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4"
+         @keydown.escape.window="modal = null">
+      <div @click.away="modal = null"
+           class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div class="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+          <h3 class="text-lg font-medium text-gray-900">搜尋記帳客戶</h3>
+          <button type="button" @click="modal = null" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div class="p-4 border-b">
+          <input type="text" x-model="clientQuery"
+                 @input.debounce.300ms="searchClients"
+                 x-init="$watch('modal', v => v === 'client' && $nextTick(() => $el.focus()))"
+                 placeholder="輸入客戶名稱或統編..."
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+        <div class="overflow-y-auto flex-1">
+          <table class="min-w-full divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-100">
+              <template x-for="r in clientResults" :key="r.id">
+                <tr @click="selectClient(r)" class="hover:bg-indigo-50 cursor-pointer">
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-gray-800" x-text="r.name"></div>
+                    <div class="text-xs text-gray-500">
+                      <span x-text="r.tax_id ? '統編 ' + r.tax_id : '（無統編）'"></span>
+                      <span x-show="r.assistant_name"> · 助理 <span x-text="r.assistant_name"></span></span>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!clientResults.length">
+                <td class="px-4 py-6 text-center text-sm text-gray-400">
+                  <span x-show="clientQuery.length === 0">請輸入關鍵字</span>
+                  <span x-show="clientQuery.length > 0">找不到符合的客戶</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ═══════════ 會計師搜尋 Modal ═══════════ -->
+  <template x-teleport="body">
+    <div x-show="modal === 'owner'" x-cloak
+         class="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4"
+         @keydown.escape.window="modal = null">
+      <div @click.away="modal = null"
+           class="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[80vh] flex flex-col">
+        <div class="px-4 py-3 border-b flex justify-between items-center bg-gray-50">
+          <h3 class="text-lg font-medium text-gray-900">選擇負責會計師</h3>
+          <button type="button" @click="modal = null" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <div class="p-4 border-b">
+          <input type="text" x-model="ownerQuery"
+                 @input.debounce.300ms="searchUsers"
+                 placeholder="輸入姓名 / 帳號 / Email..."
+                 class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+        </div>
+        <div class="overflow-y-auto flex-1">
+          <table class="min-w-full">
+            <tbody class="divide-y divide-gray-100">
+              <template x-for="u in ownerResults" :key="u.id">
+                <tr @click="selectOwner(u)" class="hover:bg-indigo-50 cursor-pointer">
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-gray-800" x-text="u.name"></div>
+                    <div class="text-xs text-gray-500">
+                      @<span x-text="u.username"></span>
+                      <span x-show="u.email"> · <span x-text="u.email"></span></span>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="!ownerResults.length">
+                <td class="px-4 py-6 text-center text-sm text-gray-400">
+                  <span x-show="ownerQuery.length === 0">輸入關鍵字搜尋，或留空看前 30 位</span>
+                  <span x-show="ownerQuery.length > 0">找不到</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+
+<style>
+  form input[type=text], form input[type=email], form input[type=date],
+  form textarea, form select {
+    width: 100%; border: 1px solid #d1d5db; border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem; font-size: 0.875rem;
+  }
+  form input[type=checkbox] { width: auto; }
+</style>
+
+<script>
+function caseCreate() {
+  return {
+    targetType: 'client',
+    selectedClient: null,
+    ownerLabel: '',
+    modal: null,
+    clientQuery: '',
+    clientResults: [],
+    ownerQuery: '',
+    ownerResults: [],
+
+    init() {
+      const root = this.$root || this.$el;
+      this.clientLookupUrl = root.dataset.clientLookupUrl;
+      this.userLookupUrl = root.dataset.userLookupUrl;
+      this.currentUserId = root.dataset.currentUserId;
+      this.currentUserName = root.dataset.currentUserName;
+      // 預設指派給當前使用者
+      if (this.currentUserId) {
+        this._setOwner(this.currentUserId, this.currentUserName);
+      }
+    },
+
+    _ownerInput() {
+      return document.querySelector('input[type=hidden][name="{{ form.owner.name }}"]');
+    },
+    _setOwner(id, label) {
+      const inp = this._ownerInput();
+      if (inp) inp.value = id || '';
+      this.ownerLabel = label || '';
+    },
+
+    setTarget(t) {
+      this.targetType = t;
+      if (t === 'other') {
+        this.selectedClient = null;
+      }
+    },
+
+    // ─── client modal ───
+    openClientModal() {
+      this.modal = 'client';
+      if (!this.clientResults.length) this.searchClients();
+    },
+    async searchClients() {
+      try {
+        const res = await fetch(this.clientLookupUrl + '?q=' + encodeURIComponent(this.clientQuery));
+        this.clientResults = await res.json();
+      } catch (e) { this.clientResults = []; }
+    },
+    selectClient(c) {
+      this.selectedClient = c;
+      this.modal = null;
+      if (c.assistant_user_id) {
+        this._setOwner(c.assistant_user_id, c.assistant_name);
+      }
+    },
+
+    // ─── owner modal ───
+    openOwnerModal() {
+      this.modal = 'owner';
+      if (!this.ownerResults.length) this.searchUsers();
+    },
+    async searchUsers() {
+      try {
+        const res = await fetch(this.userLookupUrl + '?q=' + encodeURIComponent(this.ownerQuery));
+        this.ownerResults = await res.json();
+      } catch (e) { this.ownerResults = []; }
+    },
+    selectOwner(u) {
+      this._setOwner(u.id, u.name);
+      this.modal = null;
+    },
+
+    assignToMe() {
+      if (this.currentUserId) this._setOwner(this.currentUserId, this.currentUserName);
+    },
+  }
+}
+</script>
+{% endblock %}

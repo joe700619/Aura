@@ -1,0 +1,498 @@
+{% extends "client_portal/portal_base.html" %}
+{% block page_title %}我的案件{% endblock %}
+
+{% block content %}
+<style>
+  /* ===== Case List 頁面獨特樣式 ===== */
+
+  /* Header */
+  .cl-header {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:24px; padding-bottom:20px;
+    border-bottom:1px solid var(--border-subtle);
+    margin-bottom:24px;
+  }
+  .cl-header-text { min-width:0; }
+  .cl-eyebrow {
+    display:flex; align-items:center; gap:10px;
+    font-size:11px; font-weight:600;
+    letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--fg3); margin-bottom:8px;
+  }
+  .cl-eyebrow-bar { width:18px; height:1px; background:var(--ink-400); }
+  .cl-title {
+    font-family:var(--font-serif);
+    font-size:30px; font-weight:600;
+    color:var(--fg1); letter-spacing:-0.01em;
+    line-height:1.15; margin:0 0 6px;
+  }
+  .cl-title-en {
+    font-family:var(--font-serif); font-style:italic; font-weight:400;
+    font-size:20px; color:var(--fg3);
+    letter-spacing:0; margin-left:10px;
+  }
+  .cl-subtitle {
+    font-size:13.5px; color:var(--fg3);
+    line-height:1.6; max-width:520px; margin:0;
+  }
+
+  /* Primary CTA */
+  .cl-cta {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 16px;
+    background:var(--primary); color:var(--fg-on-primary);
+    border:1px solid var(--primary); border-radius:var(--radius-sm);
+    font-size:13px; font-weight:500; letter-spacing:0.01em;
+    cursor:pointer; text-decoration:none;
+    transition:background var(--dur-fast); flex-shrink:0;
+  }
+  .cl-cta:hover { background:var(--primary-hover); color:var(--fg-on-primary); }
+  .cl-cta svg { width:14px; height:14px; }
+
+  /* Toolbar */
+  .cl-toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:18px; margin-bottom:18px; flex-wrap:wrap;
+  }
+  .cl-tabs { display:flex; gap:0; align-items:center; }
+  .cl-tab {
+    background:transparent; border:none; cursor:pointer;
+    padding:8px 0; margin-right:24px;
+    font-family:var(--font-sans); font-size:14px;
+    font-weight:500; color:var(--fg3);
+    display:inline-flex; align-items:center; gap:8px;
+    position:relative; text-decoration:none;
+    transition:color var(--dur-fast);
+  }
+  .cl-tab:hover { color:var(--fg1); }
+  .cl-tab.active { color:var(--fg1); font-weight:600; }
+  .cl-tab.active::after {
+    content:''; position:absolute; left:0; right:0; bottom:-1px;
+    height:2px; background:var(--ink-700);
+  }
+  .cl-tab-count {
+    font-family:"JetBrains Mono", "SF Mono", monospace; font-size:11px;
+    color:var(--fg4); font-weight:500;
+    padding:1px 7px; border-radius:999px;
+    background:var(--bg-subtle);
+    transition:all var(--dur-fast);
+  }
+  .cl-tab.active .cl-tab-count { color:var(--ink-700); background:var(--ink-200); }
+
+  .cl-search { position:relative; width:280px; display:flex; gap:6px; align-items:center; }
+  .cl-search-wrap { position:relative; flex:1; }
+  .cl-search-icon {
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    width:14px; height:14px; color:var(--fg4); pointer-events:none;
+  }
+  .cl-search-input {
+    width:100%; padding:8px 12px 8px 33px;
+    font-family:var(--font-sans); font-size:13px;
+    border:1px solid var(--border-subtle);
+    border-radius:var(--radius-sm);
+    background:#fff; color:var(--fg1);
+    transition:border-color var(--dur-fast), box-shadow var(--dur-fast);
+  }
+  .cl-search-input::placeholder { color:var(--fg4); }
+  .cl-search-input:focus {
+    outline:none; border-color:var(--ink-700);
+    box-shadow:0 0 0 3px var(--primary-ring);
+  }
+  .cl-search-clear {
+    color:var(--fg4); font-size:13px; padding:4px 6px;
+    text-decoration:none; transition:color 150ms;
+  }
+  .cl-search-clear:hover { color:var(--fg1); }
+  .cl-search-meta {
+    font-size:12px; color:var(--fg3);
+    margin: -8px 0 16px;
+  }
+  .cl-search-meta strong { color:var(--fg1); font-weight:600; }
+
+  /* List */
+  .cl-list-card {
+    background:#fff; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md); overflow:hidden;
+  }
+  .cl-col-header {
+    display:grid;
+    grid-template-columns: 56px minmax(0, 1fr) 160px 130px 60px 110px;
+    gap:16px; align-items:center;
+    padding:11px 22px;
+    background:var(--bg-subtle);
+    border-bottom:1px solid var(--border-subtle);
+    font-size:11px; font-weight:600;
+    letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--fg3);
+  }
+  .cl-col-header-num { font-family:"JetBrains Mono", monospace; letter-spacing:0; text-transform:none; }
+
+  .cl-row {
+    display:grid;
+    grid-template-columns: 56px minmax(0, 1fr) 160px 130px 60px 110px;
+    gap:16px; align-items:center;
+    padding:18px 22px;
+    border-bottom:1px solid var(--border-subtle);
+    transition:background var(--dur-fast);
+    cursor:pointer; text-decoration:none; color:inherit;
+  }
+  .cl-row:last-child { border-bottom:none; }
+  .cl-row:hover { background:var(--bg-hover); }
+
+  .cl-row-num {
+    font-family:"JetBrains Mono", monospace; font-size:12px;
+    color:var(--fg4); text-align:left;
+  }
+
+  .cl-row-main { min-width:0; }
+  .cl-row-title-line { display:flex; align-items:center; gap:8px; min-width:0; }
+  .cl-row-cat {
+    font-size:14px; line-height:1; flex-shrink:0;
+  }
+  .cl-row-title {
+    font-family:var(--font-serif); font-size:16px;
+    font-weight:600; color:var(--fg1); line-height:1.35;
+    margin:0; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cl-row:hover .cl-row-title { color:var(--ink-900, #0d0c0b); }
+  .cl-row-summary {
+    font-size:13px; color:var(--fg3);
+    line-height:1.5; margin:4px 0 0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cl-row-priority {
+    display:inline-block; font-size:10.5px; font-weight:600;
+    padding:1px 7px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent);
+    margin-left:6px; flex-shrink:0; vertical-align:middle;
+  }
+
+  .cl-row-owner { display:flex; align-items:center; gap:8px; min-width:0; }
+  .cl-avatar {
+    width:24px; height:24px; border-radius:50%;
+    background:var(--bg-subtle); border:1px solid var(--border-subtle);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:var(--font-serif); font-weight:600; font-size:11px;
+    color:var(--fg2); flex-shrink:0;
+  }
+  .cl-row-owner-label {
+    display:block; font-size:10.5px; color:var(--fg4);
+    letter-spacing:0.06em; line-height:1.2;
+  }
+  .cl-row-owner-name {
+    display:block; font-size:13px; color:var(--fg2); line-height:1.3;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+
+  .cl-row-date {
+    font-family:"JetBrains Mono", monospace; font-size:12.5px;
+    color:var(--fg3); font-variant-numeric:tabular-nums; line-height:1.3;
+  }
+  .cl-row-date-sub {
+    display:block; font-family:var(--font-sans);
+    font-size:10.5px; color:var(--fg4);
+    letter-spacing:0.06em; margin-bottom:2px;
+  }
+
+  .cl-row-comments {
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:"JetBrains Mono", monospace; font-size:12.5px;
+    color:var(--fg3); font-variant-numeric:tabular-nums;
+  }
+  .cl-row-comments svg { width:13px; height:13px; opacity:0.7; }
+  .cl-row-attach {
+    display:inline-flex; align-items:center; gap:3px;
+    font-family:"JetBrains Mono", monospace; font-size:11.5px;
+    color:var(--accent); margin-left:6px;
+  }
+  .cl-row-attach svg { width:11px; height:11px; }
+
+  .cl-row-end {
+    display:flex; align-items:center; justify-content:flex-end; gap:10px;
+  }
+  .cl-row-arrow {
+    color:var(--fg4); width:16px; height:16px; flex-shrink:0;
+    transition:transform var(--dur-fast), color var(--dur-fast);
+  }
+  .cl-row:hover .cl-row-arrow { color:var(--ink-700); transform:translateX(2px); }
+
+  .cl-status {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 10px; border-radius:999px;
+    font-size:11.5px; font-weight:500;
+    border:1px solid transparent; letter-spacing:0.02em;
+    flex-shrink:0; white-space:nowrap;
+  }
+  .cl-status::before { content:''; width:5px; height:5px; border-radius:50%; }
+  .cl-status-active     { background:var(--indigo-soft, #eef2f6); color:var(--indigo, #35516e); border-color:#cfd9e3; }
+  .cl-status-active::before     { background:var(--indigo, #35516e); }
+  .cl-status-waiting-c  { background:var(--warning-soft); color:var(--warning); border-color:var(--warning-border); }
+  .cl-status-waiting-c::before  { background:var(--warning); }
+  .cl-status-waiting-i  { background:#fef3c7; color:#92400e; border-color:#f5d490; }
+  .cl-status-waiting-i::before  { background:#92400e; }
+  .cl-status-done       { background:var(--bg-subtle); color:var(--fg3); border-color:var(--border-subtle); }
+  .cl-status-done::before       { background:var(--fg4); }
+  .cl-status-archived   { background:var(--bg-subtle); color:var(--fg4); border-color:var(--border-subtle); }
+  .cl-status-archived::before   { background:var(--ink-300); }
+
+  /* Pagination */
+  .cl-pager {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-top:16px; flex-wrap:wrap;
+    font-family:"JetBrains Mono", monospace;
+  }
+  .cl-pager-info {
+    font-size:12px; color:var(--fg3); letter-spacing:0.04em;
+    font-variant-numeric:tabular-nums;
+  }
+  .cl-pager-pages { display:flex; align-items:center; gap:6px; }
+  .cl-pg {
+    min-width:30px; height:30px; padding:0 9px;
+    border-radius:var(--radius-sm);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:"JetBrains Mono", monospace; font-size:12px;
+    color:var(--fg2); background:#fff;
+    border:1px solid var(--border-subtle); cursor:pointer;
+    text-decoration:none;
+    transition:all var(--dur-fast);
+    font-variant-numeric:tabular-nums;
+  }
+  .cl-pg:hover { color:var(--fg1); background:var(--bg-hover); border-color:var(--border-default); }
+  .cl-pg.active {
+    color:var(--fg-on-primary); background:var(--primary);
+    border-color:var(--primary); font-weight:600;
+  }
+  .cl-pg.disabled { opacity:0.35; pointer-events:none; }
+  .cl-pg-ellipsis {
+    color:var(--fg4); font-size:12px;
+    padding:0 4px; align-self:center;
+  }
+
+  /* Empty state */
+  .cl-empty {
+    padding:64px 20px; text-align:center; color:var(--fg3);
+  }
+  .cl-empty-icon { width:42px; height:42px; color:var(--ink-300); margin:0 auto 12px; display:block; }
+  .cl-empty-title { font-family:var(--font-serif); font-size:16px; color:var(--fg2); margin-bottom:6px; }
+  .cl-empty-sub { font-size:13px; color:var(--fg4); }
+  .cl-empty-link { color:var(--accent); text-decoration:none; font-weight:500; margin-top:10px; display:inline-block; }
+  .cl-empty-link:hover { text-decoration:underline; }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .cl-col-header,
+    .cl-row { grid-template-columns: 40px minmax(0, 1fr) 120px 100px; }
+    .cl-col-header > :nth-child(5),
+    .cl-col-header > :nth-child(6),
+    .cl-row-comments-cell { display:none; }
+  }
+  @media (max-width: 720px) {
+    .cl-header { flex-direction:column; }
+    .cl-toolbar { flex-direction:column; align-items:stretch; }
+    .cl-search { width:100%; }
+    .cl-col-header { display:none; }
+    .cl-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap:8px; padding:14px 16px;
+    }
+    .cl-row-num, .cl-row-owner, .cl-row-date { display:none; }
+    .cl-row-end { gap:8px; }
+  }
+</style>
+
+<div>
+
+  {# ── Page header ─────────────────────────────── #}
+  <header class="cl-header">
+    <div class="cl-header-text">
+      <div class="cl-eyebrow">
+        <span class="cl-eyebrow-bar"></span>
+        <span>Cases · 案件管理</span>
+      </div>
+      <h1 class="cl-title">
+        <span>我的案件</span>
+        <span class="cl-title-en">My Cases</span>
+      </h1>
+      <p class="cl-subtitle">所有與會計師的溝通紀錄與待辦事項，集中於此追蹤與管理。</p>
+    </div>
+    <a href="{% url 'case_portal:create' %}" class="cl-cta">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      發起新案件
+    </a>
+  </header>
+
+  {# ── Toolbar (tabs + search) ─────────────────── #}
+  <div class="cl-toolbar">
+    <div class="cl-tabs">
+      {% with cur=active_status %}
+      <a href="?{% if search_q %}q={{ search_q }}&{% endif %}status=open"
+         class="cl-tab {% if cur == 'open' or not cur %}active{% endif %}">
+        <span>進行中</span>
+        <span class="cl-tab-count">{{ count_open|default:0 }}</span>
+      </a>
+      <a href="?{% if search_q %}q={{ search_q }}&{% endif %}status=done"
+         class="cl-tab {% if cur == 'done' %}active{% endif %}">
+        <span>已完成</span>
+        <span class="cl-tab-count">{{ count_done|default:0 }}</span>
+      </a>
+      {% if count_archived > 0 %}
+      <a href="?{% if search_q %}q={{ search_q }}&{% endif %}status=archived"
+         class="cl-tab {% if cur == 'archived' %}active{% endif %}">
+        <span>封存</span>
+        <span class="cl-tab-count">{{ count_archived|default:0 }}</span>
+      </a>
+      {% endif %}
+      <a href="?{% if search_q %}q={{ search_q }}&{% endif %}status=all"
+         class="cl-tab {% if cur == 'all' %}active{% endif %}">
+        <span>全部</span>
+        <span class="cl-tab-count">{{ count_all|default:0 }}</span>
+      </a>
+      {% endwith %}
+    </div>
+
+    <form method="get" action="" class="cl-search">
+      <div class="cl-search-wrap">
+        <svg class="cl-search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.3-4.3"/>
+        </svg>
+        <input type="hidden" name="status" value="{{ active_status }}">
+        <input class="cl-search-input" type="text" name="q" value="{{ search_q }}" placeholder="搜尋標題或摘要…">
+      </div>
+      {% if search_q %}
+      <a href="?status={{ active_status }}" class="cl-search-clear" title="清除搜尋">✕</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if search_q %}
+  <div class="cl-search-meta">
+    以「<strong>{{ search_q }}</strong>」搜尋，找到 {{ cases|length }} 筆
+  </div>
+  {% endif %}
+
+  {# ── List ────────────────────────────────────── #}
+  <div class="cl-list-card">
+
+    <div class="cl-col-header">
+      <span class="cl-col-header-num">№</span>
+      <span>標題 / 摘要</span>
+      <span>負責會計師</span>
+      <span>更新時間</span>
+      <span>留言</span>
+      <span style="text-align:right;">狀態</span>
+    </div>
+
+    {% for c in cases %}
+      <a href="{% url 'case_portal:detail' c.pk %}" class="cl-row">
+        <span class="cl-row-num">{{ forloop.counter|stringformat:"03d" }}</span>
+
+        <div class="cl-row-main">
+          <div class="cl-row-title-line">
+            <span class="cl-row-cat" aria-hidden="true">
+              {% if c.category == 'consult' %}💬
+              {% elif c.category == 'request_doc' %}📂
+              {% elif c.category == 'filing' %}📊
+              {% elif c.category == 'dispute' %}⚖️
+              {% else %}📋{% endif %}
+            </span>
+            <h3 class="cl-row-title">{{ c.title }}</h3>
+            {% if c.priority == 'urgent' %}<span class="cl-row-priority">🔥 緊急</span>{% endif %}
+          </div>
+          {% if c.summary %}<p class="cl-row-summary">{{ c.summary }}</p>{% endif %}
+        </div>
+
+        <div class="cl-row-owner">
+          <span class="cl-avatar">{{ c.owner.last_name|default:c.owner.username|slice:":1"|default:"—" }}</span>
+          <div style="min-width:0;">
+            <span class="cl-row-owner-label">負責人</span>
+            <span class="cl-row-owner-name">{{ c.owner.get_full_name|default:c.owner.username|default:"未指派" }}</span>
+          </div>
+        </div>
+
+        <div class="cl-row-date">
+          <span class="cl-row-date-sub">UPDATED</span>
+          {{ c.last_activity_at|date:"Y-m-d" }}
+        </div>
+
+        <div class="cl-row-comments-cell">
+          <span class="cl-row-comments">
+            <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.4-4 8-9 8a9.9 9.9 0 01-4-.8L3 21l1.3-4A8 8 0 013 12c0-4.4 4-8 9-8s9 3.6 9 8z"/></svg>
+            {{ c.reply_count|default:0 }}
+          </span>
+          {% if c.attachment_count > 0 %}
+          <span class="cl-row-attach" title="附件">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            {{ c.attachment_count }}
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="cl-row-end">
+          {% if c.status == 'done' %}
+            <span class="cl-status cl-status-done">{{ c.get_status_display }}</span>
+          {% elif c.status == 'archived' %}
+            <span class="cl-status cl-status-archived">{{ c.get_status_display }}</span>
+          {% elif c.status == 'waiting_client' %}
+            <span class="cl-status cl-status-waiting-c">{{ c.get_status_display }}</span>
+          {% elif c.status == 'waiting_internal' %}
+            <span class="cl-status cl-status-waiting-i">{{ c.get_status_display }}</span>
+          {% else %}
+            <span class="cl-status cl-status-active">{{ c.get_status_display }}</span>
+          {% endif %}
+          <svg class="cl-row-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+    {% empty %}
+      <div class="cl-empty">
+        <svg class="cl-empty-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 7l9-4 9 4M3 7v10l9 4 9-4V7M3 7l9 4m0 0l9-4m-9 4v10"/>
+        </svg>
+        <div class="cl-empty-title">尚無案件</div>
+        <div class="cl-empty-sub">所有與會計師的溝通紀錄都會集中在這裡</div>
+        <a href="{% url 'case_portal:create' %}" class="cl-empty-link">立即發起新案件 →</a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Pagination（搜尋與狀態篩選跨頁保留）────── #}
+  {% if is_paginated %}
+  <nav class="cl-pager" aria-label="分頁">
+    <div class="cl-pager-info">
+      第 {{ page_obj.start_index }}–{{ page_obj.end_index }} 筆 / 共 {{ paginator.count }} 筆
+    </div>
+    <div class="cl-pager-pages">
+      {# 上一頁 #}
+      {% if page_obj.has_previous %}
+        <a class="cl-pg" href="?page={{ page_obj.previous_page_number }}{% if active_status %}&status={{ active_status }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" title="上一頁">‹</a>
+      {% else %}
+        <span class="cl-pg disabled">‹</span>
+      {% endif %}
+
+      {# 頁碼（當前 ±2，加首末頁省略號） #}
+      {% for num in paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="cl-pg active">{{ num }}</span>
+        {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+          <a class="cl-pg" href="?page={{ num }}{% if active_status %}&status={{ active_status }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">{{ num }}</a>
+        {% elif num == 1 %}
+          <a class="cl-pg" href="?page=1{% if active_status %}&status={{ active_status }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">{{ num }}</a>
+          {% if page_obj.number > 4 %}<span class="cl-pg-ellipsis">…</span>{% endif %}
+        {% elif num == paginator.num_pages %}
+          {% if page_obj.number < paginator.num_pages|add:"-3" %}<span class="cl-pg-ellipsis">…</span>{% endif %}
+          <a class="cl-pg" href="?page={{ num }}{% if active_status %}&status={{ active_status }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {# 下一頁 #}
+      {% if page_obj.has_next %}
+        <a class="cl-pg" href="?page={{ page_obj.next_page_number }}{% if active_status %}&status={{ active_status }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}" title="下一頁">›</a>
+      {% else %}
+        <span class="cl-pg disabled">›</span>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}

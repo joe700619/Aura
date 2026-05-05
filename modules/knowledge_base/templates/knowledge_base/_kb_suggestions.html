@@ -1,0 +1,78 @@
+{% if error %}
+  <p class="text-xs text-red-500 py-2">搜尋失敗：{{ error }}</p>
+{% elif results %}
+  <ul class="space-y-2">
+    {% for r in results %}
+    <li class="border border-gray-100 rounded-lg p-3 hover:border-indigo-200 transition-colors">
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <span class="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{{ r.entry.get_category_display }}</span>
+        <span class="text-xs font-semibold
+          {% if r.similarity >= 0.85 %}text-green-600
+          {% elif r.similarity >= 0.7 %}text-yellow-600
+          {% else %}text-gray-400{% endif %} shrink-0">
+          {% widthratio r.similarity 1 100 %}% 相似
+        </span>
+      </div>
+      <p class="text-sm font-medium text-gray-800 leading-snug mb-1">{{ r.entry.question_summary }}</p>
+      <p class="text-xs text-gray-500 line-clamp-2 mb-2">{{ r.entry.answer_summary }}</p>
+
+      {% if r.entry.checklist %}
+      <ul class="text-xs text-gray-500 pl-3 space-y-0.5 mb-2">
+        {% for line in r.entry.checklist.splitlines %}{% if line.strip %}
+        <li class="list-disc">{{ line.strip }}</li>
+        {% endif %}{% endfor %}
+      </ul>
+      {% endif %}
+
+      <!-- 套用按鈕 -->
+      <div class="flex gap-1.5 flex-wrap mt-1">
+
+        {# 填入回覆：用 textarea id 直接操作 DOM，避免 escapejs/Alpine scope 問題 #}
+        <button type="button"
+                class="kb-fill-reply-btn text-xs px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200">
+          📝 填入回覆
+        </button>
+        <textarea class="kb-answer-store hidden">{{ r.entry.answer_summary }}</textarea>
+
+        {% if r.entry.checklist %}
+        {# 套用清單：用獨立 form POST，最穩定 #}
+        <form hx-post="{% url 'knowledge_base:apply_checklist_to_case' case.pk %}"
+              hx-target="#task-list"
+              hx-swap="beforeend"
+              hx-on::after-request="if(event.detail.successful){ this.querySelector('button').textContent='✓ 已套用'; this.querySelector('button').disabled=true; }">
+          {% csrf_token %}
+          <input type="hidden" name="checklist" value="{{ r.entry.checklist }}">
+          <input type="hidden" name="assignee_type" value="internal">
+          <button type="submit"
+                  class="text-xs px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded border border-green-200">
+            📋 套用清單
+          </button>
+        </form>
+        {% endif %}
+
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <script>
+    // 填入回覆：點擊後把鄰近的 textarea 內容寫入聊天輸入框
+    document.querySelectorAll('.kb-fill-reply-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const answer = btn.nextElementSibling.value;
+        const replyTa = document.querySelector('textarea[name="content"]');
+        if (!replyTa) return;
+        // 更新 DOM value 並觸發 Alpine x-model 的 input 事件
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+        nativeInputValueSetter.call(replyTa, answer);
+        replyTa.dispatchEvent(new Event('input', { bubbles: true }));
+        replyTa.style.height = 'auto';
+        replyTa.style.height = Math.min(replyTa.scrollHeight, 120) + 'px';
+        replyTa.focus();
+      });
+    });
+  </script>
+
+{% else %}
+  <p class="text-xs text-gray-400 text-center py-4">尚無相關知識條目</p>
+{% endif %}

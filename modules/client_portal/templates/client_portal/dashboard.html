@@ -63,14 +63,18 @@
                 </div>
                 <p class="portal-eyebrow">待處理事項</p>
             </div>
+            {% with vat_count=pending_vat_periods.count|default:0 case_count=portal_pending_cases_count|default:0 %}
             <p style="font-family:var(--font-serif);font-size:26px;font-weight:700;color:var(--fg1);line-height:1.2;">
-                {{ pending_vat_periods.count }}
+                {{ vat_count|add:case_count }}
             </p>
-            {% if pending_vat_periods %}
-            <p style="font-size:12px;color:var(--accent);margin-top:4px;font-weight:500;">需要您確認</p>
+            {% if vat_count or case_count %}
+            <p style="font-size:12px;color:var(--accent);margin-top:4px;font-weight:500;">
+                {% if vat_count %}{{ vat_count }} 項申報待確認{% endif %}{% if vat_count and case_count %} · {% endif %}{% if case_count %}{{ case_count }} 件案件待回覆{% endif %}
+            </p>
             {% else %}
             <p style="font-size:12px;color:var(--success);margin-top:4px;">目前無待辦</p>
             {% endif %}
+            {% endwith %}
         </div>
 
         <!-- 未付款項 -->
@@ -142,13 +146,16 @@
                         <p class="portal-section-title">待辦事項與通知</p>
                     </div>
                 </div>
-                {% if pending_vat_periods %}
-                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);">{{ pending_vat_periods.count }} 件</span>
+                {% with vat_count=pending_vat_periods.count|default:0 case_count=portal_pending_cases_count|default:0 total_count=0 %}
+                {% if vat_count or case_count %}
+                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);">{{ vat_count|add:case_count }} 件</span>
                 {% endif %}
+                {% endwith %}
             </div>
             <div style="padding:16px;">
-                {% if pending_vat_periods %}
+                {% if pending_vat_periods or portal_pending_cases or portal_other_open_cases %}
                 <div style="display:flex;flex-direction:column;gap:10px;">
+
                     {% for period in pending_vat_periods %}
                     <div style="border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
@@ -164,14 +171,56 @@
                         </div>
                     </div>
                     {% endfor %}
+
+                    {% for c in portal_pending_cases %}
+                    <a href="{% url 'case_portal:detail' c.pk %}" style="border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;text-decoration:none;display:block;transition:background 120ms;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                            <div style="min-width:0;flex:1;">
+                                <span style="font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:999px;display:inline-block;margin-bottom:6px;">⏳ 等待您回覆</span>
+                                {% if c.priority == 'urgent' %}<span style="font-size:11px;font-weight:600;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:999px;display:inline-block;margin-bottom:6px;margin-left:4px;">🔥 緊急</span>{% endif %}
+                                <p style="font-size:14px;font-weight:600;color:var(--fg1);margin:0;">{{ c.title }}</p>
+                                <p style="font-size:13px;color:var(--fg3);margin:4px 0 0;">負責：{{ c.owner.get_full_name|default:c.owner.username }}</p>
+                                <p style="font-size:12px;color:var(--fg4);margin:3px 0 0;">最後活動 {{ c.last_activity_at|date:'m/d H:i' }}</p>
+                            </div>
+                            <span class="portal-btn portal-btn-sm" style="background:#fff;color:var(--fg1);border:1px solid var(--border-default);flex-shrink:0;white-space:nowrap;">查看回覆</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+
+                    {% for c in portal_other_open_cases %}
+                    <a href="{% url 'case_portal:detail' c.pk %}" style="border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;text-decoration:none;display:block;transition:background 120ms;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                            <div style="min-width:0;flex:1;">
+                                {% if c.status == 'waiting_internal' %}
+                                <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;display:inline-block;margin-bottom:6px;background:#dbeafe;color:#1e40af;">{{ c.get_status_display }}</span>
+                                {% else %}
+                                <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;display:inline-block;margin-bottom:6px;background:#e0e7ff;color:#4338ca;">{{ c.get_status_display }}</span>
+                                {% endif %}
+                                {% if c.priority == 'urgent' %}<span style="font-size:11px;font-weight:600;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:999px;display:inline-block;margin-bottom:6px;margin-left:4px;">🔥 緊急</span>{% endif %}
+                                <p style="font-size:14px;font-weight:600;color:var(--fg1);margin:0;">{{ c.title }}</p>
+                                <p style="font-size:13px;color:var(--fg3);margin:4px 0 0;">負責：{{ c.owner.get_full_name|default:c.owner.username }}</p>
+                                <p style="font-size:12px;color:var(--fg4);margin:3px 0 0;">最後活動 {{ c.last_activity_at|date:'m/d H:i' }}</p>
+                            </div>
+                            <span class="portal-btn portal-btn-sm" style="background:#fff;color:var(--fg1);border:1px solid var(--border-default);flex-shrink:0;white-space:nowrap;">查看</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+
                 </div>
+
+                {% if portal_open_cases_count > portal_pending_cases_count|add:portal_other_open_cases_count %}
+                <a href="{% url 'case_portal:list' %}" style="display:block;text-align:center;padding:8px;margin-top:10px;font-size:12px;color:var(--fg3);text-decoration:none;border-top:1px solid var(--border-subtle);">
+                    查看全部案件 →
+                </a>
+                {% endif %}
+
                 {% else %}
                 <div style="text-align:center;padding:40px 16px;">
                     <div style="width:48px;height:48px;border-radius:50%;background:var(--success-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
                         <svg style="width:24px;height:24px;color:var(--success);" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     </div>
                     <p style="font-size:14px;font-weight:600;color:var(--fg1);margin:0;">目前沒有待辦事項</p>
-                    <p style="font-size:12px;color:var(--fg4);margin-top:4px;">所有申報確認均已完成</p>
+                    <p style="font-size:12px;color:var(--fg4);margin-top:4px;">所有申報確認與案件均已完成</p>
                 </div>
                 {% endif %}
             </div>

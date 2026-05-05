@@ -92,4 +92,31 @@ class DashboardView(ClientRequiredMixin, TemplateView):
             for e in calendar_events
         ])
 
+        # ── 案件管理：所有進行中案件（重點顯示等待客戶回覆者）──
+        try:
+            from modules.case_management.models import Case
+            from modules.case_management.views.portal import _client_case_qs
+            user_cases = _client_case_qs(self.request.user).exclude(
+                status__in=[Case.Status.DONE, Case.Status.ARCHIVED]
+            )
+            # 優先顯示等待客戶回覆，其次進行中
+            context['portal_pending_cases'] = list(
+                user_cases.filter(status=Case.Status.WAITING_CLIENT)
+                .order_by('-last_activity_at')[:5]
+            )
+            # 其他進行中案件（OPEN / WAITING_INTERNAL）
+            other_cases = user_cases.exclude(status=Case.Status.WAITING_CLIENT)
+            context['portal_other_open_cases'] = list(
+                other_cases.order_by('-last_activity_at')[:5]
+            )
+            context['portal_open_cases_count'] = user_cases.count()
+            context['portal_pending_cases_count'] = user_cases.filter(status=Case.Status.WAITING_CLIENT).count()
+            context['portal_other_open_cases_count'] = other_cases.count()
+        except Exception:
+            context['portal_pending_cases'] = []
+            context['portal_other_open_cases'] = []
+            context['portal_open_cases_count'] = 0
+            context['portal_pending_cases_count'] = 0
+            context['portal_other_open_cases_count'] = 0
+
         return context

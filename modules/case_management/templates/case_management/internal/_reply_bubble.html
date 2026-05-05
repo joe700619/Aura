@@ -1,0 +1,63 @@
+{% if r %}
+
+{% if r.show_date_header %}
+<div class="flex items-center gap-2 my-3">
+  <div class="flex-1 h-px bg-gray-200"></div>
+  <span class="text-xs text-gray-400 px-2">{{ r.created_at|date:"Y-m-d" }}</span>
+  <div class="flex-1 h-px bg-gray-200"></div>
+</div>
+{% endif %}
+
+{% if r.is_system_log %}
+  <div class="text-center text-xs text-gray-400 my-2">
+    ── {{ r.content }} · {{ r.created_at|date:"H:i" }} ──
+  </div>
+{% elif r.author_type == 'internal' %}
+  <div class="flex gap-2 {% if r.is_grouped %}-mt-2{% endif %}">
+    {% if r.is_grouped %}
+      <div class="w-9 shrink-0"></div>
+    {% else %}
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-white flex items-center justify-center text-sm font-medium shrink-0">
+        {{ r.author_display_name|first|upper }}
+      </div>
+    {% endif %}
+    <div class="flex-1 min-w-0">
+      {% if not r.is_grouped %}
+      <div class="text-xs text-gray-500 mb-1">
+        <span class="font-medium text-gray-700">{{ r.author_display_name }}</span>
+        <span class="ml-1">· {{ r.created_at|date:"H:i" }}</span>
+      </div>
+      {% endif %}
+      {% if r.content %}
+      <div class="bg-white border border-gray-200 {% if r.is_grouped %}rounded-2xl{% else %}rounded-2xl rounded-tl-sm{% endif %} px-4 py-2.5 text-sm whitespace-pre-line shadow-sm inline-block max-w-full"
+           title="{{ r.created_at|date:'Y-m-d H:i' }}">{{ r.content }}</div>
+      {% endif %}
+      {% include 'case_management/_attachments_in_bubble.html' with attachments=r.attachments.all align='left' %}
+    </div>
+  </div>
+{% else %}
+  <div class="flex gap-2 flex-row-reverse {% if r.is_grouped %}-mt-2{% endif %}">
+    {% if r.is_grouped %}
+      <div class="w-9 shrink-0"></div>
+    {% else %}
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white flex items-center justify-center text-sm font-medium shrink-0">
+        {{ r.author_display_name|first|upper }}
+      </div>
+    {% endif %}
+    <div class="flex-1 min-w-0 flex flex-col items-end">
+      {% if not r.is_grouped %}
+      <div class="text-xs text-gray-500 mb-1 text-right">
+        <span class="font-medium text-gray-700">{{ r.author_display_name }}</span>
+        <span class="ml-1">· {{ r.created_at|date:"H:i" }}</span>
+      </div>
+      {% endif %}
+      {% if r.content %}
+      <div class="bg-green-500 text-white {% if r.is_grouped %}rounded-2xl{% else %}rounded-2xl rounded-tr-sm{% endif %} px-4 py-2.5 text-sm whitespace-pre-line shadow-sm max-w-[80%]"
+           title="{{ r.created_at|date:'Y-m-d H:i' }}">{{ r.content }}</div>
+      {% endif %}
+      {% include 'case_management/_attachments_in_bubble.html' with attachments=r.attachments.all align='right' %}
+    </div>
+  </div>
+{% endif %}
+
+{% endif %}

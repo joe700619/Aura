@@ -1,0 +1,29 @@
+{% load static %}<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}勤信聯合會計師事務所 · Qin-Xin CPAs{% endblock %}</title>
+  {% block meta %}{% endblock %}
+
+  <link rel="stylesheet" href="{% static 'public_site/css/colors_and_type.css' %}">
+  <link rel="stylesheet" href="{% static 'public_site/css/styles.css' %}">
+  {% block extra_css %}{% endblock %}
+
+  <style>
+    .brand-logo-img { height: 26px !important; width: auto !important; }
+    .navbar-inner .brand-name-cn { font-size: 12px !important; }
+    .navbar-inner .brand-name-en { font-size: 8px !important; }
+  </style>
+</head>
+<body>
+  {% include "public_site/partials/navbar.html" %}
+
+  {% block content %}{% endblock %}
+
+  {% include "public_site/partials/footer.html" %}
+  {% include "public_site/partials/appointment_modal.html" %}
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

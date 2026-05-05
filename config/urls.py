@@ -20,6 +20,10 @@ urlpatterns = [
     path('payment/', include('modules.payment.urls')),
     path('accounting/', include('modules.internal_accounting.urls')),
     path('portal/', include('modules.client_portal.urls')),
+    path('cases/', include('modules.case_management.urls')),
+    path('portal/cases/', include('modules.case_management.urls_portal')),
+    path('knowledge/', include('modules.knowledge_base.urls')),
+    path('site/', include('modules.public_site.urls')),
 ]
 
 if settings.DEBUG:

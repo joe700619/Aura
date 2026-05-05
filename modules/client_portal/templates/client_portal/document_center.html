@@ -4,324 +4,446 @@
 {% block page_title %}下載專區{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <!-- Page header -->
-    <div class="sm:flex sm:justify-between sm:items-center mb-2">
-        <!-- Left: Title -->
-        <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">歷史申報記錄與稅單下載</h1>
+<style>
+  /* ===== 下載專區（頁面獨特部分） ===== */
+
+  /* dc-page-title 比一般 page title 略大 */
+  .dc-page-title { font-family: var(--font-serif); font-size: 24px; font-weight: 700; color: var(--fg1); line-height: 1.2; letter-spacing: -0.01em; margin: 0; }
+
+  /* tab icon */
+  .dc-tab-icon { width: 16px; height: 16px; opacity: 0.85; }
+
+  /* year filter */
+  .dc-year-filter { background: #fff; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm); flex-wrap: wrap; }
+  .dc-year-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg3); display: flex; align-items: center; gap: 6px; }
+  .dc-year-select { padding: 7px 32px 7px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: #fff; font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: 13px; font-weight: 500; color: var(--fg1); cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path fill='none' stroke='%234b4842' stroke-width='1.4' d='M2 4l3 3 3-3'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; min-width: 100px; }
+  .dc-year-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring, rgba(26,24,22,0.10)); }
+  .dc-year-meta { font-size: 12.5px; color: var(--fg3); border-left: 1px solid var(--border-subtle); padding-left: 20px; line-height: 1.5; }
+  .dc-year-meta strong { font-family: var(--font-serif); color: var(--fg1); font-weight: 600; }
+
+  /* row expand/collapse interactions */
+  .dc-row-clickable { cursor: pointer; transition: background 120ms; }
+  .dc-row-clickable:hover { background: var(--bg-hover); }
+  .dc-row-expanded { background: var(--bg-subtle); }
+  .dc-col-period { font-weight: 600; color: var(--fg1); display: flex; align-items: center; gap: 8px; }
+  .dc-chevron { width: 14px; height: 14px; color: var(--fg4); transition: transform 200ms ease, color 150ms; flex-shrink: 0; }
+  .dc-row-expanded .dc-chevron { transform: rotate(90deg); color: var(--primary); }
+  .dc-col-status { text-align: center; }
+  .dc-col-action { text-align: right; padding-right: 24px; }
+  .dc-row-hint { font-size: 11.5px; color: var(--fg4); display: none; }
+  .dc-row-clickable:hover .dc-row-hint { display: inline; }
+  .dc-row-expanded .dc-row-hint { display: none; }
+
+  /* expanded inner */
+  .dc-expanded-cell { padding: 0 !important; background: #fff !important; }
+  .dc-expanded-content { padding: 18px 24px 22px; background: linear-gradient(180deg, var(--bg-subtle) 0%, #fff 70%); border-top: 1px solid var(--border-subtle); border-bottom: 2px solid var(--ink-700, #2e2b27); }
+  .dc-expanded-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg3); margin-bottom: 12px; }
+  .dc-expanded-title-bar { width: 3px; height: 12px; background: var(--ink-700, #2e2b27); border-radius: 2px; }
+  .dc-doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dc-doc-card { background: #fff; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: border-color 150ms, box-shadow 150ms; }
+  .dc-doc-card.has-file:hover { border-color: var(--border-default); box-shadow: var(--shadow-sm); }
+  .dc-doc-card.no-file { background: var(--bg-subtle); }
+  .dc-doc-info { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+  .dc-doc-icon-wrap { width: 38px; height: 46px; border-radius: var(--radius-sm); background: var(--bg-subtle); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+  .dc-doc-icon-wrap::before { content: ''; position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: linear-gradient(135deg, transparent 50%, var(--ink-200, #e6e2d9) 50%); }
+  .dc-doc-card.no-file .dc-doc-icon-wrap { background: #fff; opacity: 0.5; }
+  .dc-doc-icon { width: 18px; height: 18px; color: var(--fg3); }
+  .dc-doc-card.has-file .dc-doc-icon { color: var(--ink-700, #2e2b27); }
+  .dc-doc-name { font-size: 13.5px; font-weight: 600; color: var(--fg1); margin-bottom: 2px; }
+  .dc-doc-card.no-file .dc-doc-name { color: var(--fg3); }
+  .dc-doc-meta { font-size: 11.5px; color: var(--fg4); display: flex; align-items: center; gap: 6px; }
+  .dc-doc-meta .dot { width: 2px; height: 2px; background: var(--fg4); border-radius: 50%; }
+
+  /* small buttons */
+  .dc-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 150ms; text-decoration: none; white-space: nowrap; }
+  .dc-btn-primary { background: var(--primary); color: var(--fg-on-primary); }
+  .dc-btn-primary:hover { background: #0d0c0b; color: var(--fg-on-primary); }
+  .dc-btn-ghost { background: #fff; color: var(--fg1); border-color: var(--border-default); }
+  .dc-btn-ghost:hover { background: var(--bg-hover); color: var(--fg1); }
+  .dc-btn-disabled { background: var(--bg-subtle); color: var(--fg4); border-color: var(--border-subtle); cursor: not-allowed; }
+  .dc-btn-icon { width: 13px; height: 13px; flex-shrink: 0; }
+
+  /* block divider */
+  .dc-tax-block + .dc-tax-block { margin-top: 32px; }
+
+  /* timeline (商工登記) */
+  .dc-timeline-card { background: #fff; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+  .dc-timeline-head { padding: 14px 22px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg-subtle); flex-wrap: wrap; }
+  .dc-timeline-meta { font-size: 12px; color: var(--fg3); }
+  .dc-timeline-meta strong { color: var(--fg1); font-weight: 600; font-family: var(--font-serif); }
+  .dc-timeline-body { padding: 8px 0 16px; }
+  .dc-tl-group { padding: 0 22px; }
+  .dc-tl-year-header { display: flex; align-items: center; gap: 14px; padding: 16px 0 10px; }
+  .dc-tl-year-label { font-family: var(--font-serif); font-size: 17px; font-weight: 700; color: var(--fg1); display: inline-flex; align-items: baseline; gap: 4px; }
+  .dc-tl-year-label .yu { font-size: 11px; color: var(--fg3); font-weight: 500; font-family: var(--font-sans); letter-spacing: 0.05em; }
+  .dc-tl-year-count { font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: 11px; color: var(--fg4); padding: 2px 8px; background: var(--bg-subtle); border-radius: 999px; }
+  .dc-tl-year-rule { flex: 1; height: 1px; background: var(--border-subtle); }
+  .dc-tl-rail { position: relative; padding-left: 28px; margin-left: 6px; border-left: 1px solid var(--border-subtle); padding-bottom: 6px; }
+  .dc-tl-item { position: relative; padding: 9px 14px 9px 14px; margin-bottom: 4px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 14px; transition: background 120ms; }
+  .dc-tl-item:hover { background: var(--bg-hover); }
+  .dc-tl-item::before { content: ''; position: absolute; left: -33px; top: 50%; transform: translateY(-50%); width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2px solid var(--border-default); z-index: 1; }
+  .dc-tl-item.has-file::before { border-color: var(--ink-700, #2e2b27); background: var(--ink-700, #2e2b27); }
+  .dc-tl-date { font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: 12px; color: var(--fg3); white-space: nowrap; width: 88px; flex-shrink: 0; }
+  .dc-tl-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--fg1); min-width: 0; }
+  .dc-tl-action { flex-shrink: 0; }
+</style>
+
+<div x-data="{ activeTab: 'tax' }">
+
+  <!-- Page header -->
+  <div class="portal-page-header">
+    <p class="portal-eyebrow">文件管理</p>
+    <h1 class="dc-page-title">下載專區</h1>
+    <p class="portal-page-subtitle">查詢歷年稅務申報書、繳款書與商工登記文件。</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="portal-tabs" role="tablist" style="margin-bottom:24px;">
+    <button type="button" class="portal-tab" :class="{ 'portal-tab-active': activeTab === 'tax' }" @click="activeTab = 'tax'" role="tab">
+      <svg class="dc-tab-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V7l8-4z"/></svg>
+      稅務文件
+      <span class="portal-tab-badge">{{ tax_doc_count|default:vat_periods|length|add:income_tax_years|length }}</span>
+    </button>
+    <button type="button" class="portal-tab" :class="{ 'portal-tab-active': activeTab === 'biz' }" @click="activeTab = 'biz'" role="tab">
+      <svg class="dc-tab-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7l2-4h14l2 4M3 7h18M10 12h4"/></svg>
+      商工登記
+      <span class="portal-tab-badge">{{ business_registration_documents|length }}</span>
+    </button>
+  </div>
+
+  <!-- ══ Tab 1: 稅務文件 ══ -->
+  <div x-show="activeTab === 'tax'" x-cloak>
+
+    <!-- Year filter -->
+    <form method="get" class="dc-year-filter">
+      <div class="dc-year-label">
+        <svg style="width:14px; height:14px; opacity:0.7;" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4M16 3v4"/></svg>
+        選擇年度
+      </div>
+      <select name="year" id="year" class="dc-year-select" onchange="this.form.submit()">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} 年</option>
+        {% endfor %}
+        {% if not available_years %}
+        <option value="" disabled selected>無年度資料</option>
+        {% endif %}
+      </select>
+      {% if selected_year %}
+      <div class="dc-year-meta">
+        目前顯示 <strong>{{ selected_year }}</strong> 年度所有的申報文件
+      </div>
+      {% endif %}
+    </form>
+
+    <!-- Block 1: 營業稅 -->
+    <div class="dc-tax-block">
+      <div class="portal-h2-section">
+        <div>
+          <h2 class="portal-h2-section-title">營業稅申報記錄</h2>
+          <div class="portal-h2-section-sub">每兩個月一期 · 含申報書（401）與繳款書下載</div>
         </div>
+      </div>
+
+      <div class="portal-table-wrap" style="border-radius:var(--radius-lg);" x-data="{ expandedRow: null }">
+        <table class="portal-table">
+          <thead>
+            <tr>
+              <th>期別</th>
+              <th class="right">銷售額</th>
+              <th class="right">銷項稅額</th>
+              <th class="right">進項稅額</th>
+              <th class="right">應納稅額</th>
+              <th class="center">申報狀態</th>
+              <th class="right" style="padding-right:24px;">附件</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for period in vat_periods %}
+            <tr class="dc-row-clickable" :class="{ 'dc-row-expanded': expandedRow === '{{ period.id }}' }" @click="expandedRow = expandedRow === '{{ period.id }}' ? null : '{{ period.id }}'">
+              <td>
+                <div class="dc-col-period">
+                  <svg class="dc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                  <span>{{ period.year_record.year }} 第{{ period.period_label }}期</span>
+                </div>
+              </td>
+              <td class="portal-num portal-mono{% if not period.sales_amount %} zero{% endif %}">${{ period.sales_amount|intcomma|default:"0" }}</td>
+              <td class="portal-num portal-mono{% if not period.output_tax %} zero{% endif %}">${{ period.output_tax|intcomma|default:"0" }}</td>
+              <td class="portal-num portal-mono{% if not period.input_tax %} zero{% endif %}">${{ period.input_tax|intcomma|default:"0" }}</td>
+              <td class="portal-num portal-mono{% if period.payable_tax %} payable{% else %} zero{% endif %}">${{ period.payable_tax|intcomma|default:"0" }}</td>
+              <td class="dc-col-status">
+                {% if period.filing_status == 'completed' %}
+                  <span class="portal-badge portal-badge-success">已完稅結案</span>
+                {% elif period.filing_status == 'confirmed' %}
+                  <span class="portal-badge portal-badge-info">客戶已確認繳款</span>
+                {% else %}
+                  <span class="portal-badge portal-badge-warning">請款中 / 待確認</span>
+                {% endif %}
+              </td>
+              <td class="dc-col-action">
+                <span class="dc-row-hint">點擊查看附件</span>
+              </td>
+            </tr>
+            <tr x-show="expandedRow === '{{ period.id }}'" x-cloak>
+              <td colspan="7" class="dc-expanded-cell">
+                <div class="dc-expanded-content">
+                  <div class="dc-expanded-title">
+                    <span class="dc-expanded-title-bar"></span>
+                    申報與繳款附件下載
+                  </div>
+                  <div class="dc-doc-grid">
+                    <!-- 申報書 -->
+                    <div class="dc-doc-card {% if period.filing_document %}has-file{% else %}no-file{% endif %}">
+                      <div class="dc-doc-info">
+                        <div class="dc-doc-icon-wrap">
+                          <svg class="dc-doc-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M9 13h6M9 17h6"/></svg>
+                        </div>
+                        <div>
+                          <div class="dc-doc-name">營業稅申報書 (401)</div>
+                          <div class="dc-doc-meta">
+                            {% if period.filing_document %}
+                              <span>PDF</span><span class="dot"></span><span>已於系統上傳</span>
+                            {% else %}
+                              <span>目前尚無檔案</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      {% if period.filing_document %}
+                      <a href="{{ period.filing_document.url }}" target="_blank" class="dc-btn dc-btn-primary">
+                        <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        下載
+                      </a>
+                      {% else %}
+                      <span class="dc-btn dc-btn-disabled">等待上傳</span>
+                      {% endif %}
+                    </div>
+                    <!-- 繳款書 -->
+                    <div class="dc-doc-card {% if period.tax_bill_document %}has-file{% else %}no-file{% endif %}">
+                      <div class="dc-doc-info">
+                        <div class="dc-doc-icon-wrap">
+                          <svg class="dc-doc-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2zM9 9h6M9 13h6"/></svg>
+                        </div>
+                        <div>
+                          <div class="dc-doc-name">營業稅繳款書</div>
+                          <div class="dc-doc-meta">
+                            {% if period.tax_bill_document %}
+                              <span>PDF</span><span class="dot"></span><span>已於系統上傳</span>
+                            {% else %}
+                              <span>目前尚無檔案</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                      {% if period.tax_bill_document %}
+                      <a href="{{ period.tax_bill_document.url }}" target="_blank" class="dc-btn dc-btn-primary">
+                        <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        下載
+                      </a>
+                      {% else %}
+                      <span class="dc-btn dc-btn-disabled">等待上傳</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="portal-empty">
+                  <svg class="portal-empty-icon" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <div class="portal-empty-title">{{ selected_year }} 年度尚無營業稅申報資料</div>
+                  <div class="portal-empty-sub">資料上傳後將於此顯示</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Filter Form (Matching internal style) -->
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm pt-4 pb-4 px-6 flex justify-between items-center">
-        <form method="get" class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center gap-3">
-                <label for="year" class="text-sm font-medium text-gray-700">選擇年度</label>
-                <select name="year" id="year" class="rounded-md border border-gray-300 bg-white py-2 px-8 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" onchange="this.form.submit()">
-                    {% for y in available_years %}
-                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} 年</option>
-                    {% endfor %}
-                    {% if not available_years %}
-                    <option value="" disabled selected>無年度資料</option>
-                    {% endif %}
-                </select>
+    <!-- Block 2: 所得稅 -->
+    <div class="dc-tax-block">
+      <div class="portal-h2-section">
+        <div>
+          <h2 class="portal-h2-section-title">所得稅申報記錄</h2>
+          <div class="portal-h2-section-sub">每年度一筆 · 含應自行補繳稅額與申報書下載</div>
+        </div>
+      </div>
+
+      <div class="portal-table-wrap" style="border-radius:var(--radius-lg);" x-data="{ expandedRow: null }">
+        <table class="portal-table">
+          <thead>
+            <tr>
+              <th>年度</th>
+              <th class="right">本年度應自行補繳稅額</th>
+              <th class="center">申報狀態</th>
+              <th class="right" style="padding-right:24px;">附件</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ity in income_tax_years %}
+            {% with filing=ity.income_tax_filing %}
+            <tr class="dc-row-clickable" :class="{ 'dc-row-expanded': expandedRow === '{{ ity.id }}' }" @click="expandedRow = expandedRow === '{{ ity.id }}' ? null : '{{ ity.id }}'">
+              <td>
+                <div class="dc-col-period">
+                  <svg class="dc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                  <span>{{ ity.year }} 年度</span>
+                </div>
+              </td>
+              <td class="portal-num portal-mono{% if filing.self_pay_amount %} payable{% else %} zero{% endif %}">${{ filing.self_pay_amount|default:"0"|intcomma }}</td>
+              <td class="dc-col-status">
+                {% if filing.filing_status == 'paid' %}
+                  <span class="portal-badge portal-badge-success">繳納完成</span>
+                {% elif filing.filing_status == 'waiting' %}
+                  <span class="portal-badge portal-badge-warning">等待回覆</span>
+                {% elif filing.filing_status == 'no_payment_needed' %}
+                  <span class="portal-badge portal-badge-muted">無須繳稅</span>
+                {% else %}
+                  <span class="portal-badge portal-badge-warning">請款中 / 待確認</span>
+                {% endif %}
+              </td>
+              <td class="dc-col-action">
+                <span class="dc-row-hint">點擊查看附件</span>
+              </td>
+            </tr>
+            <tr x-show="expandedRow === '{{ ity.id }}'" x-cloak>
+              <td colspan="4" class="dc-expanded-cell">
+                <div class="dc-expanded-content">
+                  <div class="dc-expanded-title">
+                    <span class="dc-expanded-title-bar"></span>
+                    申報書 &amp; 繳款書下載
+                  </div>
+                  <div class="dc-doc-grid">
+                    <!-- 申報書 -->
+                    <div class="dc-doc-card {% if filing.filing_document %}has-file{% else %}no-file{% endif %}">
+                      <div class="dc-doc-info">
+                        <div class="dc-doc-icon-wrap">
+                          <svg class="dc-doc-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M9 13h6M9 17h6"/></svg>
+                        </div>
+                        <div>
+                          <div class="dc-doc-name">所得稅申報書</div>
+                          <div class="dc-doc-meta">{% if filing.filing_document %}<span>PDF</span><span class="dot"></span><span>已於系統上傳</span>{% else %}<span>目前尚無檔案</span>{% endif %}</div>
+                        </div>
+                      </div>
+                      {% if filing.filing_document %}
+                      <a href="{{ filing.filing_document.url }}" target="_blank" class="dc-btn dc-btn-primary">
+                        <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        下載
+                      </a>
+                      {% else %}
+                      <span class="dc-btn dc-btn-disabled">等待上傳</span>
+                      {% endif %}
+                    </div>
+                    <!-- 繳款書 -->
+                    <div class="dc-doc-card {% if filing.tax_bill_document %}has-file{% else %}no-file{% endif %}">
+                      <div class="dc-doc-info">
+                        <div class="dc-doc-icon-wrap">
+                          <svg class="dc-doc-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2zM9 9h6M9 13h6"/></svg>
+                        </div>
+                        <div>
+                          <div class="dc-doc-name">所得稅繳款書</div>
+                          <div class="dc-doc-meta">{% if filing.tax_bill_document %}<span>PDF</span><span class="dot"></span><span>已於系統上傳</span>{% else %}<span>目前尚無檔案</span>{% endif %}</div>
+                        </div>
+                      </div>
+                      {% if filing.tax_bill_document %}
+                      <a href="{{ filing.tax_bill_document.url }}" target="_blank" class="dc-btn dc-btn-primary">
+                        <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        下載
+                      </a>
+                      {% else %}
+                      <span class="dc-btn dc-btn-disabled">等待上傳</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+              <td colspan="4">
+                <div class="portal-empty">
+                  <svg class="portal-empty-icon" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <div class="portal-empty-title">{{ selected_year }} 年度尚無所得稅申報資料</div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ Tab 2: 商工登記 ══ -->
+  <div x-show="activeTab === 'biz'" x-cloak x-data="{ query: '' }">
+
+    <div class="portal-h2-section">
+      <div>
+        <h2 class="portal-h2-section-title">商工登記文件</h2>
+        <div class="portal-h2-section-sub">公司設立、變更登記、銀行登記等永久保存文件 · 依年度分組</div>
+      </div>
+    </div>
+
+    <div class="dc-timeline-card">
+      <div class="dc-timeline-head">
+        <div class="portal-search" style="flex:1; max-width:320px; min-width:220px;">
+          <svg class="portal-search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+          <input type="text" placeholder="搜尋文件名稱或日期" x-model="query">
+        </div>
+        <div class="dc-timeline-meta">
+          共 <strong>{{ business_registration_documents|length }}</strong> 份文件 · 永久保存 · 不依年度區分
+        </div>
+      </div>
+
+      <div class="dc-timeline-body">
+        {% regroup business_registration_documents by document_date|date:'Y' as biz_groups %}
+        {% if biz_groups %}
+          {% for group in biz_groups %}
+          <div class="dc-tl-group" x-show="(() => {
+                 if (!query) return true;
+                 const q = query.toLowerCase();
+                 return [{% for d in group.list %}'{{ d.name|escapejs }}|{% if d.document_date %}{{ d.document_date|date:'Y/m/d' }}{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}].some(s => s.toLowerCase().includes(q));
+               })()">
+            <div class="dc-tl-year-header">
+              <span class="dc-tl-year-label">{{ group.grouper|default:"未指定" }} <span class="yu">年</span></span>
+              <span class="dc-tl-year-count">{{ group.list|length }} 份</span>
+              <span class="dc-tl-year-rule"></span>
             </div>
-            {% if selected_year %}
-            <div class="text-sm text-gray-500 border-l border-gray-200 pl-4 py-1">
-                目前顯示 <strong class="text-indigo-600">{{ selected_year }}</strong> 年度所有的申報文件
+            <div class="dc-tl-rail">
+              {% for doc in group.list %}
+              <div class="dc-tl-item {% if doc.file %}has-file{% endif %}" x-show="!query || '{{ doc.name|escapejs }}'.toLowerCase().includes(query.toLowerCase()) || '{% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% endif %}'.includes(query)">
+                <span class="dc-tl-date">{% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% else %}—{% endif %}</span>
+                <span class="dc-tl-name">{{ doc.name }}</span>
+                <div class="dc-tl-action">
+                  {% if doc.file %}
+                  <a href="{{ doc.file.url }}" target="_blank" class="dc-btn dc-btn-ghost">
+                    <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    下載
+                  </a>
+                  {% else %}
+                  <span class="dc-btn dc-btn-disabled">無檔案</span>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
             </div>
-            {% endif %}
-        </form>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="portal-empty">
+            <svg class="portal-empty-icon" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <div class="portal-empty-title">尚未上傳商工登記文件</div>
+            <div class="portal-empty-sub">設立、變更登記等文件上傳後將顯示於此</div>
+          </div>
+        {% endif %}
+      </div>
     </div>
 
-    <!-- Summary Table (internal standard style) -->
-    <div class="bg-white shadow rounded-lg border border-gray-200 relative">
-        <div class="overflow-x-auto">
-            <table class="table-auto w-full text-sm">
-                <thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 whitespace-nowrap text-left">期別</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">銷售額</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">銷項稅額</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">進項稅額</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right text-red-600">應納稅額</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center">申報狀態</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center">附件下載</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-200" x-data="{ expandedRow: null }">
-                    {% for period in vat_periods %}
-                    <!-- Main Row -->
-                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer group" @click="expandedRow = expandedRow === '{{ period.id }}' ? null : '{{ period.id }}'">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-800 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-slate-400 transform transition-transform duration-200" 
-                                 :class="{'rotate-90 text-indigo-500': expandedRow === '{{ period.id }}'}" 
-                                 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                            {{ period.year_record.year }} 第{{ period.period_label }}期
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600">${{ period.sales_amount|intcomma|default:"0" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600">${{ period.output_tax|intcomma|default:"0" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600">${{ period.input_tax|intcomma|default:"0" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-red-600">${{ period.payable_tax|intcomma|default:"0" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            {% if period.filing_status == 'completed' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">已完稅結案</span>
-                            {% elif period.filing_status == 'confirmed' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">客戶已確認繳款</span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">請款中 / 待確認</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded hidden group-hover:block transition-all">點擊查看詳情</span>
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Expanded Details Row -->
-                    <tr x-show="expandedRow === '{{ period.id }}'" x-cloak>
-                        <td colspan="7" class="p-0 border-b-2 border-indigo-100">
-                            <div class="bg-indigo-50/50 p-6 shadow-inner">
-                                <h4 class="text-sm font-bold text-indigo-800 mb-4 flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    申報與繳款附件下載
-                                </h4>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- Tax Form -->
-                                    <div class="bg-white rounded-lg border border-indigo-100 p-4 flex items-start justify-between">
-                                        <div>
-                                            <p class="font-medium text-gray-800">營業稅申報書 (401)</p>
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                {% if period.filing_document %}已於系統上傳{% else %}目前尚無檔案{% endif %}
-                                            </p>
-                                        </div>
-                                        <div class="shrink-0 ml-4">
-                                            {% if period.filing_document %}
-                                            <a href="{{ period.filing_document.url }}" target="_blank" class="inline-flex items-center text-indigo-600 hover:text-white font-medium text-sm bg-indigo-50 hover:bg-indigo-600 px-4 py-2 rounded transition-colors shadow-sm">
-                                                下載申報書
-                                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            </a>
-                                            {% else %}
-                                            <span class="inline-flex items-center text-gray-400 bg-gray-50 font-medium text-sm px-4 py-2 rounded cursor-not-allowed">
-                                                等待上傳
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Tax Bill -->
-                                    <div class="bg-white rounded-lg border border-indigo-100 p-4 flex items-start justify-between">
-                                        <div>
-                                            <p class="font-medium text-gray-800">營業稅繳款書</p>
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                {% if period.tax_bill_document %}已於系統上傳{% else %}目前尚無檔案{% endif %}
-                                            </p>
-                                        </div>
-                                        <div class="shrink-0 ml-4">
-                                            {% if period.tax_bill_document %}
-                                            <a href="{{ period.tax_bill_document.url }}" target="_blank" class="inline-flex items-center text-emerald-600 hover:text-white font-medium text-sm bg-emerald-50 hover:bg-emerald-600 px-4 py-2 rounded transition-colors shadow-sm">
-                                                下載繳款書
-                                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            </a>
-                                            {% else %}
-                                            <span class="inline-flex items-center text-gray-400 bg-gray-50 font-medium text-sm px-4 py-2 rounded cursor-not-allowed">
-                                                等待上傳
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center justify-center text-gray-500">
-                                <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="text-sm">本年度尚未有申報資料上傳。</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ══ Section 2: 所得稅申報下載 ══ -->
-    <div class="sm:flex sm:justify-between sm:items-center mb-2 mt-8">
-        <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">所得稅申報文件下載</h1>
-        </div>
-    </div>
-
-    <div class="bg-white shadow rounded-lg border border-gray-200 relative">
-        <div class="overflow-x-auto">
-            <table class="table-auto w-full text-sm">
-                <thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 whitespace-nowrap text-left">年度</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-right">本年度應自行補繳稅額</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center">申報狀態</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center">附件下載</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-200" x-data="{ expandedRow: null }">
-                    {% for ity in income_tax_years %}
-                    {% with filing=ity.income_tax_filing %}
-                    <!-- Main Row -->
-                    <tr class="hover:bg-gray-50 transition-colors cursor-pointer group"
-                        @click="expandedRow = expandedRow === '{{ ity.id }}' ? null : '{{ ity.id }}'">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-800 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-slate-400 transform transition-transform duration-200"
-                                 :class="{'rotate-90 text-indigo-500': expandedRow === '{{ ity.id }}'}"
-                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                            {{ ity.year }} 年度
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-red-600">
-                            ${{ filing.self_pay_amount|default:"0"|intcomma }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            {% if filing.filing_status == 'paid' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">繳納完成</span>
-                            {% elif filing.filing_status == 'waiting' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">等待回覆</span>
-                            {% elif filing.filing_status == 'no_payment_needed' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">無須繳稅</span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">請款中 / 待確認</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded hidden group-hover:block transition-all">點擊查看詳情</span>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- Expanded Details Row -->
-                    <tr x-show="expandedRow === '{{ ity.id }}'" x-cloak>
-                        <td colspan="4" class="p-0 border-b-2 border-indigo-100">
-                            <div class="bg-indigo-50/50 p-6 shadow-inner">
-                                <h4 class="text-sm font-bold text-indigo-800 mb-4 flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    申報書 & 繳款書下載
-                                </h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- 申報書 -->
-                                    <div class="bg-white rounded-lg border border-indigo-100 p-4 flex items-start justify-between">
-                                        <div>
-                                            <p class="font-medium text-gray-800">所得稅申報書</p>
-                                            <p class="text-xs text-gray-500 mt-1">{% if filing.filing_document %}已於系統上傳{% else %}目前尚無檔案{% endif %}</p>
-                                        </div>
-                                        <div class="shrink-0 ml-4">
-                                            {% if filing.filing_document %}
-                                            <a href="{{ filing.filing_document.url }}" target="_blank"
-                                               class="inline-flex items-center text-indigo-600 hover:text-white font-medium text-sm bg-indigo-50 hover:bg-indigo-600 px-4 py-2 rounded transition-colors shadow-sm">
-                                                下載申報書
-                                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            </a>
-                                            {% else %}
-                                            <span class="inline-flex items-center text-gray-400 bg-gray-50 font-medium text-sm px-4 py-2 rounded cursor-not-allowed">等待上傳</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <!-- 繳款書 -->
-                                    <div class="bg-white rounded-lg border border-indigo-100 p-4 flex items-start justify-between">
-                                        <div>
-                                            <p class="font-medium text-gray-800">所得稅繳款書</p>
-                                            <p class="text-xs text-gray-500 mt-1">{% if filing.tax_bill_document %}已於系統上傳{% else %}目前尚無檔案{% endif %}</p>
-                                        </div>
-                                        <div class="shrink-0 ml-4">
-                                            {% if filing.tax_bill_document %}
-                                            <a href="{{ filing.tax_bill_document.url }}" target="_blank"
-                                               class="inline-flex items-center text-emerald-600 hover:text-white font-medium text-sm bg-emerald-50 hover:bg-emerald-600 px-4 py-2 rounded transition-colors shadow-sm">
-                                                下載繳款書
-                                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            </a>
-                                            {% else %}
-                                            <span class="inline-flex items-center text-gray-400 bg-gray-50 font-medium text-sm px-4 py-2 rounded cursor-not-allowed">等待上傳</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endwith %}
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center justify-center text-gray-500">
-                                <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="text-sm">本年度尚未有所得稅申報資料。</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ══ Section 3: 商工登記文件下載（不分年度）══ -->
-    <div class="sm:flex sm:justify-between sm:items-center mb-2 mt-8">
-        <div class="mb-4 sm:mb-0">
-            <h1 class="text-xl md:text-2xl text-slate-800 font-bold">商工登記文件下載</h1>
-            <p class="text-xs text-slate-500 mt-1">所有商工登記文件，不依年度區分。</p>
-        </div>
-    </div>
-
-    <div class="bg-white shadow rounded-lg border border-gray-200 relative">
-        <div class="overflow-x-auto">
-            <table class="table-auto w-full text-sm">
-                <thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 whitespace-nowrap text-left w-44">日期</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-left">名稱</th>
-                        <th class="px-6 py-4 whitespace-nowrap text-center w-44">附件下載</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-200">
-                    {% for doc in business_registration_documents %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                            {% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% else %}-{% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-gray-800 font-medium">{{ doc.name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            {% if doc.file %}
-                            <a href="{{ doc.file.url }}" target="_blank"
-                               class="inline-flex items-center text-indigo-600 hover:text-white font-medium text-sm bg-indigo-50 hover:bg-indigo-600 px-4 py-2 rounded transition-colors shadow-sm">
-                                下載
-                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            </a>
-                            {% else %}
-                            <span class="inline-flex items-center text-gray-400 bg-gray-50 font-medium text-sm px-4 py-2 rounded cursor-not-allowed">無檔案</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center justify-center text-gray-500">
-                                <svg class="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="text-sm">尚未上傳商工登記文件。</span>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+  </div>
 
 </div>
 {% endblock %}
-

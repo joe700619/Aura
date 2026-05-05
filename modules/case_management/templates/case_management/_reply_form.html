@@ -1,0 +1,50 @@
+{% comment %}
+案件回覆 form（含檔案上傳 + 拖曳）
+參數：action_url
+{% endcomment %}
+<form
+  hx-post="{{ action_url }}"
+  hx-target="#chat-body"
+  hx-swap="beforeend"
+  hx-encoding="multipart/form-data"
+  hx-on::after-request="if(event.detail.successful){this.reset(); this.querySelector('[data-file-preview]').innerHTML=''; const el=document.getElementById('chat-body'); el.scrollTop=el.scrollHeight;}"
+  class="border-t bg-white p-3 rounded-b-lg relative transition"
+  x-data="{ content: '', dragOver: false }"
+  @dragover.prevent="dragOver=true"
+  @dragleave.prevent="dragOver=false"
+  @drop.prevent="dragOver=false; const inp=$el.querySelector('input[type=file]'); const dt=new DataTransfer(); for(const f of inp.files) dt.items.add(f); for(const f of $event.dataTransfer.files) dt.items.add(f); inp.files=dt.files; inp.dispatchEvent(new Event('change'));"
+  :class="dragOver ? 'ring-2 ring-indigo-400 bg-indigo-50' : ''">
+  {% csrf_token %}
+
+  <div x-show="dragOver" x-cloak class="absolute inset-0 flex items-center justify-center bg-indigo-50/90 rounded-b-lg pointer-events-none z-10 text-indigo-600 font-medium text-sm">
+    📎 放開以加入檔案
+  </div>
+
+  <!-- 已選檔案預覽 -->
+  <div data-file-preview class="flex flex-wrap gap-1 mb-2 empty:hidden"></div>
+
+  <div class="flex gap-2 items-end">
+    <button type="button"
+            @click="$el.parentNode.querySelector('input[type=file]').click()"
+            class="px-2 py-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-full text-lg shrink-0"
+            title="附加檔案">
+      📎
+    </button>
+    <input type="file" name="files" multiple class="hidden"
+           onchange="renderFilePreview(this)">
+
+    <textarea
+      name="content"
+      x-model="content"
+      rows="1"
+      placeholder="輸入訊息... (Enter 送出 / Shift+Enter 換行)"
+      @keydown.enter.prevent="if(!$event.shiftKey){ if(content.trim() || $el.form.querySelector('input[type=file]').files.length){ $el.form.requestSubmit(); } } else { content += '\n'; }"
+      @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 120) + 'px';"
+      class="flex-1 border border-gray-300 rounded-2xl px-4 py-2 text-sm resize-none focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+      style="max-height: 120px;"></textarea>
+    <button type="submit"
+      class="px-5 py-2 text-white rounded-full text-sm font-medium shrink-0 transition bg-indigo-600 hover:bg-indigo-700">
+      送出
+    </button>
+  </div>
+</form>

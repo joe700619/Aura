@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aura_db_vector
+    restart: always
+    environment:
+      POSTGRES_DB: aura_db
+      POSTGRES_USER: postgres
+      # 注意：請將密碼改為你在 settings.py 中設定的密碼
+      POSTGRES_PASSWORD: "5201314Aa"
+    ports:
+      - "5432:5432"
+    volumes:
+      - aura_db_data:/var/lib/postgresql/data
+
+volumes:
+  aura_db_data:

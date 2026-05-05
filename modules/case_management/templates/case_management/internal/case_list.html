@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block page_title %}案件管理{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-bold text-gray-800">📂 案件管理</h1>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'case_management:client_analytics' %}"
+         class="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
+        📊 客戶問題分析
+      </a>
+      <a href="{% url 'case_management:internal_create' %}"
+         class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+        ＋ 新建案件
+      </a>
+    </div>
+  </div>
+
+  <form method="get" class="bg-white rounded-lg shadow p-3 mb-3 flex flex-wrap gap-2 items-center">
+    <select name="status" onchange="this.form.submit()" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+      <option value="">全部狀態</option>
+      {% for v, label in status_choices %}
+        <option value="{{ v }}" {% if v == active_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="owner" onchange="this.form.submit()" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+      <option value="">所有負責人</option>
+      <option value="me" {% if active_owner == 'me' %}selected{% endif %}>我負責的</option>
+    </select>
+    <input type="text" name="q" value="{{ search_q }}" placeholder="🔍 搜尋標題/摘要"
+           class="border border-gray-300 rounded-md px-3 py-1.5 text-sm flex-1 min-w-[200px]">
+    <button type="submit" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm">搜尋</button>
+  </form>
+
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="text-left px-4 py-3">標題</th>
+          <th class="text-left px-4 py-3">狀態</th>
+          <th class="text-left px-4 py-3">類別</th>
+          <th class="text-left px-4 py-3">負責人</th>
+          <th class="text-left px-4 py-3">客戶</th>
+          <th class="text-center px-4 py-3">回覆</th>
+          <th class="text-left px-4 py-3">最後更新</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for c in cases %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3">
+            <a href="{% url 'case_management:internal_detail' c.pk %}" class="font-medium text-indigo-600 hover:underline">
+              {{ c.title }}
+            </a>
+            {% if c.priority == 'urgent' %}<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700">🔥</span>{% endif %}
+            {% if c.needs_followup %}<span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">追</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <span class="text-xs px-2 py-1 rounded
+              {% if c.status == 'done' %}bg-gray-100 text-gray-600
+              {% elif c.status == 'waiting_client' %}bg-orange-100 text-orange-700
+              {% elif c.status == 'waiting_internal' %}bg-yellow-100 text-yellow-700
+              {% else %}bg-blue-100 text-blue-700{% endif %}">
+              {{ c.get_status_display }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-600">{{ c.get_category_display }}</td>
+          <td class="px-4 py-3 text-gray-600">{{ c.owner.get_full_name|default:c.owner.username }}</td>
+          <td class="px-4 py-3 text-gray-600">{{ c.external_contact_name|default:"—" }}</td>
+          <td class="px-4 py-3 text-center text-gray-500">{{ c.reply_count }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ c.last_activity_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-gray-400 py-12">沒有案件</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include 'case_management/_pagination.html' %}
+
+</div>
+{% endblock %}

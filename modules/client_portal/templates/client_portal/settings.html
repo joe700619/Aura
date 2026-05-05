@@ -315,6 +315,28 @@
             </div>
         </div>
 
+        <!-- ⑥ 案件清單範本 -->
+        <div style="display:flex; gap:80px; padding:40px 0; border-bottom:1px solid var(--border-subtle);">
+
+            <!-- 左：標題說明 -->
+            <div style="width:200px; flex-shrink:0;">
+                <div style="font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1); margin-bottom:6px;">案件清單範本</div>
+                <div style="font-size:13px; color:var(--fg3); line-height:1.65;">預先定義各類案件的待辦清單</div>
+            </div>
+
+            <!-- 右：入口 -->
+            <div style="flex:1;">
+                <p style="margin:0 0 16px; font-size:13.5px; color:var(--fg2); line-height:1.7;">
+                    為每個案件類別（例如「稅局查帳」）預先設定常用的清單項目。建立新案件時，符合類別的項目會自動帶入該案件的待辦清單，協助會計師不漏掉任何細節。
+                </p>
+                <a href="{% url 'case_portal:checklist' %}" class="portal-btn portal-btn-secondary"
+                   style="text-decoration:none;">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    管理清單範本
+                </a>
+            </div>
+        </div>
+
         <!-- 儲存按鈕 -->
         <div style="display:flex; justify-content:flex-end; padding-top:32px;">
             <button type="submit" class="portal-btn portal-btn-primary">

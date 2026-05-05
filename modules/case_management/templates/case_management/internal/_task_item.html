@@ -1,0 +1,33 @@
+{% comment %}單一待辦項目（可被 HTMX swap 替換）。參數：t (CaseTask){% endcomment %}
+<li class="flex items-start gap-2 p-2 hover:bg-gray-50 rounded group cursor-move task-item"
+    data-task-id="{{ t.id }}" id="task-{{ t.id }}"
+    {% if t.is_done %}data-done="1"{% endif %}>
+
+  <button type="button"
+          hx-post="{% url 'case_management:internal_task_toggle' t.case_id t.id %}"
+          hx-swap="outerHTML"
+          hx-target="#task-{{ t.id }}"
+          hx-include="closest li"
+          class="mt-0.5 cursor-pointer">
+    <span class="inline-block w-4 h-4 border-2 rounded
+      {% if t.is_done %}bg-indigo-600 border-indigo-600 text-white{% else %}border-gray-300 hover:border-indigo-400{% endif %}
+      flex items-center justify-center text-xs leading-none">
+      {% if t.is_done %}✓{% endif %}
+    </span>
+  </button>
+
+  <div class="flex-1 text-sm min-w-0">
+    <div class="{% if t.is_done %}line-through text-gray-400{% else %}text-gray-700{% endif %} break-words">{{ t.title }}</div>
+    <div class="text-xs text-gray-400 mt-0.5">
+      {% if t.assignee_type == 'external' %}👤 客戶{% else %}🏢 內部{% endif %}
+      {% if t.due_date %}· 期限 {{ t.due_date|date:"m-d" }}{% endif %}
+    </div>
+  </div>
+
+  <button type="button"
+          hx-post="{% url 'case_management:internal_task_hide' t.case_id t.id %}"
+          hx-target="#task-{{ t.id }}"
+          hx-swap="outerHTML"
+          hx-confirm="確定要移除此待辦？（資料保留可從 admin 還原）"
+          class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-xs px-1">✕</button>
+</li>

@@ -1,0 +1,564 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ case.title|default:"案件詳情" }} | 勤信會計</title>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="{% static 'case_management/reply_form.js' %}"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  [x-cloak] { display: none !important; }
+
+  :root {
+    --ink-50:#faf8f5; --ink-100:#f2efe9; --ink-200:#e6e2d9; --ink-300:#cfc9bd;
+    --ink-400:#a8a194; --ink-500:#78716c; --ink-600:#4b4842; --ink-700:#2e2b27; --ink-800:#1a1816;
+    --primary:#1a1816; --primary-hover:#0d0c0b; --primary-soft:#f2efe9; --primary-ring:rgba(26,24,22,0.12);
+    --accent:#a0332a; --accent-soft:#fbf1ef;
+    --indigo:#35516e; --indigo-soft:#eef2f6;
+    --success:#5a7a4f; --success-soft:#eef3ea;
+    --warning:#b8861b; --warning-soft:#fbf4e3; --warning-border:#f0e0b8;
+    --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194;
+    --fg-on-primary:#faf8f5;
+    --bg-page:#faf8f5; --bg-panel:#fff; --bg-subtle:#f2efe9; --bg-hover:#f6f3ee;
+    --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+    --font-serif:"Noto Serif TC", serif;
+    --font-sans:"Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-mono:"JetBrains Mono", "SF Mono", Menlo, monospace;
+    --radius-xs:2px; --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --shadow-xs:0 1px 2px rgba(26,24,22,0.04);
+    --shadow-sm:0 1px 3px rgba(26,24,22,0.06), 0 1px 2px rgba(26,24,22,0.04);
+    --dur-fast:120ms; --ease-out:cubic-bezier(0.22,0.61,0.36,1);
+  }
+
+  html, body {
+    font-family: var(--font-sans); font-size:15px; color:var(--fg2);
+    background:var(--bg-page); min-height:100vh;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  .cv-wrap { max-width:1280px; margin:0 auto; padding:32px 40px; }
+
+  /* Magic link safety notice */
+  .cv-notice {
+    display:flex; align-items:flex-start; gap:10px;
+    background:var(--warning-soft); border:1px solid var(--warning-border);
+    border-radius:var(--radius-md); padding:12px 16px;
+    font-size:13px; color:var(--warning); margin-bottom:18px;
+  }
+  .cv-notice strong { color:var(--fg1); font-weight:600; }
+
+  .cv-grid {
+    display:grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:24px; align-items:flex-start;
+  }
+  @media (max-width: 1100px) { .cv-grid { grid-template-columns: 1fr; } }
+
+  /* Header card */
+  .cv-header-card {
+    background:#fff; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+    overflow:hidden; margin-bottom:20px;
+  }
+  .cv-header-band {
+    height:3px;
+    background:linear-gradient(90deg, var(--ink-700) 0%, var(--ink-700) 30%, var(--accent) 30%, var(--accent) 36%, var(--ink-700) 36%);
+  }
+  .cv-header-inner { padding:24px 28px 22px; }
+  .cv-status-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+
+  .cv-title {
+    font-family:var(--font-serif); font-size:30px; font-weight:600;
+    color:var(--fg1); letter-spacing:-0.01em;
+    line-height:1.2; margin-bottom:10px;
+  }
+  .cv-meta-row {
+    display:flex; align-items:center; gap:0; flex-wrap:wrap;
+    font-size:13px; color:var(--fg3);
+  }
+  .cv-meta-item { display:flex; align-items:center; gap:6px; }
+  .cv-meta-item + .cv-meta-item::before {
+    content:''; width:3px; height:3px; border-radius:50%;
+    background:var(--fg4); margin:0 12px;
+  }
+  .cv-meta-icon { width:13px; height:13px; opacity:0.7; }
+  .cv-meta-strong { color:var(--fg2); font-weight:500; }
+  .cv-avatar-sm {
+    width:22px; height:22px; border-radius:50%;
+    background:var(--bg-subtle); border:1px solid var(--border-subtle);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:var(--font-serif); font-weight:600; font-size:11px;
+    color:var(--fg2);
+  }
+
+  .cv-section { padding:22px 28px; border-top:1px solid var(--border-subtle); }
+  .cv-section-eyebrow {
+    display:flex; align-items:center; gap:8px;
+    font-size:11px; font-weight:600;
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--fg3); margin-bottom:12px;
+  }
+  .cv-section-eyebrow-bar { width:2px; height:11px; background:var(--ink-700); border-radius:2px; }
+  .cv-section-eyebrow .count {
+    font-family:var(--font-mono); font-size:11px;
+    color:var(--fg3); padding:1px 8px; background:var(--bg-subtle);
+    border-radius:999px; letter-spacing:0; text-transform:none; font-weight:500;
+  }
+
+  .cv-description {
+    font-family:var(--font-sans); font-size:15px;
+    color:var(--fg2); line-height:1.7;
+    background:var(--bg-subtle);
+    border-left:2px solid var(--ink-300);
+    padding:14px 18px;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    white-space:pre-wrap;
+  }
+
+  /* Todos */
+  .cv-todo-progress {
+    margin-top:4px; display:flex; align-items:center; gap:10px;
+    font-size:12px; color:var(--fg3); padding:0 12px 8px;
+  }
+  .cv-progress-bar {
+    flex:1; height:3px; background:var(--bg-subtle);
+    border-radius:2px; overflow:hidden;
+  }
+  .cv-progress-fill { height:100%; background:var(--ink-700); transition:width 300ms var(--ease-out); }
+  .cv-todo-list { display:flex; flex-direction:column; gap:2px; }
+  .cv-todo-item {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 12px; border-radius:var(--radius-md);
+    transition:background 120ms;
+  }
+  .cv-todo-item:hover { background:var(--bg-hover); }
+  .cv-todo-num {
+    font-family:var(--font-mono); font-size:11px;
+    color:var(--fg4); width:22px; flex-shrink:0;
+  }
+  .cv-todo-check {
+    width:18px; height:18px; border-radius:var(--radius-xs);
+    border:1.5px solid var(--border-default); background:#fff; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .cv-todo-item.done .cv-todo-check { background:var(--ink-700); border-color:var(--ink-700); }
+  .cv-todo-check svg { width:11px; height:11px; color:#fff; opacity:0; }
+  .cv-todo-item.done .cv-todo-check svg { opacity:1; }
+  .cv-todo-text { flex:1; font-size:14px; color:var(--fg1); line-height:1.5; }
+  .cv-todo-item.done .cv-todo-text { color:var(--fg4); text-decoration:line-through; }
+  .cv-todo-tag {
+    font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent);
+  }
+  .cv-todo-due {
+    font-family:var(--font-mono); font-size:11px; color:var(--fg4);
+  }
+
+  /* Attachments */
+  .cv-attach-list { display:flex; flex-direction:column; gap:8px; }
+  .cv-attach-item {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; background:#fff;
+    border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md);
+    transition:all 150ms; text-decoration:none; color:var(--fg1);
+  }
+  .cv-attach-item:hover { border-color:var(--border-default); box-shadow:var(--shadow-sm); }
+  .cv-attach-icon-wrap {
+    width:34px; height:42px; border-radius:var(--radius-sm);
+    background:var(--bg-subtle); border:1px solid var(--border-subtle);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .cv-attach-icon { width:16px; height:16px; color:var(--ink-700); }
+  .cv-attach-info { flex:1; min-width:0; }
+  .cv-attach-name { font-size:13.5px; font-weight:600; color:var(--fg1); word-break:break-all; }
+  .cv-attach-meta { font-size:11.5px; color:var(--fg4); margin-top:2px; }
+  .cv-attach-empty {
+    padding:18px; text-align:center; color:var(--fg4); font-size:13px;
+    background:var(--bg-subtle); border:1px dashed var(--border-subtle);
+    border-radius:var(--radius-md);
+  }
+  .cv-attach-empty-icon { width:24px; height:24px; color:var(--ink-300); margin: 0 auto 6px; display:block; }
+
+  /* Conversation */
+  .cv-conv-card {
+    background:#fff; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+    display:flex; flex-direction:column;
+    height: calc(100vh - 100px); min-height:520px;
+    position:sticky; top:20px; overflow:hidden;
+  }
+  @media (max-width: 1100px) { .cv-conv-card { position:static; height:600px; } }
+
+  .cv-conv-header {
+    padding:14px 20px; border-bottom:1px solid var(--border-subtle);
+    background:var(--bg-subtle);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .cv-conv-title {
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1);
+  }
+  .cv-conv-icon { width:15px; height:15px; color:var(--ink-700); }
+  .cv-conv-status { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--fg3); }
+  .cv-conv-status::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--success); }
+
+  .cv-conv-body {
+    flex:1; overflow-y:auto; padding:20px;
+    display:flex; flex-direction:column; gap:14px;
+    background:linear-gradient(180deg, var(--bg-subtle) 0%, transparent 60px), var(--bg-page);
+  }
+  .cv-conv-empty {
+    flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:30px 20px; text-align:center; color:var(--fg4);
+  }
+  .cv-conv-empty-icon { width:36px; height:36px; color:var(--ink-300); margin-bottom:10px; }
+  .cv-conv-empty-title { font-size:13.5px; color:var(--fg3); margin-bottom:4px; }
+  .cv-conv-empty-sub { font-size:12px; color:var(--fg4); line-height:1.6; }
+
+  .cv-msg { display:flex; gap:10px; max-width:88%; }
+  .cv-msg.me { align-self:flex-end; flex-direction:row-reverse; }
+  .cv-msg-avatar {
+    width:28px; height:28px; border-radius:50%;
+    background:var(--bg-subtle); border:1px solid var(--border-subtle);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-serif); font-weight:600; font-size:12px;
+    color:var(--fg2); flex-shrink:0;
+  }
+  .cv-msg.me .cv-msg-avatar {
+    background:var(--ink-700); border-color:var(--ink-700); color:var(--fg-on-primary);
+  }
+  .cv-msg-bubble {
+    background:#fff; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md); padding:10px 13px;
+    font-size:13.5px; color:var(--fg1); line-height:1.55;
+    box-shadow:var(--shadow-xs); word-break:break-word; white-space:pre-line;
+  }
+  .cv-msg.me .cv-msg-bubble {
+    background:var(--ink-700); color:var(--fg-on-primary); border-color:var(--ink-700);
+  }
+  .cv-msg-meta {
+    font-size:10.5px; color:var(--fg4); margin-top:4px; font-family:var(--font-mono);
+  }
+  .cv-msg.me .cv-msg-meta { text-align:right; }
+  .cv-msg-name { font-size:11.5px; font-weight:600; color:var(--fg2); margin-bottom:3px; }
+  .cv-msg.me .cv-msg-name { text-align:right; }
+  .cv-msg-system {
+    align-self:center; font-size:11.5px; color:var(--fg4);
+    padding:4px 12px; background:var(--bg-subtle); border-radius:999px;
+  }
+  .cv-msg-date-divider {
+    align-self:stretch; display:flex; align-items:center; gap:10px;
+    font-size:11px; color:var(--fg4); margin:6px 0;
+  }
+  .cv-msg-date-divider::before,
+  .cv-msg-date-divider::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
+
+  /* Composer */
+  .cv-composer { border-top:1px solid var(--border-subtle); padding:12px 14px 14px; background:#fff; }
+  .cv-composer-input {
+    width:100%; resize:none; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md); padding:10px 12px;
+    font-family:var(--font-sans); font-size:13.5px;
+    color:var(--fg1); background:#fff;
+    line-height:1.5; min-height:60px; max-height:140px;
+    transition:border-color 150ms, box-shadow 150ms;
+  }
+  .cv-composer-input::placeholder { color:var(--fg4); }
+  .cv-composer-input:focus { outline:none; border-color:var(--ink-700); box-shadow:0 0 0 3px var(--primary-ring); }
+  .cv-composer-actions { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+  .cv-composer-tools { display:flex; gap:4px; align-items:center; }
+  .cv-tool-btn {
+    width:30px; height:30px; border-radius:var(--radius-sm);
+    background:transparent; border:none; cursor:pointer; color:var(--fg3);
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:all 150ms;
+  }
+  .cv-tool-btn:hover { background:var(--bg-hover); color:var(--fg1); }
+  .cv-tool-btn svg { width:15px; height:15px; }
+  .cv-file-preview { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .cv-file-preview:empty { display:none; }
+  .cv-file-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:999px;
+    background:var(--bg-subtle); border:1px solid var(--border-subtle);
+    font-size:11.5px; color:var(--fg2);
+  }
+
+  /* Buttons */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border-radius:var(--radius-sm);
+    font-family:var(--font-sans); font-size:12.5px; font-weight:600;
+    cursor:pointer; border:1px solid transparent; transition:all 150ms;
+    text-decoration:none; white-space:nowrap;
+  }
+  .btn-primary { background:var(--primary); color:var(--fg-on-primary); }
+  .btn-primary:hover { background:#0d0c0b; }
+  .btn-icon { width:13px; height:13px; flex-shrink:0; }
+
+  /* Status badges */
+  .badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 9px; border-radius:999px;
+    font-size:11.5px; font-weight:600;
+    border:1px solid transparent; letter-spacing:0.01em;
+  }
+  .badge::before { content:''; width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .badge-active   { background:var(--indigo-soft); color:var(--indigo); border-color:#cfd9e3; }
+  .badge-active::before  { background:var(--indigo); }
+  .badge-end      { background:var(--bg-subtle); color:var(--fg2); border-color:var(--border-subtle); }
+  .badge-end::before     { background:var(--fg3); }
+  .badge-warning  { background:var(--warning-soft); color:var(--warning); border-color:var(--warning-border); }
+  .badge-warning::before { background:var(--warning); }
+  .badge-danger   { background:var(--accent-soft); color:var(--accent); border-color:#f0c8c2; }
+  .badge-danger::before  { background:var(--accent); }
+  .badge-default  { background:var(--bg-subtle); color:var(--fg2); border-color:var(--border-subtle); }
+  .badge-default::before { background:var(--fg4); }
+
+  .cv-footer { text-align:center; font-size:11px; color:var(--fg4); margin-top:24px; padding-bottom:24px; }
+</style>
+</head>
+<body>
+
+<div class="cv-wrap">
+
+  <!-- Magic link safety notice -->
+  {% if access %}
+  <div class="cv-notice">
+    <span style="flex-shrink:0;">🔒</span>
+    <div>
+      您正使用安全連結存取此案件（<strong>{{ access.email }}</strong>）。
+      連結有效期至 <strong>{{ access.expires_at|date:"Y-m-d" }}</strong>。
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="cv-grid">
+
+    <!-- ─── Left column ─── -->
+    <div>
+      <article class="cv-header-card">
+        <div class="cv-header-band"></div>
+        <div class="cv-header-inner">
+          <div class="cv-status-row">
+            {% if case.status == 'done' or case.status == 'archived' %}
+              <span class="badge badge-end">{{ case.get_status_display }}</span>
+            {% elif case.status == 'waiting_client' %}
+              <span class="badge badge-warning">{{ case.get_status_display }}</span>
+            {% else %}
+              <span class="badge badge-active">{{ case.get_status_display }}</span>
+            {% endif %}
+            {% if case.priority == 'urgent' %}<span class="badge badge-danger">🔥 緊急</span>{% endif %}
+            {% if case.get_category_display %}<span class="badge badge-default">{{ case.get_category_display }}</span>{% endif %}
+          </div>
+          <h1 class="cv-title">{{ case.title }}</h1>
+          <div class="cv-meta-row">
+            {% if case.owner %}
+            <span class="cv-meta-item">
+              <span class="cv-avatar-sm">{{ case.owner.last_name|default:case.owner.username|slice:":1" }}</span>
+              <span>負責會計師　<span class="cv-meta-strong">{{ case.owner.get_full_name|default:case.owner.username }}</span></span>
+            </span>
+            {% endif %}
+            <span class="cv-meta-item">
+              <svg class="cv-meta-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <span>建立於　<span class="cv-meta-strong" style="font-family:var(--font-mono);">{{ case.created_at|date:"Y-m-d" }}</span></span>
+            </span>
+            {% if case.updated_at %}
+            <span class="cv-meta-item">
+              <svg class="cv-meta-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg>
+              <span>更新於　<span class="cv-meta-strong" style="font-family:var(--font-mono);">{{ case.updated_at|date:"Y-m-d" }}</span></span>
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Description -->
+        {% if case.summary %}
+        <section class="cv-section">
+          <div class="cv-section-eyebrow">
+            <span class="cv-section-eyebrow-bar"></span>
+            案件說明
+          </div>
+          <div class="cv-description">{{ case.summary }}</div>
+        </section>
+        {% endif %}
+
+        <!-- Todos -->
+        {% if tasks %}
+        <section class="cv-section">
+          <div class="cv-section-eyebrow">
+            <span class="cv-section-eyebrow-bar"></span>
+            待辦事項
+            <span class="count" id="todoCount">— / {{ tasks|length }}</span>
+          </div>
+          <div class="cv-todo-progress">
+            <div class="cv-progress-bar">
+              <div class="cv-progress-fill" id="progressFill" style="width:0%"></div>
+            </div>
+            <span id="progressText" style="font-family:var(--font-mono);">0%</span>
+          </div>
+          <div class="cv-todo-list" id="todoList">
+            {% for t in tasks %}
+            <div class="cv-todo-item {% if t.is_done %}done{% endif %}">
+              <span class="cv-todo-num">{{ forloop.counter|stringformat:"02d" }}</span>
+              <span class="cv-todo-check">
+                <svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <span class="cv-todo-text">{{ t.title }}</span>
+              {% if t.assignee_type == 'external' %}<span class="cv-todo-tag">請您提供</span>{% endif %}
+              {% if t.due_date %}<span class="cv-todo-due">期限 {{ t.due_date|date:"m-d" }}</span>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+
+        <!-- Attachments -->
+        <section class="cv-section">
+          <div class="cv-section-eyebrow">
+            <span class="cv-section-eyebrow-bar"></span>
+            附件
+            <span class="count">{{ attachments.count|default:0 }}</span>
+          </div>
+          {% if attachments %}
+            <div class="cv-attach-list">
+              {% for att in attachments %}
+              <a href="{{ att.file.url }}" class="cv-attach-item" target="_blank">
+                <div class="cv-attach-icon-wrap">
+                  <svg class="cv-attach-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6"/></svg>
+                </div>
+                <div class="cv-attach-info">
+                  <div class="cv-attach-name">{{ att.original_filename|default:att.filename }}</div>
+                  <div class="cv-attach-meta">
+                    {{ att.uploaded_at|date:"Y-m-d H:i" }}{% if att.version > 1 %}　·　v{{ att.version }}{% endif %}
+                  </div>
+                </div>
+              </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="cv-attach-empty">
+              <svg class="cv-attach-empty-icon" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              尚無附件　·　會計師上傳的文件將顯示於此
+            </div>
+          {% endif %}
+        </section>
+      </article>
+    </div>
+
+    <!-- ─── Right column: conversation ─── -->
+    <aside class="cv-conv-card">
+      <div class="cv-conv-header">
+        <div class="cv-conv-title">
+          <svg class="cv-conv-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 21l1.8-5A8.96 8.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          對話紀錄
+        </div>
+        <span class="cv-conv-status">即時連線</span>
+      </div>
+
+      <div class="cv-conv-body" id="chat-body" x-data x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
+        {% for r in replies %}
+          {% if r.show_date_header %}
+          <div class="cv-msg-date-divider">{{ r.created_at|date:"Y-m-d" }}</div>
+          {% endif %}
+          {% if r.is_system_log %}
+          <div class="cv-msg-system">{{ r.content }} · {{ r.created_at|date:"H:i" }}</div>
+          {% else %}
+          <div class="cv-msg {% if r.author_type == 'external' %}me{% endif %}">
+            <div class="cv-msg-avatar">{{ r.author_display_name|first|upper }}</div>
+            <div>
+              {% if not r.is_grouped %}
+              <div class="cv-msg-name">{{ r.author_display_name }}</div>
+              {% endif %}
+              {% if r.content %}<div class="cv-msg-bubble">{{ r.content }}</div>{% endif %}
+              {% include 'case_management/_attachments_in_bubble.html' with attachments=r.attachments.all align=r.author_type %}
+              <div class="cv-msg-meta">{{ r.created_at|date:"H:i" }}</div>
+            </div>
+          </div>
+          {% endif %}
+        {% empty %}
+        <div class="cv-conv-empty">
+          <svg class="cv-conv-empty-icon" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 21l1.8-5A8.96 8.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          <div class="cv-conv-empty-title">尚無對話訊息</div>
+          <div class="cv-conv-empty-sub">於下方輸入訊息，<br>即可聯繫您的會計師</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <form class="cv-composer"
+            hx-post="{% url 'case_management:external_reply' token %}"
+            hx-target="#chat-body"
+            hx-swap="beforeend"
+            hx-encoding="multipart/form-data"
+            hx-on::after-request="if(event.detail.successful){this.reset(); this.querySelector('[data-file-preview]').innerHTML=''; const el=document.getElementById('chat-body'); el.scrollTop=el.scrollHeight;}"
+            x-data="{ content: '', dragOver: false }"
+            @dragover.prevent="dragOver=true"
+            @dragleave.prevent="dragOver=false"
+            @drop.prevent="dragOver=false; const inp=$el.querySelector('input[type=file]'); const dt=new DataTransfer(); for(const f of inp.files) dt.items.add(f); for(const f of $event.dataTransfer.files) dt.items.add(f); inp.files=dt.files; inp.dispatchEvent(new Event('change'));">
+        {% csrf_token %}
+
+        <div data-file-preview class="cv-file-preview"></div>
+
+        <textarea
+          class="cv-composer-input"
+          name="content"
+          x-model="content"
+          rows="2"
+          placeholder="輸入訊息給您的會計師…（Enter 送出 / Shift+Enter 換行）"
+          @keydown.enter.prevent="if(!$event.shiftKey){ if(content.trim() || $el.form.querySelector('input[type=file]').files.length){ $el.form.requestSubmit(); } } else { content += '\n'; }"></textarea>
+
+        <input type="file" name="files" multiple class="hidden" style="display:none;" onchange="renderFilePreview(this)">
+
+        <div class="cv-composer-actions">
+          <div class="cv-composer-tools">
+            <button class="cv-tool-btn" type="button" title="附加檔案"
+                    @click="$el.closest('form').querySelector('input[type=file]').click()">
+              <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            </button>
+          </div>
+          <button class="btn btn-primary" type="submit">
+            <span>傳送</span>
+            <svg class="btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg>
+          </button>
+        </div>
+      </form>
+    </aside>
+
+  </div>
+
+  <div class="cv-footer">Aura ERP · 案件管理系統</div>
+</div>
+
+<script>
+  // CSRF for htmx
+  document.body.addEventListener('htmx:configRequest', (event) => {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (token) event.detail.headers['X-CSRFToken'] = token.value;
+  });
+
+  // Todo progress（唯讀顯示，外部連結不能切換）
+  (function() {
+    const items = document.querySelectorAll('.cv-todo-item');
+    if (!items.length) return;
+    const total = items.length;
+    const done = document.querySelectorAll('.cv-todo-item.done').length;
+    const countEl = document.getElementById('todoCount');
+    const fillEl  = document.getElementById('progressFill');
+    const textEl  = document.getElementById('progressText');
+    if (countEl) countEl.textContent = done + ' / ' + total;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    if (fillEl)  fillEl.style.width = pct + '%';
+    if (textEl)  textEl.textContent = pct + '%';
+  })();
+</script>
+
+</body>
+</html>

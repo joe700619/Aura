@@ -1,0 +1,130 @@
+{% extends 'client_portal/portal_base.html' %}
+
+{% block page_title %}案件清單範本{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; max-width:860px;">
+
+  <!-- Page header -->
+  <div style="padding-bottom:32px; border-bottom:1px solid var(--border-subtle); margin-bottom:0;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
+      <a href="{% url 'client_portal:settings' %}"
+         style="font-size:13px; color:var(--fg3); text-decoration:none;"
+         onmouseover="this.style.color='var(--fg1)'" onmouseout="this.style.color='var(--fg3)'">
+        ← 返回設定
+      </a>
+    </div>
+    <div class="portal-eyebrow" style="margin-bottom:6px;">案件設定</div>
+    <h1 style="margin:0; font-size:26px;">案件清單範本</h1>
+    <p style="margin:8px 0 0; color:var(--fg3); font-size:13.5px;">
+      預先定義各類案件的待辦清單，建立案件時將自動帶入，協助會計師不漏掉任何細節
+    </p>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="portal-toast portal-toast-{{ message.tags|default:'success' }}" style="margin-top:24px;">
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- 規則說明 -->
+  <div style="margin-top:24px; background:var(--bg-soft, #f8f7f5); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px 18px; font-size:13px; color:var(--fg2); line-height:1.7;">
+    <div style="font-weight:600; color:var(--fg1); margin-bottom:6px;">使用說明</div>
+    <ul style="margin:0; padding-left:18px;">
+      <li>為每個案件類別預先設定常用的清單項目（例如「稅局查帳」需要哪些資料）</li>
+      <li>建立新案件時，符合類別的項目會<strong>自動帶入</strong>該案件的待辦清單</li>
+      <li>修改範本<strong>只影響之後新建</strong>的案件，已存在的案件不受影響</li>
+    </ul>
+  </div>
+
+  {% for group in category_groups %}
+  <div style="display:flex; gap:80px; padding:36px 0; border-bottom:1px solid var(--border-subtle);"
+       x-data="{ adding: false, editingId: null, newTitle: '' }">
+
+    <!-- 左：類別名稱 -->
+    <div style="width:200px; flex-shrink:0;">
+      <div style="font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1); margin-bottom:6px;">
+        {{ group.label }}
+      </div>
+      <div style="font-size:12.5px; color:var(--fg3);">
+        {{ group.items|length }} 項
+      </div>
+    </div>
+
+    <!-- 右：項目列表 -->
+    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+
+      {% for item in group.items %}
+      <div style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-md);"
+           x-show="editingId !== {{ item.pk }}">
+        <span style="color:var(--fg4); font-size:13px;">☐</span>
+        <span style="flex:1; font-size:14px; color:var(--fg1);">{{ item.title }}</span>
+        <button type="button" @click="editingId = {{ item.pk }}"
+                style="border:none; background:transparent; color:var(--fg4); cursor:pointer; font-size:12px; padding:4px 8px;"
+                onmouseover="this.style.color='var(--fg1)'" onmouseout="this.style.color='var(--fg4)'">
+          編輯
+        </button>
+        <form method="post" action="{% url 'case_portal:checklist' %}" style="margin:0;"
+              onsubmit="return confirm('確定要刪除此項目？')">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="{{ item.pk }}">
+          <button type="submit"
+                  style="border:none; background:transparent; color:var(--fg4); cursor:pointer; font-size:12px; padding:4px 8px;"
+                  onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--fg4)'">
+            刪除
+          </button>
+        </form>
+      </div>
+
+      <!-- 編輯模式 -->
+      <form method="post" action="{% url 'case_portal:checklist' %}"
+            x-show="editingId === {{ item.pk }}" x-cloak
+            style="display:flex; gap:6px; align-items:center; padding:8px; background:var(--success-soft); border:1px solid var(--success-border, #cce5d5); border-radius:var(--radius-md);">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update">
+        <input type="hidden" name="id" value="{{ item.pk }}">
+        <input type="text" name="title" value="{{ item.title }}" required
+               class="portal-input" style="flex:1;">
+        <button type="submit" class="portal-btn portal-btn-primary portal-btn-sm">儲存</button>
+        <button type="button" @click="editingId = null" class="portal-btn portal-btn-secondary portal-btn-sm">取消</button>
+      </form>
+      {% endfor %}
+
+      {% if not group.items %}
+      <div style="font-size:13px; color:var(--fg4); padding:8px 0;">
+        尚未設定，點下方「＋ 新增項目」開始
+      </div>
+      {% endif %}
+
+      <!-- 新增表單 -->
+      <div x-show="!adding">
+        <button type="button" @click="adding = true; $nextTick(() => $refs.newInput_{{ forloop.counter }}.focus())"
+                style="border:1px dashed var(--border-default); background:transparent; color:var(--fg3); cursor:pointer; font-size:13px; padding:10px; border-radius:var(--radius-md); width:100%; text-align:center;"
+                onmouseover="this.style.color='var(--fg1)'; this.style.borderColor='var(--ink-700)'"
+                onmouseout="this.style.color='var(--fg3)'; this.style.borderColor='var(--border-default)'">
+          ＋ 新增項目
+        </button>
+      </div>
+
+      <form method="post" action="{% url 'case_portal:checklist' %}"
+            x-show="adding" x-cloak
+            style="display:flex; gap:6px; align-items:center; padding:8px; background:var(--bg-soft, #f8f7f5); border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <input type="hidden" name="category" value="{{ group.value }}">
+        <input type="text" name="title" required placeholder="輸入清單項目..."
+               x-ref="newInput_{{ forloop.counter }}"
+               class="portal-input" style="flex:1;">
+        <button type="submit" class="portal-btn portal-btn-primary portal-btn-sm">新增</button>
+        <button type="button" @click="adding = false" class="portal-btn portal-btn-secondary portal-btn-sm">取消</button>
+      </form>
+
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

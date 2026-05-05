@@ -2,7 +2,7 @@
 {% load humanize %}
 
 {% block content %}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
     <!-- Card 1: Bookkeeping -->
     <div class="bg-white rounded-lg shadow p-6 flex items-start">
         <div class="flex-grow">
@@ -51,7 +51,64 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Card 5: 我的案件 -->
+    <a href="{% url 'case_management:internal_list' %}?owner=me"
+       class="bg-white rounded-lg shadow p-6 flex items-start hover:shadow-md transition border border-transparent hover:border-indigo-200">
+        <div class="flex-grow min-w-0">
+            <h3 class="text-gray-500 text-sm font-medium mb-1">我的案件</h3>
+            <p class="text-3xl font-bold text-gray-800">{{ case_count_total|default:"0" }}</p>
+            <div class="flex flex-wrap gap-1 mt-2">
+                {% if case_count_waiting_internal %}
+                <span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">⏳ 等內部 {{ case_count_waiting_internal }}</span>
+                {% endif %}
+                {% if case_count_followup_due %}
+                <span class="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">🔔 追蹤 {{ case_count_followup_due }}</span>
+                {% endif %}
+                {% if case_count_waiting_client %}
+                <span class="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-700">⏳ 等客戶 {{ case_count_waiting_client }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </div>
+    </a>
 </div>
+
+{% if recent_cases %}
+<!-- 案件管理 — 待處理 / 追蹤到期 -->
+<div class="bg-white rounded-lg shadow mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+            <span class="text-indigo-600 mr-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+            </span>
+            待處理案件
+        </h3>
+        <a href="{% url 'case_management:internal_list' %}?owner=me" class="text-sm text-indigo-600 hover:underline">查看全部 →</a>
+    </div>
+    <div class="divide-y">
+        {% for c in recent_cases %}
+        <a href="{% url 'case_management:internal_detail' c.pk %}"
+           class="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition">
+            <span class="text-xs px-2 py-1 rounded shrink-0
+                {% if c.status == 'waiting_internal' %}bg-yellow-100 text-yellow-700
+                {% elif c.status == 'waiting_client' %}bg-orange-100 text-orange-700
+                {% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ c.get_status_display }}
+            </span>
+            {% if c.priority == 'urgent' %}<span class="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 shrink-0">🔥</span>{% endif %}
+            {% if c.needs_followup and c.next_followup_date and c.next_followup_date <= today %}
+                <span class="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 shrink-0">🔔 追蹤到期</span>
+            {% endif %}
+            <span class="font-medium text-gray-800 truncate flex-1">{{ c.title }}</span>
+            <span class="text-xs text-gray-400 shrink-0">{{ c.last_activity_at|date:"m-d H:i" }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Middle Section: Recent Activity & Pending Tasks -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

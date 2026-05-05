@@ -12,3 +12,5 @@ Pillow
 docxtpl
 docx2pdf
 django-import-export
+pgvector
+google-genai

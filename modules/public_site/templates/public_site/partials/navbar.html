@@ -1,0 +1,53 @@
+{% load static %}
+<header class="navbar">
+  <div class="navbar-inner">
+    <a href="{% url 'public_site:landing' %}" class="brand brand-logo">
+      <img src="{% static 'public_site/images/logo-qinxin-trimmed.png' %}" alt="勤信" class="brand-logo-img" />
+      <div class="brand-text">
+        <div class="brand-name-cn">聯合會計師事務所</div>
+        <div class="brand-name-en">QIN-XIN UNITED CPAs</div>
+      </div>
+    </a>
+
+    <nav class="nav-menu">
+      <a class="nav-link" href="{% url 'public_site:landing' %}#about">關於我們</a>
+      <div class="dropdown-wrap">
+        <a class="nav-link has-dropdown" href="#services">提供服務</a>
+        <div class="dropdown">
+          <a class="dropdown-item" href="#"><span class="ds-title">記帳服務</span><span class="ds-desc">日常帳務 · 申報 · 財報</span></a>
+          <a class="dropdown-item" href="#"><span class="ds-title">簽證服務</span><span class="ds-desc">財簽 · 稅簽 · 專案簽證</span></a>
+          <a class="dropdown-item" href="#"><span class="ds-title">商工登記</span><span class="ds-desc">設立 · 變更 · 解散清算</span></a>
+          <a class="dropdown-item" href="#"><span class="ds-title">經營顧問</span><span class="ds-desc">數據分析 · 內控 · 預算規劃</span></a>
+        </div>
+      </div>
+      <a class="nav-link" href="#">家族辦公室</a>
+      <a class="nav-link" href="#">部落格</a>
+      <div class="dropdown-wrap">
+        <a class="nav-link has-dropdown" href="#tools">實用工具</a>
+        <div class="dropdown dropdown-tools">
+          <a class="dropdown-item dropdown-tool-item" href="#">
+            <span class="dt-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L20 6 V12 C20 17 16 21 12 22 C8 21 4 17 4 12 V6 Z"/><path d="M9 12 L11 14 L15 10"/></svg></span>
+            <span class="dt-content"><span class="ds-title">勞健保試算</span><span class="ds-desc">輸入薪資 · 即時算出費用</span></span>
+          </a>
+          <a class="dropdown-item dropdown-tool-item" href="#">
+            <span class="dt-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3 H17 L19 5 V21 L17 19 L15 21 L13 19 L11 21 L9 19 L7 21 L5 19 Z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
+            <span class="dt-content"><span class="ds-title">勞務報酬單</span><span class="ds-desc">產生報酬單 · 自動算扣繳</span></span>
+          </a>
+          <a class="dropdown-item dropdown-tool-item" href="#">
+            <span class="dt-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21 H21"/><rect x="5" y="13" width="3" height="8"/><rect x="10.5" y="9" width="3" height="12"/><rect x="16" y="5" width="3" height="16"/></svg></span>
+            <span class="dt-content"><span class="ds-title">創業分析表</span><span class="ds-desc">問答式診斷 · 產生報告</span></span>
+          </a>
+          <a class="dropdown-item dropdown-tool-item" href="#">
+            <span class="dt-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 H14 A2 2 0 0 1 14 13 H10 L15 17"/></svg></span>
+            <span class="dt-content"><span class="ds-title">扣繳計算機</span><span class="ds-desc">勞報 / 業務 / 租金</span></span>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="nav-actions">
+      <a href="/login/" class="btn-login">登入</a>
+      <button type="button" class="btn-cta" data-open-modal>預約諮詢</button>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,62 @@
+{% comment %}
+共用分頁元件
+參數：page_obj, paginator, is_paginated（由 ListView 自動提供）
+特色：保留現有 GET 參數（含篩選/搜尋）
+{% endcomment %}
+{% if is_paginated %}
+<nav class="flex items-center justify-between gap-3 mt-4 text-sm" aria-label="分頁">
+
+  <!-- 左：總筆數 -->
+  <div class="text-gray-500 text-xs">
+    第 {{ page_obj.start_index }}–{{ page_obj.end_index }} 筆 / 共 {{ paginator.count }} 筆
+  </div>
+
+  <!-- 右：頁碼按鈕 -->
+  <div class="flex items-center gap-1">
+
+    <!-- 第一頁 -->
+    {% if page_obj.number > 2 %}
+      <a href="{% querystring page=1 %}"
+         class="px-2 py-1 text-gray-500 hover:bg-gray-100 rounded text-xs"
+         title="第一頁">«</a>
+    {% endif %}
+
+    <!-- 上一頁 -->
+    {% if page_obj.has_previous %}
+      <a href="{% querystring page=page_obj.previous_page_number %}"
+         class="px-3 py-1 border border-gray-200 hover:bg-gray-100 rounded">‹</a>
+    {% else %}
+      <span class="px-3 py-1 border border-gray-100 text-gray-300 rounded cursor-not-allowed">‹</span>
+    {% endif %}
+
+    <!-- 頁碼（當前 ±2） -->
+    {% for num in paginator.page_range %}
+      {% if num == page_obj.number %}
+        <span class="px-3 py-1 bg-indigo-600 text-white rounded font-medium">{{ num }}</span>
+      {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+        <a href="{% querystring page=num %}"
+           class="px-3 py-1 border border-gray-200 hover:bg-gray-100 rounded">{{ num }}</a>
+      {% elif num == 1 or num == paginator.num_pages %}
+        {% if num < page_obj.number|add:"-2" or num > page_obj.number|add:"2" %}
+          <span class="px-1 text-gray-400">…</span>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+
+    <!-- 下一頁 -->
+    {% if page_obj.has_next %}
+      <a href="{% querystring page=page_obj.next_page_number %}"
+         class="px-3 py-1 border border-gray-200 hover:bg-gray-100 rounded">›</a>
+    {% else %}
+      <span class="px-3 py-1 border border-gray-100 text-gray-300 rounded cursor-not-allowed">›</span>
+    {% endif %}
+
+    <!-- 最後一頁 -->
+    {% if page_obj.number < paginator.num_pages|add:"-1" %}
+      <a href="{% querystring page=paginator.num_pages %}"
+         class="px-2 py-1 text-gray-500 hover:bg-gray-100 rounded text-xs"
+         title="最後一頁">»</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}

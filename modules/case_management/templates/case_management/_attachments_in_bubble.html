@@ -1,0 +1,21 @@
+{% comment %}附件顯示在訊息氣泡下方。參數：attachments, align (left/right){% endcomment %}
+{% if attachments %}
+<div class="mt-1.5 flex flex-wrap gap-1.5 {% if align == 'right' %}justify-end{% endif %} max-w-[80%]">
+  {% for a in attachments %}
+    {% with name=a.original_filename %}
+    {% if name|lower|slice:"-4:" == ".jpg" or name|lower|slice:"-4:" == ".png" or name|lower|slice:"-4:" == ".gif" or name|lower|slice:"-5:" == ".jpeg" or name|lower|slice:"-5:" == ".webp" %}
+      <a href="{{ a.file.url }}" target="_blank" class="block">
+        <img src="{{ a.file.url }}" alt="{{ name }}"
+             class="max-w-[200px] max-h-[200px] rounded-lg border border-gray-200 shadow-sm object-cover hover:opacity-90 transition">
+      </a>
+    {% else %}
+      <a href="{{ a.file.url }}" target="_blank"
+         class="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:border-indigo-300 shadow-sm transition">
+        <span class="text-base">📄</span>
+        <span class="max-w-[180px] truncate">{{ name }}</span>
+      </a>
+    {% endif %}
+    {% endwith %}
+  {% endfor %}
+</div>
+{% endif %}

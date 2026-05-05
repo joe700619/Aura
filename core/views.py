@@ -85,6 +85,32 @@ def dashboard(request):
         context['roc_year']   = _today.year - 1911
         context['roc_month']  = _today.month
 
+        # ── 案件管理（待我處理 / 等對方 / 追蹤到期）──
+        try:
+            from modules.case_management.models import Case
+            from django.db.models import Q
+            from django.utils import timezone as _tz
+            today = _tz.localdate()
+            user_cases = Case.objects.filter(
+                is_deleted=False, owner=request.user,
+            ).exclude(status__in=[Case.Status.DONE, Case.Status.ARCHIVED])
+            context['case_count_total'] = user_cases.count()
+            context['case_count_waiting_internal'] = user_cases.filter(status=Case.Status.WAITING_INTERNAL).count()
+            context['case_count_waiting_client'] = user_cases.filter(status=Case.Status.WAITING_CLIENT).count()
+            context['case_count_followup_due'] = user_cases.filter(
+                needs_followup=True, next_followup_date__lte=today,
+            ).count()
+            context['recent_cases'] = list(user_cases.filter(
+                Q(status=Case.Status.WAITING_INTERNAL) |
+                Q(needs_followup=True, next_followup_date__lte=today)
+            ).select_related('owner').order_by('-last_activity_at')[:6])
+        except Exception:
+            context['case_count_total'] = 0
+            context['case_count_waiting_internal'] = 0
+            context['case_count_waiting_client'] = 0
+            context['case_count_followup_due'] = 0
+            context['recent_cases'] = []
+
         # ── 系統布告欄（所有登入者皆顯示）──
         try:
             from modules.administrative.models.bulletin import SystemBulletin

@@ -1,0 +1,37 @@
+{# 預約諮詢 modal — 由 [data-open-modal] 觸發；目前送出僅顯示前端確認，後端 API 待之後加 #}
+<div class="modal-overlay" id="appointment-modal" data-modal>
+  <div class="modal" data-modal-content>
+    <div class="modal-header">
+      <h3 class="modal-title">
+        <span class="seal">約</span>
+        預約免費諮詢
+      </h3>
+      <button type="button" class="modal-close" data-close-modal aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="appointment-form" novalidate>
+        <div class="form-field">
+          <label class="form-label">姓名 <span class="req">*</span></label>
+          <input class="form-input" name="name" required />
+          <div class="form-error" data-error-for="name"></div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email <span class="req">*</span></label>
+          <input class="form-input" type="email" name="email" required />
+          <div class="form-error" data-error-for="email"></div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">電話 <span class="req">*</span></label>
+          <input class="form-input" name="phone" required />
+          <div class="form-error" data-error-for="phone"></div>
+        </div>
+        <div class="form-field full">
+          <label class="form-label">想討論什麼？</label>
+          <textarea class="form-textarea" name="topic" rows="4" placeholder="例：剛成立公司，需要了解記帳與報稅流程⋯"></textarea>
+        </div>
+        <button type="submit" class="form-submit">送出預約 →</button>
+        <div class="form-success" data-form-success>謝謝您。我們已收到訊息，將在 1 個工作日內回覆至您的 Email。</div>
+      </form>
+    </div>
+  </div>
+</div>
