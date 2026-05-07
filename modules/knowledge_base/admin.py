@@ -6,15 +6,15 @@ from .models import KnowledgeEntry
 
 @admin.register(KnowledgeEntry)
 class KnowledgeEntryAdmin(admin.ModelAdmin):
-    list_display = ['question_summary_short', 'category', 'visibility', 'is_verified', 'embedding_status', 'created_at']
-    list_filter = ['category', 'visibility', 'is_verified']
+    list_display = ['question_summary_short', 'domain', 'category', 'visibility', 'is_verified', 'embedding_status', 'created_at']
+    list_filter = ['domain', 'category', 'visibility', 'is_verified']
     search_fields = ['question_summary', 'answer_summary']
     readonly_fields = ['embedding_model', 'embedding_updated_at', 'verified_by', 'verified_at', 'created_at', 'updated_at']
     actions = ['verify_entries', 'generate_embeddings']
 
     fieldsets = (
-        ('內容', {'fields': ('question_summary', 'answer_summary', 'category')}),
-        ('設定', {'fields': ('visibility', 'valid_until', 'source_case', 'created_by')}),
+        ('內容', {'fields': ('domain', 'question_summary', 'answer_summary', 'checklist', 'category')}),
+        ('設定', {'fields': ('visibility', 'valid_until', 'source_case', 'source_registration', 'created_by')}),
         ('審核', {'fields': ('is_verified', 'verified_by', 'verified_at')}),
         ('Embedding', {'fields': ('embedding_model', 'embedding_updated_at'), 'classes': ('collapse',)}),
     )

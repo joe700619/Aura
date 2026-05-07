@@ -11,4 +11,6 @@ urlpatterns = [
     path('extract/case/<int:case_pk>/', views.KnowledgeExtractView.as_view(), name='extract_from_case'),
     path('suggest/case/<int:case_pk>/', views.KnowledgeSuggestView.as_view(), name='suggest_for_case'),
     path('apply-checklist/case/<int:case_pk>/', views.KnowledgeApplyChecklistView.as_view(), name='apply_checklist_to_case'),
+    path('api/search/', views.KnowledgeApiSearchView.as_view(), name='api_search'),
+    path('api/create/', views.KnowledgeApiCreateView.as_view(), name='api_create'),
 ]

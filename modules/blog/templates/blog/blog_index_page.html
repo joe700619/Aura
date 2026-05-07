@@ -1,0 +1,106 @@
+{% extends "public_site/base.html" %}
+{% load static wagtailcore_tags wagtailimages_tags %}
+
+{% block title %}{{ page.title }} · 勤信部落格{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/blog.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="blog-hero">
+  <div class="container">
+    <div class="blog-hero-head">
+      <div class="blog-mast">
+        <span class="bm-jp">{{ page.intro_jp|default:"勤信季刊" }}</span>
+        <span class="bm-en">{{ page.intro_en|default:"QUARTERLY" }}</span>
+        <span class="bm-meta">VOL. {{ mast_vol }} · {{ mast_month_en }} {{ mast_year }} · 共 {{ mast_count }} 篇</span>
+      </div>
+      <h1 class="blog-hero-title">{{ page.hero_title|default:page.title|safe }}</h1>
+      {% if page.hero_sub %}<p class="blog-hero-sub">{{ page.hero_sub|linebreaksbr }}</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+{% if featured %}
+<section class="blog-featured">
+  <div class="container">
+    <div class="blog-featured-head">
+      <span class="section-num" style="display:block; margin-bottom:12px">FEATURED</span>
+      <h2 class="section-title" style="margin:0">本期精選</h2>
+    </div>
+    <div class="blog-featured-grid">
+      {% for post in featured %}
+        <article class="blog-feature-card">
+          <div class="bfc-cover">
+            {% if post.specific.cover %}{% image post.specific.cover fill-720x540 %}{% endif %}
+            {% with cats=post.specific.categories.all %}
+              {% if cats %}<div class="bfc-cat">{{ cats.0.name }}</div>{% endif %}
+            {% endwith %}
+          </div>
+          <div class="bfc-body">
+            <div class="bfc-meta">
+              {% if post.specific.publish_date %}<span>{{ post.specific.publish_date|date:"Y.m.d" }}</span>{% else %}<span>{{ post.first_published_at|date:"Y.m.d" }}</span>{% endif %}
+              {% if post.specific.read_minutes %}<span>· {{ post.specific.read_minutes }} 分鐘</span>{% endif %}
+            </div>
+            <h3 class="bfc-title"><a href="{% pageurl post %}" style="color:inherit">{{ post.title }}</a></h3>
+            <p class="bfc-excerpt">{{ post.specific.lead|truncatechars:140 }}</p>
+            {% with author=post.specific.authors.first %}
+              {% if author %}
+                <div class="bfc-author">
+                  <div class="bfc-avatar">{{ author.avatar_initial|default:author.name|slice:":1" }}</div>
+                  <div>
+                    <div class="bfc-author-name">{{ author.name }}</div>
+                    <div class="bfc-author-role">{{ author.role }}</div>
+                  </div>
+                </div>
+              {% endif %}
+            {% endwith %}
+            <a class="bfc-link" href="{% pageurl post %}">繼續閱讀 →</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" style="padding-top: 80px">
+  <div class="container">
+    <div class="blog-list-head">
+      <h2 class="section-title" style="margin:0">所有文章</h2>
+      <div class="blog-cats">
+        <a href="?" class="blog-cat {% if not active_cat %}active{% endif %}">全部</a>
+        {% for c in categories %}
+          <a href="?cat={{ c.slug }}" class="blog-cat {% if active_cat == c.slug %}active{% endif %}">{{ c.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if rest %}
+      <div class="blog-grid">
+        {% for post in rest %}
+          <article class="blog-card" onclick="window.location='{% pageurl post %}'">
+            <div class="blog-card-cover">
+              {% if post.specific.cover %}{% image post.specific.cover fill-540x405 %}{% endif %}
+            </div>
+            <div class="blog-card-body">
+              {% with cats=post.specific.categories.all %}
+                {% if cats %}<div class="blog-card-cat">{{ cats.0.name }}</div>{% endif %}
+              {% endwith %}
+              <h3 class="blog-card-title">{{ post.title }}</h3>
+              <p class="blog-card-excerpt">{{ post.specific.lead }}</p>
+              <div class="blog-card-foot">
+                {% if post.specific.publish_date %}<span>{{ post.specific.publish_date|date:"Y.m.d" }}</span>{% else %}<span>{{ post.first_published_at|date:"Y.m.d" }}</span>{% endif %}
+                {% if post.specific.read_minutes %}<span>· {{ post.specific.read_minutes }} min</span>{% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="blog-empty">尚無文章</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

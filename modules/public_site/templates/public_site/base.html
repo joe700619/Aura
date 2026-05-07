@@ -8,13 +8,8 @@
 
   <link rel="stylesheet" href="{% static 'public_site/css/colors_and_type.css' %}">
   <link rel="stylesheet" href="{% static 'public_site/css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'public_site/css/subpage-styles.css' %}">
   {% block extra_css %}{% endblock %}
-
-  <style>
-    .brand-logo-img { height: 26px !important; width: auto !important; }
-    .navbar-inner .brand-name-cn { font-size: 12px !important; }
-    .navbar-inner .brand-name-en { font-size: 8px !important; }
-  </style>
 </head>
 <body>
   {% include "public_site/partials/navbar.html" %}
@@ -24,6 +19,7 @@
   {% include "public_site/partials/footer.html" %}
   {% include "public_site/partials/appointment_modal.html" %}
 
+  <script src="{% static 'public_site/js/landing.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

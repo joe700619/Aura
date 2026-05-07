@@ -1,0 +1,9 @@
+<div class="article-timeline">
+  {% for item in value.items %}
+    <div class="tl-item">
+      <div class="tl-date">{{ item.date }}</div>
+      <div class="tl-title">{{ item.title }}</div>
+      {% if item.desc %}<div class="tl-desc">{{ item.desc|linebreaksbr }}</div>{% endif %}
+    </div>
+  {% endfor %}
+</div>

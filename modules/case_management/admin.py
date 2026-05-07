@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Case, CaseTask, CaseReply, CaseAttachment,
     CaseAccessToken, CaseNotificationPreference, CaseNotificationLog,
+    Inquiry,
 )
 
 
@@ -84,3 +85,18 @@ class CaseNotificationLogAdmin(admin.ModelAdmin):
     search_fields = ('recipient_email', 'case__title')
     readonly_fields = ('case', 'event', 'channel', 'recipient_user', 'recipient_email',
                        'sent_at', 'error_message', 'created_at', 'updated_at')
+
+
+@admin.register(Inquiry)
+class InquiryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone', 'email', 'stage', 'source', 'status', 'handled_by', 'created_at')
+    list_filter = ('status', 'source', 'stage')
+    search_fields = ('name', 'email', 'phone', 'company', 'message')
+    readonly_fields = ('source', 'referer', 'ip', 'user_agent', 'created_at', 'updated_at')
+    fieldsets = (
+        ('客戶資訊', {'fields': ('name', 'email', 'phone', 'company', 'stage', 'message')}),
+        ('處理狀態', {'fields': ('status', 'handled_by', 'note')}),
+        ('來源資訊', {'fields': ('source', 'referer', 'ip', 'user_agent', 'created_at', 'updated_at')}),
+    )
+    list_select_related = ('handled_by',)
+    date_hierarchy = 'created_at'

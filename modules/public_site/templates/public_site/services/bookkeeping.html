@@ -1,0 +1,386 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block title %}記帳服務 · 勤信聯合會計師事務所{% endblock %}
+
+{% block content %}
+<section class="sub-hero">
+  <div class="container">
+    <div class="sub-hero-grid">
+      <div class="sub-hero-text">
+        <div class="sub-hero-eyebrow"><span class="seal">記</span><span>記帳服務 · BOOKKEEPING</span></div>
+        <h1 class="sub-hero-title">讓帳本<span class="accent-mark">會說話</span></h1>
+        <p class="sub-hero-sub">不只是傳票登錄。<br/>每月一份能看懂的財務報表，<br/>讓你掌握公司的經營脈動。</p>
+        <div class="sub-hero-actions">
+          <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+        </div>
+      </div>
+      <div class="sub-hero-visual">
+        <div class="ledger-illust">
+          <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="bk-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5efe2"/><stop offset="100%" stop-color="#d8c9a8"/></linearGradient>
+              <linearGradient id="bk-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fdf8ec"/><stop offset="100%" stop-color="#f0e6cf"/></linearGradient>
+            </defs>
+            <rect width="400" height="500" fill="url(#bk-bg)"/>
+            <g transform="translate(50 80)">
+              <rect width="300" height="340" fill="url(#bk-paper)" stroke="#a89878" stroke-width="1"/>
+              <line x1="150" y1="0" x2="150" y2="340" stroke="#a89878" stroke-width="1"/>
+              <text x="20" y="22" font-family="serif" font-size="13" fill="#3a2f1f">總分類帳</text>
+              <text x="166" y="22" font-family="serif" font-size="13" fill="#3a2f1f">明細表</text>
+            </g>
+            <g transform="translate(80 430) rotate(-12)"><rect width="120" height="6" fill="#a0332a" rx="3"/><rect width="20" height="6" fill="#1a1816" rx="3"/></g>
+          </svg>
+          <div class="illust-tag"><span>記帳 · BOOKKEEPING</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# Tech advantage #}
+<section class="sub-section tech-advantage">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">OUR EDGE · 資訊化能力</div>
+      <h2 class="sub-section-title">不只是記帳，<br/>是把事務所做成<span class="accent-mark">數位產品</span></h2>
+      <p class="sub-section-sub">多數事務所，仍停在電話、紙本、Excel 表單。我們投資自有後台系統，讓每一個煩人的細節都被自動化、被記錄、被即時取用。</p>
+    </div>
+    <div class="tech-stats">
+      <div class="tech-stat"><div class="tsv">24h</div><div class="tsl">全天候檔案存取</div><div class="tss">無需等待任何人</div></div>
+      <div class="tech-stat"><div class="tsv">自動</div><div class="tsl">LINE 通知排程</div><div class="tss">重要事項不漏接</div></div>
+      <div class="tech-stat"><div class="tsv">即時</div><div class="tsl">稅務試算與健檢</div><div class="tss">全年隨時可查</div></div>
+      <div class="tech-stat"><div class="tsv">線上</div><div class="tsl">勞務報酬全流程</div><div class="tss">零紙本、免跑銀行</div></div>
+    </div>
+  </div>
+
+  {# Pain stories #}
+  <div class="pain-stories">
+
+    {# Story 01 — File vault #}
+    <div class="pain-story">
+      <div class="container pain-grid">
+        <div class="ps-text">
+          <div class="ps-num">PAIN POINT · 01</div>
+          <h3 class="ps-pain">「那個會計小姐又不在了…」</h3>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>傳統事務所只能透過電話、LINE 索取檔案，承辦助理請假、離職、忙線，你就只能等。投標、申貸、稽核臨時要用一份報表，常常拿不到。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>曾有客戶因等不到上年度財報、錯失 800 萬政府標案投標時間。</p></div></div>
+          <div class="ps-arrow-down">↓</div>
+          <div class="ps-solution">
+            <div class="ps-solution-eyebrow">勤信的解法</div>
+            <h4>你的檔案，本來就該屬於你。</h4>
+            <p>我們建立專屬於你的雲端檔案庫，所有財報、傳票、申報書、扣繳憑單，從第一份到最新一份，全部分類歸檔，24 小時自助下載。</p>
+            <ul><li><span class="ps-bullet"></span>所有歷史檔案一次到位</li><li><span class="ps-bullet"></span>權限分級，會計、老闆各看各的</li><li><span class="ps-bullet"></span>下載紀錄完整可追溯</li></ul>
+          </div>
+        </div>
+        <div class="ps-visual">
+          <div class="ps-visual-wrap">
+            <div class="ui-mock">
+              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / files</div></div>
+              <div class="um-body um-vault">
+                <div class="umv-head">
+                  <div class="umv-title"><span class="umv-icon">📁</span><div><div class="umv-h">我的檔案庫</div><div class="umv-sub">康晉企業有限公司 · 共 142 份文件</div></div></div>
+                  <div class="umv-search">🔍 搜尋檔案…</div>
+                </div>
+                <div class="umv-tabs"><span class="umv-tab active">全部</span><span class="umv-tab">財務報表 <em>32</em></span><span class="umv-tab">稅務申報 <em>48</em></span><span class="umv-tab">憑證</span><span class="umv-tab">合約文件</span></div>
+                <div class="umv-table">
+                  <div class="umv-thead"><span>檔案名稱</span><span>更新日期</span><span>大小</span><span></span></div>
+                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>2026-Q1 損益表.pdf</span><span class="umv-d">2026/04/15</span><span class="umv-sz">284 KB</span><span class="umv-dl">↓ 下載</span></div>
+                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>2026-Q1 資產負債表.pdf</span><span class="umv-d">2026/04/15</span><span class="umv-sz">312 KB</span><span class="umv-dl">↓ 下載</span></div>
+                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>114 年度營所稅申報書.pdf</span><span class="umv-d">2026/03/28</span><span class="umv-sz">1.2 MB</span><span class="umv-dl">↓ 下載</span></div>
+                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>3 月營業稅申報.pdf</span><span class="umv-d">2026/04/10</span><span class="umv-sz">198 KB</span><span class="umv-dl">↓ 下載</span></div>
+                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>3 月扣繳憑單匯總.xlsx</span><span class="umv-d">2026/04/02</span><span class="umv-sz">56 KB</span><span class="umv-dl">↓ 下載</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+        </div>
+      </div>
+    </div>
+
+    {# Story 02 — LINE notify #}
+    <div class="pain-story flip">
+      <div class="container pain-grid">
+        <div class="ps-text">
+          <div class="ps-num">PAIN POINT · 02</div>
+          <h3 class="ps-pain">「我有打過電話啊。」——但你沒接到。</h3>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>報稅、補件、繳款，一個訊息漏掉就是罰鍰。傳統事務所靠人工撥打通知，你沒接到、沒回撥、沒記住，責任最後常常還是落在客戶身上。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>營業稅遲繳一日就加徵 1% 滯納金，加上利息、加上未開立發票罰鍰，一通沒接到的電話可能就是六位數。</p></div></div>
+          <div class="ps-arrow-down">↓</div>
+          <div class="ps-solution">
+            <div class="ps-solution-eyebrow">勤信的解法</div>
+            <h4>重要的事，系統不會忘。</h4>
+            <p>所有時程都由系統排程，到期前自動發送 LINE 通知與 Email 提醒，含應辦事項、金額、到期日、行動連結，一次到位。</p>
+            <ul><li><span class="ps-bullet"></span>排程通知，不依賴特定承辦人</li><li><span class="ps-bullet"></span>LINE + Email 雙通道</li><li><span class="ps-bullet"></span>已讀／未讀狀態雙方都看得到</li></ul>
+          </div>
+        </div>
+        <div class="ps-visual">
+          <div class="ps-visual-wrap">
+            <div class="ui-mock ui-line">
+              <div class="ul-head"><div class="ul-avatar">勤</div><div><div class="ul-name">勤信會計師事務所</div><div class="ul-status">官方帳號 · 已加入</div></div><div class="ul-bell">🔔</div></div>
+              <div class="ul-body">
+                <div class="ul-msg"><div class="ul-time">今天 09:00</div><div class="ul-card"><div class="ul-card-title">📌 4 月營業稅申報期限提醒</div><div class="ul-card-body">距離申報截止還有 5 天 (4/15)。請於 4/12 前提供 3 月份進銷項憑證。</div><button type="button" class="ul-card-btn">前往上傳 →</button></div></div>
+                <div class="ul-msg"><div class="ul-time">昨天 14:30</div><div class="ul-card"><div class="ul-card-title">✅ 114 年度營所稅試算完成</div><div class="ul-card-body">預估應補稅 NT$ 87,500。已附上節稅建議報告，請查閱。</div><button type="button" class="ul-card-btn">查看報告 →</button></div></div>
+                <div class="ul-msg"><div class="ul-time">04/01 10:15</div><div class="ul-card"><div class="ul-card-title">⚠️ 待補件提醒</div><div class="ul-card-body">3 月份有 2 張憑證金額無法辨識，請補上正確資料。</div><button type="button" class="ul-card-btn">立即補件 →</button></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+        </div>
+      </div>
+    </div>
+
+    {# Story 03 — Labor income form #}
+    <div class="pain-story">
+      <div class="container pain-grid">
+        <div class="ps-text">
+          <div class="ps-num">PAIN POINT · 03</div>
+          <h3 class="ps-pain">勞務報酬：紙本、紙本、再紙本。</h3>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>客戶手寫填單 → 交給所得人簽名 → 寄回事務所 → 上網填扣繳書 → 自己跑銀行繳款。一份單據走 5 個動作，紙本容易丟、稅款容易忘繳，年底結算還對不上帳。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>扣繳稅款逾期未繳，最高補繳稅款的 3 倍罰鍰；年底申報對不上，又得回頭一張一張找紙本。</p></div></div>
+          <div class="ps-arrow-down">↓</div>
+          <div class="ps-solution">
+            <div class="ps-solution-eyebrow">勤信的解法</div>
+            <h4>我們把整個流程，做成一支程式。</h4>
+            <p>線上填寫 → 自動 Email 給所得人簽認 → 系統當場產出扣繳繳款書 → 開啟自動扣款，連跑銀行都免了。零紙本、零遺漏、零延遲。</p>
+            <ul><li><span class="ps-bullet"></span>全流程 1 站完成，5 步驟變 1 步驟</li><li><span class="ps-bullet"></span>自動產生扣繳憑單，年底直接匯總</li><li><span class="ps-bullet"></span>可選自動扣款，繳稅免出門</li></ul>
+          </div>
+        </div>
+        <div class="ps-visual">
+          <div class="ps-visual-wrap">
+            <div class="ui-mock">
+              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / labor-income</div></div>
+              <div class="um-body um-labor">
+                <div class="umv-head"><div class="umv-title"><div><div class="umv-h">勞務報酬發放</div><div class="umv-sub">2026 年 4 月 · 共 8 筆 · 全部完成</div></div></div><button type="button" class="ull-new">+ 新增發放</button></div>
+                <div class="ull-flow">
+                  <div class="ull-step done"><div class="ull-dot">1</div><div class="ull-l">線上填寫</div></div><div class="ull-bar"></div>
+                  <div class="ull-step done"><div class="ull-dot">2</div><div class="ull-l">所得人確認</div></div><div class="ull-bar"></div>
+                  <div class="ull-step done"><div class="ull-dot">3</div><div class="ull-l">產生扣繳書</div></div><div class="ull-bar"></div>
+                  <div class="ull-step done"><div class="ull-dot">4</div><div class="ull-l">自動扣款</div></div>
+                </div>
+                <div class="ull-table">
+                  <div class="ull-thead"><span>所得人</span><span>類別</span><span>金額</span><span>稅款</span><span>狀態</span></div>
+                  <div class="ull-row"><span>陳○華</span><span class="ull-tag">9A 執行業務</span><span class="ull-num">$30,000</span><span class="ull-num">$3,000</span><span class="ull-status">● 已扣繳</span></div>
+                  <div class="ull-row"><span>林○宏</span><span class="ull-tag">50 薪資</span><span class="ull-num">$45,000</span><span class="ull-num">$0</span><span class="ull-status">● 已扣繳</span></div>
+                  <div class="ull-row"><span>王○芬</span><span class="ull-tag">9B 稿費</span><span class="ull-num">$18,000</span><span class="ull-num">$1,800</span><span class="ull-status">● 已扣繳</span></div>
+                  <div class="ull-row"><span>張○德</span><span class="ull-tag">9A 執行業務</span><span class="ull-num">$22,000</span><span class="ull-num">$2,200</span><span class="ull-status">● 已扣繳</span></div>
+                </div>
+                <div class="ull-foot"><span>本期合計　應發 <strong>NT$ 115,000</strong> · 代扣稅款 <strong>NT$ 7,000</strong></span><span class="ull-auto">⚡ 已開啟自動扣款</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+        </div>
+      </div>
+    </div>
+
+    {# Story 04 — Tax simulator #}
+    <div class="pain-story flip">
+      <div class="container pain-grid">
+        <div class="ps-text">
+          <div class="ps-num">PAIN POINT · 04</div>
+          <h3 class="ps-pain">「五月才知道要繳這麼多？」</h3>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>傳統作法是年度結束、帳務完成後才試算稅額，老闆通常 4、5 月才被通知要補多少稅。等發現金額不對勁，節稅、調整、現金佈局的時間全部歸零。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>一通五月的電話，可能就是七位數的補稅、外加打亂整年的現金流規劃。</p></div></div>
+          <div class="ps-arrow-down">↓</div>
+          <div class="ps-solution">
+            <div class="ps-solution-eyebrow">勤信的解法</div>
+            <h4>稅，是全年都該知道的事。</h4>
+            <p>我們的系統隨帳本即時試算，本期淨利、預估稅額、可採用的節稅工具，全年任何一天打開都能看到。提早佈局、提早決策，而不是事後補救。</p>
+            <ul><li><span class="ps-bullet"></span>每月隨帳本自動更新預估稅額</li><li><span class="ps-bullet"></span>投抵、折舊、盈餘分配等策略量化呈現</li><li><span class="ps-bullet"></span>可對比不同決策下的稅負差異</li></ul>
+          </div>
+        </div>
+        <div class="ps-visual">
+          <div class="ps-visual-wrap">
+            <div class="ui-mock">
+              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / tax-simulator</div></div>
+              <div class="um-body um-sim">
+                <div class="umv-head"><div class="umv-title"><div><div class="umv-h">114 年度 · 營所稅即時試算</div><div class="umv-sub">截至 2026/04/30 · 隨帳本即時更新</div></div></div><div class="usim-live">● LIVE</div></div>
+                <div class="usim-grid">
+                  <div class="usim-card"><div class="usim-l">本期淨利</div><div class="usim-v">NT$ 2,840,000</div><div class="usim-t up">↑ 較去年同期 +18%</div></div>
+                  <div class="usim-card"><div class="usim-l">預估應納稅額</div><div class="usim-v hl">NT$ 568,000</div><div class="usim-t">稅率 20%</div></div>
+                  <div class="usim-card"><div class="usim-l">已預繳</div><div class="usim-v">NT$ 320,000</div><div class="usim-t">暫繳 + 扣抵</div></div>
+                  <div class="usim-card alert"><div class="usim-l">預估應補</div><div class="usim-v">NT$ 248,000</div><div class="usim-t">建議 2026/05 前準備</div></div>
+                </div>
+                <div class="usim-strat">
+                  <div class="usim-strat-h">💡 系統建議的節稅策略</div>
+                  <ul>
+                    <li><span class="us-tag">研發投抵</span>本期研發費用 NT$ 420,000，可抵減稅額約 <strong>NT$ 63,000</strong></li>
+                    <li><span class="us-tag">設備加速折舊</span>10 月新購機台適用，可遞延稅負約 <strong>NT$ 38,000</strong></li>
+                    <li><span class="us-tag">盈餘分配</span>建議於 2026/06 前完成分派，可避免 5% 未分配稅</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+        </div>
+      </div>
+    </div>
+
+    {# Story 05 — Tax health #}
+    <div class="pain-story">
+      <div class="container pain-grid">
+        <div class="ps-text">
+          <div class="ps-num">PAIN POINT · 05</div>
+          <h3 class="ps-pain">「我的公司會被查嗎？」沒人答得出來。</h3>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>查帳風險高低，傳統上只能靠資深會計師憑經驗判斷，老闆完全無從得知自己公司哪些指標在邊緣、哪些已超出常規。等到收到調帳通知，往往已經太晚。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>國稅局調帳一旦展開，往往追溯 3–5 年，補稅 + 罰鍰常以百萬計，更別說那段時間的精神壓力與會計成本。</p></div></div>
+          <div class="ps-arrow-down">↓</div>
+          <div class="ps-solution">
+            <div class="ps-solution-eyebrow">勤信的解法</div>
+            <h4>讓系統幫你看醫生。</h4>
+            <p>我們開發稅務健檢模組，自動分析十幾項財務指標——毛利率、費用率、關係人交易、存貨周轉等等——對照同業常規與國稅局關注點，量化你的查核風險，並給出優先處理建議。</p>
+            <ul><li><span class="ps-bullet"></span>12+ 項財務與稅務風險指標</li><li><span class="ps-bullet"></span>對照同業與歷史數據自動分級</li><li><span class="ps-bullet"></span>給出具體可執行的改善建議</li></ul>
+          </div>
+        </div>
+        <div class="ps-visual">
+          <div class="ps-visual-wrap">
+            <div class="ui-mock">
+              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / tax-health</div></div>
+              <div class="um-body um-health">
+                <div class="umv-head"><div class="umv-title"><div><div class="umv-h">稅務健檢報告</div><div class="umv-sub">114 年度 · 共 12 項指標 · 自動分析</div></div></div></div>
+                <div class="uth-score">
+                  <svg viewBox="0 0 200 110" class="uth-gauge">
+                    <path d="M20 100 A80 80 0 0 1 180 100" stroke="#e8e2d3" stroke-width="14" fill="none" stroke-linecap="round"/>
+                    <path d="M20 100 A80 80 0 0 1 152 36" stroke="#7a9b6e" stroke-width="14" fill="none" stroke-linecap="round"/>
+                  </svg>
+                  <div class="uth-score-text"><div class="uth-score-v">B+</div><div class="uth-score-l">查帳風險：偏低</div><div class="uth-score-d">12 項指標中，9 項正常、2 項留意、1 項需處理</div></div>
+                </div>
+                <div class="uth-grid">
+                  <div class="uth-cell lv-low"><div class="uth-cell-l">毛利率異動</div><div class="uth-cell-v">● 正常</div></div>
+                  <div class="uth-cell lv-low"><div class="uth-cell-l">費用率波動</div><div class="uth-cell-v">● 正常</div></div>
+                  <div class="uth-cell lv-low"><div class="uth-cell-l">進銷項比對</div><div class="uth-cell-v">● 正常</div></div>
+                  <div class="uth-cell lv-mid"><div class="uth-cell-l">關係人交易</div><div class="uth-cell-v">● 留意</div></div>
+                  <div class="uth-cell lv-mid"><div class="uth-cell-l">負責人往來</div><div class="uth-cell-v">● 留意</div></div>
+                  <div class="uth-cell lv-high"><div class="uth-cell-l">存貨周轉率</div><div class="uth-cell-v">● 偏高風險</div></div>
+                  <div class="uth-cell lv-low"><div class="uth-cell-l">應收應付天期</div><div class="uth-cell-v">● 正常</div></div>
+                  <div class="uth-cell lv-low"><div class="uth-cell-l">薪資 vs 同業</div><div class="uth-cell-v">● 正常</div></div>
+                </div>
+                <div class="uth-rec"><div class="uth-rec-h">建議優先處理</div><p>存貨周轉率較同業低 38%，國稅局可能質疑虛增存貨。建議盤點實體存貨並調整入帳方式。</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container tech-summary">
+    <div class="ts-line"></div>
+    <div class="ts-text">
+      <div class="ts-eyebrow">— 我們相信 —</div>
+      <p>會計師事務所的價值，不只是「把帳記對」，<br/>而是讓客戶<span class="ts-em">每一個當下</span>都能掌握自己的數字、風險、與選擇。</p>
+    </div>
+    <div class="ts-line"></div>
+  </div>
+</section>
+
+{# Service grid #}
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">WHAT YOU GET · 服務內容</div>
+      <h2 class="sub-section-title">從帳本到報表，一條龍處理</h2>
+    </div>
+    <div class="service-grid-3">
+      <div class="service-card"><div class="service-num">01</div><h3>日常帳務</h3><ul><li>憑證整理 · 編號歸檔</li><li>傳票登錄 · 試算表</li><li>每月帳務結算</li></ul></div>
+      <div class="service-card"><div class="service-num">02</div><h3>稅務申報</h3><ul><li>營業稅 · 雙月申報</li><li>營所稅 · 暫繳結算</li><li>扣繳憑單 · 二代健保</li></ul></div>
+      <div class="service-card"><div class="service-num">03</div><h3>財務報表</h3><ul><li>月報 · 損益表</li><li>季報 · 資產負債表</li><li>年報 · 現金流量表</li></ul></div>
+    </div>
+  </div>
+</section>
+
+{# Process #}
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">PROCESS · 合作流程</div>
+      <h2 class="sub-section-title">從第一張憑證到月報，6 步驟</h2>
+    </div>
+    <div class="process-row">
+      <div class="process-step"><div class="ps-num">01</div><div class="ps-title">建檔諮詢</div><div class="ps-desc">了解公司型態 · 帳務需求</div></div>
+      <div class="process-step"><div class="ps-num">02</div><div class="ps-title">憑證收件</div><div class="ps-desc">每月固定日期收件 · 雲端上傳</div></div>
+      <div class="process-step"><div class="ps-num">03</div><div class="ps-title">記帳作業</div><div class="ps-desc">傳票編製 · 分類入帳</div></div>
+      <div class="process-step"><div class="ps-num">04</div><div class="ps-title">稅務申報</div><div class="ps-desc">準時繳納 · 風險提醒</div></div>
+      <div class="process-step"><div class="ps-num">05</div><div class="ps-title">財報出具</div><div class="ps-desc">財務分析 · 經營建議</div></div>
+      <div class="process-step"><div class="ps-num">06</div><div class="ps-title">年度結算</div><div class="ps-desc">營所稅 · 股東分潤</div></div>
+    </div>
+  </div>
+</section>
+
+{# Service scope #}
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">SERVICE SCOPE · 服務範圍</div>
+      <h2 class="sub-section-title">一份月費，包含的服務</h2>
+      <p class="sub-section-sub">完整的記帳、申報、稅務管理，加上專屬於勤信的數位化服務。</p>
+    </div>
+    <div class="scope-wrap">
+      <div class="scope-grid">
+        <div class="scope-item"><div class="sci-num">01</div><div class="sci-body"><div class="sci-title">雙月營業稅申報</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">02</div><div class="sci-body"><div class="sci-title">會計處理服務</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">03</div><div class="sci-body"><div class="sci-title">年度所得稅申報</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">04</div><div class="sci-body"><div class="sci-title">年度扣繳申報</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">05</div><div class="sci-body"><div class="sci-title">年度盈餘分配申報</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">06</div><div class="sci-body"><div class="sci-title">稅務報表分析</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">07</div><div class="sci-body"><div class="sci-title">無限制下載檔案</div><div class="sci-tag">勤信獨家</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item hl"><div class="sci-num">08</div><div class="sci-body"><div class="sci-title">免費線上勞務報酬單</div><div class="sci-tag">勤信獨家</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item"><div class="sci-num">09</div><div class="sci-body"><div class="sci-title">LINE 自動通知</div><div class="sci-tag">勤信獨家</div></div><div class="sci-check">✓</div></div>
+        <div class="scope-item addon"><div class="sci-num">10</div><div class="sci-body"><div class="sci-title">公司法 22-1 申報</div><div class="sci-tag addon-tag">加價選購</div></div><div class="sci-check">+</div></div>
+      </div>
+      <div class="scope-cta">
+        <div class="sct-note">
+          <span class="sct-note-icon">ⓘ</span>
+          <p>依會計師職業相關規範，記帳業務不便於網路公開報價。<br/>實際費用依公司規模、憑證數量、產業屬性而定，請與我們聯繫提供您的需求。</p>
+        </div>
+        <a class="btn-line-lg" href="https://line.me/R/ti/p/@qinxin" target="_blank" rel="noopener noreferrer">
+          <span class="btn-line-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M19.365 9.89c.50 0 .906.41.906.91s-.406.91-.906.91h-2.733v1.83h2.733c.5 0 .906.41.906.91s-.406.91-.906.91h-3.642a.91.91 0 0 1-.906-.91V8.07c0-.5.406-.91.906-.91h3.642c.5 0 .906.41.906.91s-.406.91-.906.91h-2.733v1.82h2.733zM13.81 14.36a.91.91 0 0 1-.733-.366l-3.738-5.077v4.533c0 .5-.405.91-.91.91a.91.91 0 0 1-.906-.91V8.07c0-.39.247-.74.616-.866.092-.03.184-.044.29-.044.282 0 .55.137.728.377l3.747 5.077V8.07c0-.5.406-.91.911-.91.5 0 .91.41.91.91v6.38c0 .39-.247.736-.612.86a.96.96 0 0 1-.293.05zM6.587 14.36a.91.91 0 0 1-.91-.91V8.07c0-.5.406-.91.91-.91s.91.41.91.91v6.38c0 .5-.405.91-.91.91zM4.954 14.36H1.31a.91.91 0 0 1-.91-.91V8.07c0-.5.41-.91.91-.91s.91.41.91.91v5.47h2.732c.5 0 .906.41.906.91s-.406.91-.906.91zM24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.815 4.27 8.846 10.035 9.608.39.085.923.258 1.058.59.122.302.08.776.04 1.082l-.171 1.027c-.053.302-.241 1.186 1.039.647 1.28-.539 6.911-4.069 9.43-6.967 1.74-1.907 2.57-3.843 2.57-5.987z"/>
+            </svg>
+          </span>
+          透過 LINE 取得報價
+          <span class="btn-line-arrow">→</span>
+        </a>
+        <div class="sct-sub">回覆通常在 1 個工作日內</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FAQ #}
+<section class="section faq alt-bg">
+  <div class="container">
+    <div class="faq-grid">
+      <div class="faq-side">
+        <span class="section-num" style="display:block; margin-bottom:16px">FAQ / 常見問題</span>
+        <h2>還有疑問？</h2>
+        <p>這些是準客戶最常問的問題。<br/>如果你的問題不在其中，<br/>歡迎直接聯絡我們。</p>
+        <a href="#" class="faq-contact" data-open-modal>直接聯絡我們 →</a>
+      </div>
+      <ul class="faq-list">
+        <li class="faq-item open"><button type="button" class="faq-q"><span>我可以中途轉到勤信記帳嗎？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">當然可以。我們會協助你跟原會計師交接，並把過往帳目重新整理到我們的系統。轉移期間不收額外費用。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>報表多久能拿到？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">每月 15 日前完成上個月帳務並出具報表。年度營所稅與年度報表於 5 月底前送出。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>如果國稅局來函查核怎麼辦？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">我們會代表你回覆，並全程協助處理。所有客戶皆享有「函詢回覆」服務，不收額外費用。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>可以只委託部分服務嗎？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">可以。例如只做申報、不含記帳；或只做某幾個月份。我們可以客製方案。</div></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sub-cta">
+  <div class="container">
+    <h2>準備好升級你的記帳體驗了嗎？</h2>
+    <p>30 分鐘免費諮詢，了解你的需求、給你具體建議。</p>
+    <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'public_site/js/subpage.js' %}"></script>
+{% endblock %}

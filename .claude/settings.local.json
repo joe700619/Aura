@@ -9,7 +9,17 @@
       "Bash(python manage.py shell -c \"from django.urls import reverse; print\\(reverse\\('internal_accounting:collection_edit', args=[1]\\)\\)\")",
       "Bash(python -c ' *)",
       "Read(//c/Users/joe70/PythonProject/website/**)",
-      "Bash(python manage.py runserver 8765)"
+      "Bash(python manage.py runserver 8765)",
+      "Bash(python -c \"import django; print\\('django', django.get_version\\(\\)\\)\")",
+      "Bash(python -c \"import sys; print\\('python', sys.version\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c \"import wagtail; print\\('wagtail', wagtail.VERSION\\)\")",
+      "Bash(mkdir -p \"c:/Users/joe70/PythonProject/Aura/modules/blog/migrations\" \"c:/Users/joe70/PythonProject/Aura/modules/blog/templates/blog\")",
+      "Bash(touch \"c:/Users/joe70/PythonProject/Aura/modules/blog/migrations/__init__.py\")",
+      "Bash(python manage.py migrate)",
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs wc -l)"
     ]
   }
 }

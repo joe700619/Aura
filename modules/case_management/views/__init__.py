@@ -12,6 +12,9 @@ from .portal import (
 from .external import ExternalCaseAccessView, ExternalCaseReplyView
 from .api import BookkeepingClientLookupView, StaffUserLookupView
 from .analytics import ClientCaseAnalyticsView
+from .inquiry import (
+    InquiryListView, InquiryDetailView, InquiryUpdateView, InquiryClaimView,
+)
 
 __all__ = [
     'InternalCaseListView', 'InternalCaseDetailView', 'InternalCaseCreateView',
@@ -24,4 +27,5 @@ __all__ = [
     'ExternalCaseAccessView', 'ExternalCaseReplyView',
     'BookkeepingClientLookupView', 'StaffUserLookupView',
     'ClientCaseAnalyticsView',
+    'InquiryListView', 'InquiryDetailView', 'InquiryUpdateView', 'InquiryClaimView',
 ]

@@ -1,9 +1,11 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.generic import TemplateView, View
 
 from .services import search_similar
@@ -266,6 +268,105 @@ class KnowledgeApplyChecklistView(LoginRequiredMixin, View):
             for t in tasks
         )
         return HttpResponse(html)
+
+
+class KnowledgeApiSearchView(LoginRequiredMixin, View):
+    """JSON 搜尋 API — 給浮動 widget 用"""
+
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        domain = request.GET.get('domain', '').strip() or None
+        category = request.GET.get('category', '').strip() or None
+        if not query:
+            return JsonResponse({'results': []})
+        try:
+            results = search_similar(
+                query, domain=domain, category=category,
+                verified_only=False, top_k=8, threshold=0.6,
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        return JsonResponse({
+            'results': [
+                {
+                    'id': r['entry'].pk,
+                    'question_summary': r['entry'].question_summary,
+                    'answer_summary': r['entry'].answer_summary,
+                    'checklist': r['entry'].checklist,
+                    'category': r['entry'].get_category_display(),
+                    'domain': r['entry'].get_domain_display(),
+                    'is_verified': r['entry'].is_verified,
+                    'similarity': r['similarity'],
+                }
+                for r in results
+            ]
+        })
+
+
+class KnowledgeApiCreateView(LoginRequiredMixin, View):
+    """JSON 建立 API — 給浮動 widget 寫入用"""
+
+    def post(self, request):
+        try:
+            payload = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': '無效的 JSON'}, status=400)
+
+        q = (payload.get('question_summary') or '').strip()
+        a = (payload.get('answer_summary') or '').strip()
+        if not q or not a:
+            return JsonResponse({'error': '問題與解答均不可為空'}, status=400)
+
+        domain = payload.get('domain') or KnowledgeEntry.Domain.CASE_QA
+        category = payload.get('category')
+        if not category:
+            return JsonResponse({'error': '類別為必填'}, status=400)
+        if category not in dict(KnowledgeEntry.Category.choices):
+            return JsonResponse({'error': '無效的類別'}, status=400)
+        if domain not in dict(KnowledgeEntry.Domain.choices):
+            domain = KnowledgeEntry.Domain.CASE_QA
+
+        source_registration = None
+        if payload.get('source_registration_id'):
+            from modules.registration.models import CompanyFiling
+            source_registration = CompanyFiling.objects.filter(
+                pk=payload['source_registration_id']
+            ).first()
+
+        source_case = None
+        if payload.get('source_case_id'):
+            from modules.case_management.models import Case
+            source_case = Case.objects.filter(pk=payload['source_case_id']).first()
+
+        entry = KnowledgeEntry.objects.create(
+            domain=domain,
+            category=category,
+            question_summary=q,
+            answer_summary=a,
+            checklist=(payload.get('checklist') or '').strip(),
+            visibility=payload.get('visibility') or KnowledgeEntry.Visibility.INTERNAL,
+            source_registration=source_registration,
+            source_case=source_case,
+            created_by=request.user,
+        )
+
+        try:
+            from core.services.embedding import get_embedding
+            entry.embedding = get_embedding(f"{q}\n{a}")
+            entry.embedding_model = 'gemini-embedding-001'
+            entry.embedding_updated_at = timezone.now()
+            entry.save(update_fields=[
+                'embedding', 'embedding_model', 'embedding_updated_at', 'updated_at'
+            ])
+        except Exception:
+            pass
+
+        return JsonResponse({
+            'id': entry.pk,
+            'is_verified': entry.is_verified,
+            'message': '已建立，待後台審核後才會被檢索到',
+        })
 
 
 class KnowledgeSuggestView(LoginRequiredMixin, TemplateView):

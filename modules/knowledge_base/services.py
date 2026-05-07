@@ -8,6 +8,7 @@ from .models import KnowledgeEntry
 
 def search_similar(
     query: str,
+    domain: str | list[str] | None = None,
     category: str | None = None,
     visibility: str | None = None,
     verified_only: bool = True,
@@ -18,6 +19,8 @@ def search_similar(
 
     Args:
         query:        使用者輸入的問題
+        domain:       限定知識領域，例如 'registration' / 'case_qa'，
+                      也可傳 list 跨領域檢索（None = 全部）
         category:     限定類別（None = 全部）
         visibility:   限定可見範圍 'internal'/'public'（None = 全部）
         verified_only: 只搜已審核的條目
@@ -35,6 +38,11 @@ def search_similar(
 
     if verified_only:
         qs = qs.filter(is_verified=True)
+    if domain:
+        if isinstance(domain, (list, tuple, set)):
+            qs = qs.filter(domain__in=list(domain))
+        else:
+            qs = qs.filter(domain=domain)
     if category:
         qs = qs.filter(category=category)
     if visibility:

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block page_title %}{{ inquiry.name }} · 諮詢明細{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+  <div class="mb-4">
+    <a href="{% url 'case_management:inquiry_list' %}" class="text-sm text-gray-500 hover:text-gray-700">← 回諮詢清單</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    {# 左側：客戶資訊 #}
+    <div class="md:col-span-2 space-y-4">
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800">{{ inquiry.name }}</h1>
+            {% if inquiry.company %}<div class="text-sm text-gray-500 mt-1">🏢 {{ inquiry.company }}</div>{% endif %}
+          </div>
+          <div class="flex flex-col items-end gap-2">
+            {% if inquiry.status == 'new' %}
+              <span class="px-3 py-1 text-xs rounded bg-amber-100 text-amber-700">待處理</span>
+            {% elif inquiry.status == 'contacted' %}
+              <span class="px-3 py-1 text-xs rounded bg-blue-100 text-blue-700">已聯絡</span>
+            {% elif inquiry.status == 'converted' %}
+              <span class="px-3 py-1 text-xs rounded bg-green-100 text-green-700">已成交</span>
+            {% else %}
+              <span class="px-3 py-1 text-xs rounded bg-gray-100 text-gray-600">未成交</span>
+            {% endif %}
+            <span class="text-xs text-gray-400">{{ inquiry.created_at|date:"Y-m-d H:i" }}</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          {% if inquiry.phone %}
+            <div>
+              <div class="text-xs text-gray-500 mb-0.5">電話</div>
+              <a href="tel:{{ inquiry.phone }}" class="text-indigo-600 hover:underline">📞 {{ inquiry.phone }}</a>
+            </div>
+          {% endif %}
+          {% if inquiry.email %}
+            <div>
+              <div class="text-xs text-gray-500 mb-0.5">Email</div>
+              <a href="mailto:{{ inquiry.email }}" class="text-indigo-600 hover:underline">✉️ {{ inquiry.email }}</a>
+            </div>
+          {% endif %}
+          {% if inquiry.stage %}
+            <div>
+              <div class="text-xs text-gray-500 mb-0.5">事業階段</div>
+              <div>{{ inquiry.stage }}</div>
+            </div>
+          {% endif %}
+          <div>
+            <div class="text-xs text-gray-500 mb-0.5">來源</div>
+            <div>{{ inquiry.get_source_display }}</div>
+          </div>
+        </div>
+
+        {% if inquiry.message %}
+          <div class="mt-5 pt-4 border-t">
+            <div class="text-xs text-gray-500 mb-2">諮詢內容</div>
+            <div class="bg-gray-50 rounded-md p-4 text-sm text-gray-800 whitespace-pre-wrap">{{ inquiry.message }}</div>
+          </div>
+        {% endif %}
+      </div>
+
+      {# 內部備註 #}
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-base font-semibold text-gray-800 mb-3">📝 內部備註</h2>
+        <form method="post" action="{% url 'case_management:inquiry_update' inquiry.pk %}">
+          {% csrf_token %}
+          <textarea name="note" rows="5"
+                    class="w-full border border-gray-300 rounded-md p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+                    placeholder="紀錄聯絡狀況、客戶回應、後續安排…">{{ inquiry.note }}</textarea>
+          <div class="mt-2 flex justify-end">
+            <button class="px-4 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">儲存備註</button>
+          </div>
+        </form>
+      </div>
+
+      {# 來源診斷資訊 #}
+      <details class="bg-white rounded-lg shadow p-4 text-sm">
+        <summary class="cursor-pointer text-gray-600 font-medium">🔍 技術資訊（IP、瀏覽器、來源頁）</summary>
+        <div class="mt-3 grid grid-cols-1 gap-2 text-xs text-gray-700">
+          <div><span class="text-gray-500">送出頁面：</span>{{ inquiry.referer|default:'—' }}</div>
+          <div><span class="text-gray-500">IP：</span>{{ inquiry.ip|default:'—' }}</div>
+          <div><span class="text-gray-500">User-Agent：</span><span class="break-all">{{ inquiry.user_agent|default:'—' }}</span></div>
+        </div>
+      </details>
+    </div>
+
+    {# 右側：處理面板 #}
+    <div class="space-y-4">
+
+      <div class="bg-white rounded-lg shadow p-5">
+        <h3 class="text-sm font-semibold text-gray-800 mb-3">處理狀態</h3>
+        <form method="post" action="{% url 'case_management:inquiry_update' inquiry.pk %}" class="space-y-3">
+          {% csrf_token %}
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">狀態</label>
+            <select name="status" class="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+              {% for v, label in status_choices %}
+                <option value="{{ v }}" {% if v == inquiry.status %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">負責人</label>
+            <select name="handled_by" class="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+              <option value="">— 未指派 —</option>
+              {% for u in staff_users %}
+                <option value="{{ u.id }}" {% if inquiry.handled_by_id == u.id %}selected{% endif %}>{{ u.username }}{% if u.full_name %} · {{ u.full_name }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="w-full bg-indigo-600 text-white rounded-md py-1.5 text-sm hover:bg-indigo-700">更新</button>
+        </form>
+
+        {% if inquiry.handled_by_id != request.user.id %}
+        <form method="post" action="{% url 'case_management:inquiry_claim' inquiry.pk %}" class="mt-3 pt-3 border-t">
+          {% csrf_token %}
+          <button class="w-full bg-amber-50 text-amber-700 border border-amber-200 rounded-md py-1.5 text-sm hover:bg-amber-100">
+            🙋 由我接手
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-5">
+        <h3 class="text-sm font-semibold text-gray-800 mb-3">後續</h3>
+        <p class="text-xs text-gray-500 mb-3">確定要服務這位客戶後，將其升級為正式客戶與案件。</p>
+        <button disabled class="w-full bg-gray-100 text-gray-400 rounded-md py-1.5 text-sm cursor-not-allowed" title="待開發">
+          轉為正式客戶（待開發）
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -9,7 +9,9 @@
       <button type="button" class="modal-close" data-close-modal aria-label="關閉">×</button>
     </div>
     <div class="modal-body">
-      <form id="appointment-form" novalidate>
+      <form id="appointment-form" novalidate data-inquiry-form data-source="appointment_modal">
+        {% csrf_token %}
+        <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute; left:-9999px; opacity:0; pointer-events:none" aria-hidden="true"/>
         <div class="form-field">
           <label class="form-label">姓名 <span class="req">*</span></label>
           <input class="form-input" name="name" required />

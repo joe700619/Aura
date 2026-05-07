@@ -1,0 +1,62 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'public_site/css/tools.css' %}">
+{% block tool_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="tools-page">
+  <div class="tools-shell">
+    <aside class="tools-sidebar">
+      <div class="ts-header">
+        <div class="ts-eyebrow">TOOLS · 實用工具</div>
+        <div class="ts-title">會計師的口袋工具</div>
+      </div>
+      <nav class="ts-nav">
+        <a href="{% url 'public_site:labor_insurance' %}" class="ts-item{% if current_tool == 'labor' %} active{% endif %}">
+          <span class="ts-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L20 6 V12 C20 17 16 21 12 22 C8 21 4 17 4 12 V6 Z"/><path d="M9 12 L11 14 L15 10"/></svg></span>
+          <span class="ts-item-text"><span class="ts-item-label">勞健保試算</span><span class="ts-item-desc">輸入薪資 · 即時算出費用</span></span>
+        </a>
+        <a href="{% url 'public_site:payment_receipt' %}" class="ts-item{% if current_tool == 'payment' %} active{% endif %}">
+          <span class="ts-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3 H17 L19 5 V21 L17 19 L15 21 L13 19 L11 21 L9 19 L7 21 L5 19 Z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>
+          <span class="ts-item-text"><span class="ts-item-label">勞務報酬單</span><span class="ts-item-desc">產生報酬單 · 自動算扣繳</span></span>
+        </a>
+        <a href="{% url 'public_site:startup_analysis' %}" class="ts-item{% if current_tool == 'startup' %} active{% endif %}">
+          <span class="ts-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21 H21"/><rect x="5" y="13" width="3" height="8"/><rect x="10.5" y="9" width="3" height="12"/><rect x="16" y="5" width="3" height="16"/></svg></span>
+          <span class="ts-item-text"><span class="ts-item-label">創業分析表</span><span class="ts-item-desc">問答式診斷 · 產生報告</span></span>
+        </a>
+        <a href="{% url 'public_site:withholding_tax' %}" class="ts-item{% if current_tool == 'withholding' %} active{% endif %}">
+          <span class="ts-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 H14 A2 2 0 0 1 14 13 H10 L15 17"/><path d="M8 8 L16 16" stroke-dasharray="2 2"/></svg></span>
+          <span class="ts-item-text"><span class="ts-item-label">扣繳計算機</span><span class="ts-item-desc">勞報 / 業務 / 租金 試算</span></span>
+        </a>
+      </nav>
+      <div class="ts-cta">
+        <div class="ts-cta-label">需要正式服務？</div>
+        <p>這些工具僅供初步試算。實際申報、報稅、登記，建議委由專業會計師協助。</p>
+        <button type="button" class="btn-primary" data-open-modal>預約諮詢</button>
+      </div>
+    </aside>
+
+    <main class="tools-main">
+      <header class="tools-page-head">
+        <div class="tools-eyebrow">{% block tool_eyebrow %}{% endblock %}</div>
+        <h1 class="tools-title">{% block tool_title %}{% endblock %}</h1>
+        <p class="tools-subtitle">{% block tool_subtitle %}{% endblock %}</p>
+      </header>
+
+      {% block tool_body %}{% endblock %}
+
+      <div class="tools-disclaimer">
+        <div class="td-label">免責聲明 · DISCLAIMER</div>
+        <p>本工具基於 2025-2026 年公開資訊建構，僅供初步試算參考，實際金額以主管機關（勞動部、健保署、財政部）認定為準。如需正式申報或諮詢，建議委託合格會計師處理。</p>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% block tool_js %}{% endblock %}
+{% endblock %}

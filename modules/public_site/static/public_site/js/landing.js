@@ -66,42 +66,61 @@
     }, 4000);
   }
 
-  // Contact form
-  const contactForm = document.getElementById('contact-form');
-  if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      clearErrors(contactForm);
-      const data = new FormData(contactForm);
-      let bad = false;
-      if (!data.get('name').trim()) { showError(contactForm, 'name', '請填寫姓名'); bad = true; }
-      const email = data.get('email').trim();
-      if (!email) { showError(contactForm, 'email', '請填寫 Email'); bad = true; }
-      else if (!emailRe.test(email)) { showError(contactForm, 'email', 'Email 格式不正確'); bad = true; }
-      if (!data.get('phone').trim()) { showError(contactForm, 'phone', '請填寫聯絡電話'); bad = true; }
-      const msg = data.get('message').trim();
-      if (!msg || msg.length < 10) { showError(contactForm, 'message', '請至少描述 10 個字'); bad = true; }
-      if (bad) return;
-      flashSuccess(contactForm);
-    });
+  // ── Inquiry form submit (contact + appointment 共用) ──────
+  // 流程：前端驗證 → POST /inquiry/submit/ → 成功 → 顯示提示 → 跳 LINE
+  function clientValidate(form) {
+    clearErrors(form);
+    const data = new FormData(form);
+    let bad = false;
+    if (!(data.get('name') || '').trim()) { showError(form, 'name', '請填寫姓名'); bad = true; }
+    const email = (data.get('email') || '').trim();
+    const phone = (data.get('phone') || '').trim();
+    if (email && !emailRe.test(email)) { showError(form, 'email', 'Email 格式不正確'); bad = true; }
+    if (!email && !phone) {
+      showError(form, 'email', '請至少留下 Email 或電話');
+      showError(form, 'phone', '請至少留下 Email 或電話');
+      bad = true;
+    }
+    return !bad;
   }
 
-  // Appointment form (modal)
-  const apptForm = document.getElementById('appointment-form');
-  if (apptForm) {
-    apptForm.addEventListener('submit', (e) => {
+  document.querySelectorAll('[data-inquiry-form]').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      clearErrors(apptForm);
-      const data = new FormData(apptForm);
-      let bad = false;
-      if (!data.get('name').trim()) { showError(apptForm, 'name', '請填寫姓名'); bad = true; }
-      const email = data.get('email').trim();
-      if (!email) { showError(apptForm, 'email', '請填寫 Email'); bad = true; }
-      else if (!emailRe.test(email)) { showError(apptForm, 'email', 'Email 格式不正確'); bad = true; }
-      if (!data.get('phone').trim()) { showError(apptForm, 'phone', '請填寫電話'); bad = true; }
-      if (bad) return;
-      flashSuccess(apptForm);
-      setTimeout(close, 2500);
+      if (!clientValidate(form)) return;
+
+      const submitBtn = form.querySelector('[type="submit"], .form-submit');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.dataset.origText = submitBtn.textContent; submitBtn.textContent = '送出中…'; }
+
+      const fd = new FormData(form);
+      if (form.dataset.source) fd.set('source', form.dataset.source);
+      const csrf = (form.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+
+      try {
+        const res = await fetch('/inquiry/submit/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+          body: fd,
+        });
+        const json = await res.json().catch(() => ({}));
+
+        if (res.ok && json.ok) {
+          flashSuccess(form);
+          // 1.2 秒後跳 LINE 加好友
+          setTimeout(() => {
+            if (json.redirect) window.location.href = json.redirect;
+          }, 1200);
+        } else if (json.errors) {
+          Object.entries(json.errors).forEach(([k, v]) => showError(form, k, v));
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.origText; }
+        } else {
+          alert(res.status === 429 ? '太頻繁了，請稍後再試。' : '送出失敗，請稍後再試或直接 LINE 聯繫。');
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.origText; }
+        }
+      } catch (err) {
+        alert('網路異常，請稍後再試。');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.origText; }
+      }
     });
-  }
+  });
 })();

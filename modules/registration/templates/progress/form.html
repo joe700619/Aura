@@ -716,6 +716,9 @@
 {% endblock %}
 
 {% block overlays %}
+{% if object.pk %}
+{% include "knowledge_base/widget.html" with domain="registration" source_registration_id=object.pk default_question=object.note %}
+{% endif %}
 {% include "components/document_sidebar.html" %}
 {% include "components/email_sidebar.html" %}
 {% include "components/line_sidebar.html" %}

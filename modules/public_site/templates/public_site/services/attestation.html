@@ -1,0 +1,133 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block title %}簽證服務 · 勤信聯合會計師事務所{% endblock %}
+
+{% block content %}
+<section class="sub-hero sub-hero-reverse">
+  <div class="container">
+    <div class="sub-hero-grid">
+      <div class="sub-hero-text">
+        <div class="sub-hero-eyebrow"><span class="seal">簽</span><span>簽證服務 · ATTESTATION</span></div>
+        <h1 class="sub-hero-title">讓報表<span class="accent-mark">站得住腳</span></h1>
+        <p class="sub-hero-sub">銀行融資、股東增資、政府標案，<br/>都需要一份「會計師簽過字」的報表。<br/>我們替你的數字背書。</p>
+        <div class="sub-hero-actions">
+          <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+        </div>
+      </div>
+      <div class="sub-hero-visual">
+        <div class="at-photo-illust">
+          <img src="{% static 'public_site/images/attestation-hero.png' %}" alt="會計師查核現場" class="at-photo-img"/>
+          <div class="at-photo-fade"></div>
+          <div class="illust-tag"><span>簽證 · ATTESTATION</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">WHAT WE SIGN · 簽證類型</div>
+      <h2 class="sub-section-title">三類簽證，覆蓋所有情境</h2>
+    </div>
+    <div class="service-grid-3">
+      <div class="service-card"><div class="service-num">01</div><h3>財務簽證 · 財簽</h3><ul><li>公司法 §20 規範</li><li>公開發行 · 資本額大</li><li>銀行融資 · 政府補助</li><li>年度財報出具</li></ul></div>
+      <div class="service-card"><div class="service-num">02</div><h3>稅務簽證 · 稅簽</h3><ul><li>營所稅查核簽證</li><li>營業稅 · 營所稅雙簽</li><li>減免抵稅優惠</li><li>稅務風險把關</li></ul></div>
+      <div class="service-card"><div class="service-num">03</div><h3>專案簽證</h3><ul><li>增資減資查核</li><li>合併分割評價</li><li>公開發行送件</li><li>政府標案資格</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">DEEP DIVE · 專案簽證</div>
+      <h2 class="sub-section-title">什麼是「專案簽證」？</h2>
+      <p class="sub-section-sub">非例行性、針對特定目的而做的查核或鑑識服務，常見於併購、爭議釐清、投資人盡職調查等情境。</p>
+    </div>
+    <div class="service-grid-3">
+      <div class="service-card">
+        <div class="service-num">A · Due Diligence</div>
+        <h3>合併實地查核</h3>
+        <p style="font-size:14px; line-height:1.8; color:var(--fg2); margin:0 0 16px">併購、投資、合作前的「事前體檢」。我們以買方或投資方角度，深入檢視目標公司的財務、稅務、合規、營運實況，協助你看清交易風險與真實價值。</p>
+        <ul><li>財務 DD：報表真實性 · 獲利品質</li><li>稅務 DD：未爆稅務地雷盤點</li><li>營運 DD：客戶 · 合約 · 存貨</li><li>出具報告：交易談判依據</li></ul>
+      </div>
+      <div class="service-card">
+        <div class="service-num">B · Fraud Examination</div>
+        <h3>舞弊檢查</h3>
+        <p style="font-size:14px; line-height:1.8; color:var(--fg2); margin:0 0 16px">當你懷疑內部員工、合作夥伴或關係人有舞弊、挪用、虛報、不當交易，由具鑑識會計專業的會計師介入調查，蒐集可作為法律證據的事證。</p>
+        <ul><li>資金流向追蹤 · 異常交易還原</li><li>內部訪談 · 數位證據蒐集</li><li>舞弊金額試算 · 損失評估</li><li>鑑識報告：訴訟 · 仲裁可用</li></ul>
+      </div>
+      <div class="service-card">
+        <div class="service-num">C · AUP</div>
+        <h3>協議性程序</h3>
+        <p style="font-size:14px; line-height:1.8; color:var(--fg2); margin:0 0 16px">由委任方與會計師「事先約定」要執行哪些查核程序、檢查哪些科目，會計師如實執行並回報結果——不出具意見，只陳述事實。彈性高、聚焦特定問題。</p>
+        <ul><li>客製範圍：只查你關心的部分</li><li>依約執行：抽樣 · 比對 · 函證</li><li>事實陳述：不下允當與否結論</li><li>適用：補助核銷 · 合約遵循 · 內控驗證</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">WHEN YOU NEED IT · 適用時機</div>
+      <h2 class="sub-section-title">什麼時候需要簽證？</h2>
+    </div>
+    <div class="lead-grid">
+      <div></div>
+      <div class="lead-text">
+        <p><strong>資本額 3,000 萬以上</strong>的公司，依《公司法》第 20 條，需委託會計師查核簽證年度財報。</p>
+        <p><strong>申請銀行融資</strong>時，銀行通常要求附上會計師簽證的財務報表，作為授信評估依據。</p>
+        <p><strong>公開發行、上市櫃</strong>送件、增資、合併分割等重大資本變動，須由會計師查核簽證。</p>
+        <p><strong>稅務簽證</strong>則可降低營所稅查核風險、合法享有減免抵稅優惠，每年節省稅金。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">PROCESS · 查核流程</div>
+      <h2 class="sub-section-title">從前置到出具報告，5 步驟</h2>
+    </div>
+    <div class="process-row" style="grid-template-columns:repeat(5, 1fr)">
+      <div class="process-step"><div class="ps-num">01</div><div class="ps-title">前置會議</div><div class="ps-desc">了解公司業務 · 風險評估</div></div>
+      <div class="process-step"><div class="ps-num">02</div><div class="ps-title">資料收集</div><div class="ps-desc">傳票 · 財報 · 合約</div></div>
+      <div class="process-step"><div class="ps-num">03</div><div class="ps-title">現場查核</div><div class="ps-desc">抽樣測試 · 函證 · 盤點</div></div>
+      <div class="process-step"><div class="ps-num">04</div><div class="ps-title">草稿溝通</div><div class="ps-desc">與管理層討論調整事項</div></div>
+      <div class="process-step"><div class="ps-num">05</div><div class="ps-title">報告出具</div><div class="ps-desc">簽證報告 · 附帶建議</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">FAQ</div>
+      <h2 class="sub-section-title">準客戶最常問的</h2>
+    </div>
+    <div class="sub-faq-list">
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 我的公司一定要做簽證嗎？</div><div class="sub-faq-a">資本額 3,000 萬以上、公開發行公司、銀行融資需求、政府補助等情境，都會需要。我們可以先幫你判斷。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 財簽和稅簽差在哪？</div><div class="sub-faq-a">財簽是依會計準則，確認財報允當表達；稅簽是依稅法，確認應納稅額正確。兩者目的不同，常常一起做。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 簽證會花多久？</div><div class="sub-faq-a">視公司規模而定。中小型公司大約 4–6 週；上市櫃公司視具體情況，通常 8–12 週。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 費用怎麼算？</div><div class="sub-faq-a">依公司規模、營業額、業務複雜度報價。中小企業財簽多半在 NT$ 50,000–150,000 區間。</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-cta">
+  <div class="container">
+    <h2>需要會計師為你的數字背書？</h2>
+    <p>30 分鐘諮詢，了解你的需求、評估簽證可行性。</p>
+    <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'public_site/js/subpage.js' %}"></script>
+{% endblock %}

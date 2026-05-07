@@ -338,3 +338,46 @@ class CaseTaskTemplate(BaseModel):
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.title}"
+
+
+class Inquiry(BaseModel):
+    """對外網站的諮詢預約 / 潛在客戶。"""
+
+    class Source(models.TextChoices):
+        LANDING_CONTACT = 'landing_contact', '首頁聯絡表單'
+        APPOINTMENT_MODAL = 'appointment_modal', '預約諮詢視窗'
+        OTHER = 'other', '其他'
+
+    class Status(models.TextChoices):
+        NEW = 'new', '待處理'
+        CONTACTED = 'contacted', '已聯絡'
+        CONVERTED = 'converted', '已成交'
+        DROPPED = 'dropped', '未成交'
+
+    name = models.CharField(max_length=100, verbose_name="姓名")
+    email = models.EmailField(max_length=200, blank=True, verbose_name="Email")
+    phone = models.CharField(max_length=40, blank=True, verbose_name="電話")
+    company = models.CharField(max_length=120, blank=True, verbose_name="公司")
+    stage = models.CharField(max_length=40, blank=True, verbose_name="事業階段")
+    message = models.TextField(blank=True, verbose_name="諮詢內容")
+
+    source = models.CharField(max_length=40, choices=Source.choices, default=Source.LANDING_CONTACT, verbose_name="來源")
+    referer = models.CharField(max_length=300, blank=True, verbose_name="送出頁面")
+    ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP")
+    user_agent = models.CharField(max_length=300, blank=True, verbose_name="User-Agent")
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NEW, verbose_name="狀態")
+    handled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="handled_inquiries", verbose_name="負責人"
+    )
+    note = models.TextField(blank=True, verbose_name="內部備註")
+
+    class Meta:
+        verbose_name = "諮詢預約"
+        verbose_name_plural = "諮詢預約"
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['status', '-created_at'])]
+
+    def __str__(self):
+        return f"{self.name} · {self.created_at:%Y-%m-%d %H:%M}"

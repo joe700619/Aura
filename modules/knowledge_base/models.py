@@ -12,6 +12,12 @@ class KnowledgeEntry(BaseModel):
     embedding 由 Gemini text-embedding-004 產生（768 維）。
     """
 
+    class Domain(models.TextChoices):
+        CASE_QA = 'case_qa', '案件問答'
+        REGISTRATION = 'registration', '登記業務'
+        TAX_SOP = 'tax_sop', '稅務 SOP'
+        GENERAL = 'general', '通用知識'
+
     class Category(models.TextChoices):
         TAX_FILING = 'tax_filing', '稅務申報'
         INVOICE = 'invoice', '發票管理'
@@ -20,11 +26,29 @@ class KnowledgeEntry(BaseModel):
         ACCOUNTING = 'accounting', '會計處理'
         INCORPORATION = 'incorporation', '公司登記'
         INHERITANCE = 'inheritance', '遺產贈與'
+        # registration 領域子分類
+        INC_SETUP = 'inc_setup', '設立登記'
+        INC_CHANGE = 'inc_change', '變更登記'
+        INC_DISSOLVE = 'inc_dissolve', '解散/清算'
+        EQUITY_TX = 'equity_tx', '股權交易'
+        VAT_CHANGE = 'vat_change', '營業人變更'
+        AML = 'aml', '洗錢防制'
+        COMPANY_LAW_22_1 = 'company_law_22_1', '公司法 22-1'
+        CAPITAL_CHANGE = 'capital_change', '增資/減資'
+        MERGER = 'merger', '合併'
+        SPLIT = 'split', '分割'
+        OTHER_REG = 'other_reg', '其他登記'
         OTHER = 'other', '其他'
 
     class Visibility(models.TextChoices):
         INTERNAL = 'internal', '僅內部'
         PUBLIC = 'public', '客戶可見'
+
+    domain = models.CharField(
+        max_length=20, choices=Domain.choices,
+        default=Domain.CASE_QA, verbose_name='知識領域',
+        help_text='上層分流，避免不同業務的知識在檢索時混在一起'
+    )
 
     question_summary = models.TextField(verbose_name='問題摘要')
     answer_summary = models.TextField(verbose_name='回答摘要')
@@ -57,6 +81,11 @@ class KnowledgeEntry(BaseModel):
         null=True, blank=True, related_name='extracted_knowledge',
         verbose_name='來源案件'
     )
+    source_registration = models.ForeignKey(
+        'registration.CompanyFiling', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='extracted_knowledge',
+        verbose_name='來源登記案'
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='created_knowledge',
@@ -70,6 +99,8 @@ class KnowledgeEntry(BaseModel):
         indexes = [
             models.Index(fields=['category', 'is_verified']),
             models.Index(fields=['visibility', 'is_verified']),
+            models.Index(fields=['domain', 'is_verified']),
+            models.Index(fields=['domain', 'category']),
         ]
 
     def __str__(self):

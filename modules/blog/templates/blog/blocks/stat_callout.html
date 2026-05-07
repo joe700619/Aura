@@ -1,0 +1,7 @@
+<div class="stat-callout">
+  <div class="sc-num">{{ value.number }}{% if value.unit %}<span>{{ value.unit }}</span>{% endif %}</div>
+  <div class="sc-text">
+    {{ value.text|linebreaksbr }}
+    {% if value.source %}<div class="sc-source">資料來源：{{ value.source }}</div>{% endif %}
+  </div>
+</div>

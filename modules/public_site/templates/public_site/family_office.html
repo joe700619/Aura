@@ -1,0 +1,255 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block title %}家族辦公室 · 勤信聯合會計師事務所{% endblock %}
+
+{% block content %}
+{# Hero — stack layout #}
+<section class="sub-hero sub-hero-stack">
+  <div class="container">
+    <div class="sub-hero-visual full">
+      <div class="ledger-illust">
+        <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="fo-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#3a2f1f"/><stop offset="100%" stop-color="#1a1612"/>
+            </linearGradient>
+            <radialGradient id="fo-glow" cx="0.5" cy="0.5" r="0.6">
+              <stop offset="0%" stop-color="#d4a647" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#d4a647" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="400" height="500" fill="url(#fo-bg)"/>
+          <rect width="400" height="500" fill="url(#fo-glow)"/>
+          <g transform="translate(200 90)">
+            <circle r="22" fill="none" stroke="#d4a647" stroke-width="1.5"/>
+            <circle r="14" fill="#d4a647" opacity="0.2"/>
+            <text y="5" font-family="serif" font-size="14" fill="#d4a647" text-anchor="middle">第一代</text>
+            <text y="-32" font-family="monospace" font-size="9" fill="#d4a647" text-anchor="middle" letter-spacing="2" opacity="0.6">FOUNDER</text>
+          </g>
+          <g transform="translate(120 240)"><circle r="18" fill="none" stroke="#c2a884" stroke-width="1"/><circle r="11" fill="#c2a884" opacity="0.15"/><text y="4" font-family="serif" font-size="11" fill="#c2a884" text-anchor="middle">第二代</text></g>
+          <g transform="translate(200 240)"><circle r="18" fill="none" stroke="#c2a884" stroke-width="1"/><circle r="11" fill="#c2a884" opacity="0.15"/><text y="4" font-family="serif" font-size="11" fill="#c2a884" text-anchor="middle">第二代</text></g>
+          <g transform="translate(280 240)"><circle r="18" fill="none" stroke="#c2a884" stroke-width="1"/><circle r="11" fill="#c2a884" opacity="0.15"/><text y="4" font-family="serif" font-size="11" fill="#c2a884" text-anchor="middle">第二代</text></g>
+          <g transform="translate(80 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g transform="translate(130 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g transform="translate(180 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g transform="translate(230 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g transform="translate(280 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g transform="translate(330 380)"><circle r="13" fill="none" stroke="#a89878" stroke-width="0.8"/><circle r="7" fill="#a89878" opacity="0.1"/></g>
+          <g stroke="#7a6a48" stroke-width="0.6" fill="none">
+            <line x1="200" y1="112" x2="120" y2="222"/>
+            <line x1="200" y1="112" x2="200" y2="222"/>
+            <line x1="200" y1="112" x2="280" y2="222"/>
+            <line x1="120" y1="258" x2="80" y2="367"/>
+            <line x1="120" y1="258" x2="130" y2="367"/>
+            <line x1="200" y1="258" x2="180" y2="367"/>
+            <line x1="200" y1="258" x2="230" y2="367"/>
+            <line x1="280" y1="258" x2="280" y2="367"/>
+            <line x1="280" y1="258" x2="330" y2="367"/>
+          </g>
+          <text x="200" y="450" font-family="serif" font-size="13" fill="#d4a647" text-anchor="middle" letter-spacing="3">家 · 業 · 傳 · 承</text>
+        </svg>
+        <div class="illust-tag" style="background:rgba(0,0,0,0.7); color:#d4a647; border-color:rgba(212,166,71,0.3)"><span>家族 · LEGACY</span></div>
+      </div>
+    </div>
+    <div class="sub-hero-stack-text">
+      <div class="sub-hero-eyebrow"><span class="seal">家</span><span>家族辦公室 · FAMILY OFFICE</span></div>
+      <div class="sub-hero-stack-grid">
+        <h1 class="sub-hero-title">讓財富<span class="accent-mark">傳到第三代</span></h1>
+        <div>
+          <p class="sub-hero-sub">從第一代的奮鬥，到第二代的接班，再到第三代的傳承——家族要的不是節稅，是延續。</p>
+          <div class="sub-hero-actions">
+            <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# Pain points #}
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">THE QUESTIONS · 這些問題你想過嗎</div>
+      <h2 class="sub-section-title">家族企業的三道題</h2>
+      <p class="sub-section-sub">從錢的分配，到業的接班，到家的延續——每一道都不是會計能單獨解的</p>
+    </div>
+    <div class="lead-grid">
+      <div></div>
+      <div class="lead-text">
+        <p>—— 「孩子接不接得起來？接不下去怎麼辦？」</p>
+        <p>—— 「股權怎麼分？分了之後兄弟姊妹會不會吵？」</p>
+        <p>—— 「要不要設信託？要不要去新加坡或香港？」</p>
+        <p>—— 「百年之後，這個家還會是一個家嗎？」</p>
+        <p style="margin-top:32px; color:var(--fg1); font-family:var(--font-serif); font-size:19px; font-style:italic">
+          我們不是只算稅。<br/>我們陪家族，把這些問題一個一個答完。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# Four pillars #}
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">FOUR PILLARS · 四大支柱</div>
+      <h2 class="sub-section-title">家族辦公室的工作</h2>
+      <p class="sub-section-sub">一個家族辦公室，要同時看好四件事</p>
+    </div>
+    <div class="fo-pillar">
+      <div class="fo-pillar-card">
+        <div class="fp-num">01 · WEALTH MANAGEMENT</div>
+        <h3>財富管理</h3>
+        <p>統合家族成員的資產，建立完整的家族財富地圖。包括投資組合配置、現金流規劃、跨境資產配置。</p>
+        <ul class="fp-list"><li>家族資產盤點 · 全圖整合</li><li>投資政策聲明 (IPS)</li><li>跨境資產配置</li><li>家族銀行 · 流動性管理</li></ul>
+      </div>
+      <div class="fo-pillar-card">
+        <div class="fp-num">02 · SUCCESSION PLANNING</div>
+        <h3>傳承規劃</h3>
+        <p>從股權分配到接班人培養，把「傳給誰、怎麼傳、傳什麼」想清楚。</p>
+        <ul class="fp-list"><li>股權結構設計</li><li>接班人能力評估</li><li>信託 · 家族基金會</li><li>遺囑 · 贈與規劃</li></ul>
+      </div>
+      <div class="fo-pillar-card">
+        <div class="fp-num">03 · TAX OPTIMIZATION</div>
+        <h3>稅務優化</h3>
+        <p>在合法的前提下，把家族的稅負降到合理區間。重點不是節稅技巧，而是長期結構。</p>
+        <ul class="fp-list"><li>遺產稅 · 贈與稅</li><li>股權移轉稅務</li><li>跨境所得稅務</li><li>CFC · PEM 因應</li></ul>
+      </div>
+      <div class="fo-pillar-card">
+        <div class="fp-num">04 · FAMILY GOVERNANCE</div>
+        <h3>家族治理</h3>
+        <p>建立家族成員間的溝通機制與決策規則，避免「人和」變成「人不和」。</p>
+        <ul class="fp-list"><li>家族憲章</li><li>家族會議制度</li><li>家族辦公室章程</li><li>下一代教育</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# Who we serve #}
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">WHO WE SERVE · 服務對象</div>
+      <h2 class="sub-section-title">這三類家族最需要我們</h2>
+    </div>
+    <div class="service-grid-3">
+      <div class="service-card">
+        <div class="service-num">01</div>
+        <h3>準備接班的家族</h3>
+        <ul><li>第一代 60-75 歲</li><li>第二代已進入家業</li><li>面臨股權分配與決策</li><li>需要建立傳承制度</li></ul>
+      </div>
+      <div class="service-card">
+        <div class="service-num">02</div>
+        <h3>已分家的家族</h3>
+        <ul><li>兄弟姊妹各有事業</li><li>共同持有家族資產</li><li>需要協議與整合</li><li>避免下一代糾紛</li></ul>
+      </div>
+      <div class="service-card">
+        <div class="service-num">03</div>
+        <h3>跨境的家族</h3>
+        <ul><li>子女在海外發展</li><li>資產在多個司法區</li><li>需 CFC · PEM 規劃</li><li>信託與家族基金會</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# Process — interactive grid #}
+<section class="sub-section dark-bg fo-process">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">HOW WE START · 合作流程</div>
+      <h2 class="sub-section-title">從第一次會議，到第一份家族憲章</h2>
+      <p class="sub-section-sub">這不是一次性的服務，而是一段 12-18 個月的旅程。點擊任一步驟，了解該階段的時程與需要準備的資料。</p>
+    </div>
+
+    <div class="fo-step-grid" data-step-grid="fo">
+      {% for s in fo_steps %}
+        <button type="button" class="fo-step{% if forloop.first %} is-active{% endif %}" data-step-index="{{ forloop.counter0 }}">
+          <div class="fo-step-top"><span class="fo-step-num">{{ s.n }}</span><span class="fo-step-dur">{{ s.dur }}</span></div>
+          <div class="fo-step-title">{{ s.t }}</div>
+          <div class="fo-step-summary">{{ s.summary }}</div>
+          <div class="fo-step-cue" data-step-cue>{% if forloop.first %}目前檢視中{% else %}查看詳情 →{% endif %}</div>
+        </button>
+      {% endfor %}
+    </div>
+
+    <div class="fo-timeline" aria-hidden="true" data-step-timeline="fo">
+      {% for s in fo_steps %}
+        <div class="fo-timeline-seg seg-{{ forloop.counter }}{% if forloop.first %} is-active{% endif %}" data-step-seg="{{ forloop.counter0 }}">
+          <span class="fo-timeline-label">{{ s.weeks }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div data-step-detail="fo">
+      {% for s in fo_steps %}
+        <div class="fo-step-detail{% if forloop.first %} is-active{% endif %}" data-step-panel="{{ forloop.counter0 }}" {% if not forloop.first %}style="display:none"{% endif %}>
+          <div class="fo-detail-head">
+            <div class="fo-detail-eyebrow">STEP {{ s.n }} · {{ s.t }} · {{ s.dur }}</div>
+            <h3 class="fo-detail-title">這個階段，我們會請你準備</h3>
+          </div>
+          <ul class="fo-detail-list">
+            {% for p in s.prepare %}<li><span class="fo-detail-bullet">{{ forloop.counter|stringformat:"02d" }}</span><span class="fo-detail-text">{{ p }}</span></li>{% endfor %}
+          </ul>
+          <div class="fo-detail-foot">資料不齊也沒關係——第一次會議我們會一起列清單，再分批補齊。</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# Discretion #}
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div style="max-width:760px; margin:0 auto; text-align:center">
+      <div class="sub-section-eyebrow" style="text-align:center">DISCRETION · 我們的承諾</div>
+      <h2 class="sub-section-title" style="font-size:32px">家族的事，止於我們這一桌</h2>
+      <p style="font-size:16px; line-height:1.9; color:var(--fg2); margin-top:24px">
+        所有家族辦公室專案，皆由合夥會計師親自主責；專案資料與一般客戶完全隔離，僅核心團隊接觸；
+        我們也不對外揭露服務的家族名單。十年以上的家族客戶，最大的回饋不是節了多少稅，
+        而是「這些事情，終於有個人聽得懂、講得通」。
+      </p>
+    </div>
+  </div>
+</section>
+
+{# FAQ #}
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">FAQ</div>
+      <h2 class="sub-section-title">家族成員最常問的</h2>
+    </div>
+    <div class="sub-faq-list">
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 我們家不算很有錢，需要家族辦公室嗎？</div><div class="sub-faq-a">重點不是金額大小，而是「家族」這個複雜性。如果你有兩個以上的子女、有未上市公司股權、有跨境資產，就值得認真討論。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 和銀行的私人銀行 (PB) 差在哪？</div><div class="sub-faq-a">PB 主要管「金融資產」，且立場是賣產品；家族辦公室是站在你這一側、整合「所有面向」（公司、不動產、稅務、傳承、家族治理）。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 費用怎麼算？</div><div class="sub-faq-a">家族辦公室是長期關係，年度顧問費通常 NT$ 60-200 萬不等，依家族規模與複雜度。我們會在第一次會議後給你一份明確的範圍與報價。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 我們可以只做一部分嗎？</div><div class="sub-faq-a">可以。例如只先做股權結構設計，或只先做接班人評估。但我們建議先做一次完整的「家族財富盤點」，再決定下一步。</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-cta">
+  <div class="container">
+    <h2>讓我們陪你的家族走一段路</h2>
+    <p>第一次會議完全免費，由合夥會計師親自接待。</p>
+    <button type="button" class="btn-primary-lg" data-open-modal>預約家族會議 <span class="btn-arrow">→</span></button>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'public_site/js/subpage.js' %}"></script>
+<script>
+// 切換 step panel 顯示
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-step-index]');
+  if (!btn) return;
+  const idx = btn.dataset.stepIndex;
+  document.querySelectorAll('[data-step-panel]').forEach(p => {
+    p.style.display = p.dataset.stepPanel === idx ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

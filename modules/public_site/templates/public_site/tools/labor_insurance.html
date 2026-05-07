@@ -1,0 +1,100 @@
+{% extends "public_site/tools/_tools_base.html" %}
+{% load static %}
+
+{% block title %}勞健保試算 · 勤信工具{% endblock %}
+{% block tool_eyebrow %}TOOL · 01{% endblock %}
+{% block tool_title %}勞健保試算{% endblock %}
+{% block tool_subtitle %}輸入員工月薪與身份別，即時算出勞工保險、健康保險、勞退提撥的個人與雇主負擔金額。{% endblock %}
+
+{% block tool_body %}
+<div class="t-two-col">
+  <div class="t-form-col">
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 01</div>
+      <h2 class="t-section-title">員工資料</h2>
+
+      <label class="tf">
+        <span class="tf-label">月薪</span>
+        <div class="tf-input-wrap">
+          <input type="number" id="li-salary" class="tf-input" value="40000" min="0" step="1000"/>
+          <span class="tf-suffix">元 / 月</span>
+        </div>
+        <span class="tf-hint">輸入員工每月固定薪資（不含獎金）</span>
+      </label>
+
+      <label class="tf">
+        <span class="tf-label">身份別</span>
+        <div class="t-radio-group" data-radio-group="li-identity" data-default="regular">
+          <button type="button" class="t-radio active" data-value="regular">本國籍一般員工</button>
+          <button type="button" class="t-radio" data-value="foreign">外籍員工</button>
+          <button type="button" class="t-radio" data-value="parttime">部分工時</button>
+        </div>
+      </label>
+
+      <label class="tf">
+        <span class="tf-label">健保眷屬人數</span>
+        <div class="tf-input-wrap">
+          <input type="number" id="li-deps" class="tf-input" value="0" min="0" max="3"/>
+          <span class="tf-suffix">人</span>
+        </div>
+        <span class="tf-hint">子女、配偶（無工作收入者）— 最多 3 人計費</span>
+      </label>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">REFERENCE</div>
+      <h2 class="t-section-title">投保級距對照</h2>
+      <div class="t-info-box">
+        <div class="tbr"><div class="tbr-label">勞保投保薪資<span class="tbr-sub">依勞工保險投保薪資分級表</span></div><div class="tbr-value" id="li-labor-grade">—</div></div>
+        <div class="tbr"><div class="tbr-label">健保投保金額<span class="tbr-sub">依全民健康保險投保金額分級表</span></div><div class="tbr-value" id="li-health-grade">—</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="t-result-col">
+    <div class="t-result-panel">
+      <div class="trp-head"><span class="trp-eyebrow">RESULT</span><span class="trp-title">每月勞健保費用</span></div>
+      <div class="trp-row">
+        <div class="t-big-num t-big-num-primary">
+          <div class="tbn-label">員工自付</div>
+          <div class="tbn-value"><span class="tbn-val" id="li-emp">0</span><span class="tbn-unit">元</span></div>
+        </div>
+        <div class="t-big-num t-big-num-accent">
+          <div class="tbn-label">雇主負擔</div>
+          <div class="tbn-value"><span class="tbn-val" id="li-er">0</span><span class="tbn-unit">元</span></div>
+        </div>
+      </div>
+      <div class="trp-grand">
+        <div class="trp-grand-label">每月總成本</div>
+        <div class="trp-grand-value"><span id="li-grand">0</span> <span>元</span></div>
+      </div>
+    </div>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">DETAIL</div>
+      <h2 class="t-section-title">費用明細拆解</h2>
+      <div class="t-breakdown">
+        <div class="tb-group">
+          <div class="tb-group-head">勞工保險（11.5%）</div>
+          <div class="tbr"><div class="tbr-label">員工自付（20%）</div><div class="tbr-value" id="li-labor-emp">—</div></div>
+          <div class="tbr"><div class="tbr-label">雇主負擔（70%）</div><div class="tbr-value" id="li-labor-er">—</div></div>
+        </div>
+        <div class="tb-group">
+          <div class="tb-group-head">全民健康保險（5.17%）</div>
+          <div class="tbr"><div class="tbr-label" id="li-health-emp-label">員工自付（含 0 位眷屬）</div><div class="tbr-value" id="li-health-emp">—</div></div>
+          <div class="tbr"><div class="tbr-label">雇主負擔（含平均眷口 0.57）</div><div class="tbr-value" id="li-health-er">—</div></div>
+        </div>
+        <div class="tb-group">
+          <div class="tb-group-head">勞工退休金（雇主提撥 6%）</div>
+          <div class="tbr"><div class="tbr-label">雇主提撥（強制）</div><div class="tbr-value" id="li-pension">—</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block tool_js %}
+<script src="{% static 'public_site/js/tool_radio.js' %}"></script>
+<script src="{% static 'public_site/js/tool_labor.js' %}"></script>
+{% endblock %}

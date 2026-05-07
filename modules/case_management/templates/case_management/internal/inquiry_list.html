@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block page_title %}諮詢預約{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">📨 諮詢預約</h1>
+      <p class="text-sm text-gray-500 mt-1">對外網站送出的潛在客戶名單</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'case_management:internal_list' %}"
+         class="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium">
+        ← 案件清單
+      </a>
+    </div>
+  </div>
+
+  {# 概要卡片 #}
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+    <a href="?status=" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition {% if active_status == '' %}ring-2 ring-indigo-300{% endif %}">
+      <div class="text-xs text-gray-500">全部</div>
+      <div class="text-2xl font-bold text-gray-800 mt-1">{{ counts.total|default:0 }}</div>
+    </a>
+    <a href="?status=new" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition border-l-4 border-amber-400 {% if active_status == 'new' %}ring-2 ring-amber-300{% endif %}">
+      <div class="text-xs text-amber-600">待處理</div>
+      <div class="text-2xl font-bold text-gray-800 mt-1">{{ counts.new|default:0 }}</div>
+    </a>
+    <a href="?status=contacted" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition border-l-4 border-blue-400 {% if active_status == 'contacted' %}ring-2 ring-blue-300{% endif %}">
+      <div class="text-xs text-blue-600">已聯絡</div>
+      <div class="text-2xl font-bold text-gray-800 mt-1">{{ counts.contacted|default:0 }}</div>
+    </a>
+    <a href="?status=converted" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition border-l-4 border-green-400 {% if active_status == 'converted' %}ring-2 ring-green-300{% endif %}">
+      <div class="text-xs text-green-600">已成交</div>
+      <div class="text-2xl font-bold text-gray-800 mt-1">{{ counts.converted|default:0 }}</div>
+    </a>
+    <a href="?status=dropped" class="bg-white rounded-lg shadow p-4 hover:shadow-md transition border-l-4 border-gray-300 {% if active_status == 'dropped' %}ring-2 ring-gray-300{% endif %}">
+      <div class="text-xs text-gray-500">未成交</div>
+      <div class="text-2xl font-bold text-gray-800 mt-1">{{ counts.dropped|default:0 }}</div>
+    </a>
+  </div>
+
+  <form method="get" class="bg-white rounded-lg shadow p-3 mb-3 flex flex-wrap gap-2 items-center">
+    <select name="status" onchange="this.form.submit()" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+      <option value="">全部狀態</option>
+      {% for v, label in status_choices %}
+        <option value="{{ v }}" {% if v == active_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="owner" onchange="this.form.submit()" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+      <option value="">所有負責人</option>
+      <option value="me" {% if active_owner == 'me' %}selected{% endif %}>我負責的</option>
+      <option value="unassigned" {% if active_owner == 'unassigned' %}selected{% endif %}>未指派</option>
+    </select>
+    <input type="text" name="q" value="{{ search_q }}" placeholder="🔍 搜尋姓名/Email/電話/內容"
+           class="border border-gray-300 rounded-md px-3 py-1.5 text-sm flex-1 min-w-[200px]">
+    <button type="submit" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm">搜尋</button>
+  </form>
+
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="text-left px-4 py-3">姓名</th>
+          <th class="text-left px-4 py-3">聯絡方式</th>
+          <th class="text-left px-4 py-3">事業階段</th>
+          <th class="text-left px-4 py-3">內容摘要</th>
+          <th class="text-left px-4 py-3">狀態</th>
+          <th class="text-left px-4 py-3">負責人</th>
+          <th class="text-left px-4 py-3">送出時間</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for q in inquiries %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3">
+            <a href="{% url 'case_management:inquiry_detail' q.pk %}" class="font-medium text-indigo-600 hover:underline">
+              {{ q.name }}
+            </a>
+            {% if q.company %}<div class="text-xs text-gray-500">{{ q.company }}</div>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-700">
+            {% if q.phone %}<div>📞 {{ q.phone }}</div>{% endif %}
+            {% if q.email %}<div class="text-gray-500">{{ q.email }}</div>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-xs">{{ q.stage|default:'—' }}</td>
+          <td class="px-4 py-3 text-xs text-gray-600 max-w-xs truncate" title="{{ q.message }}">
+            {{ q.message|default:'—'|truncatechars:40 }}
+          </td>
+          <td class="px-4 py-3">
+            {% if q.status == 'new' %}
+              <span class="inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700">待處理</span>
+            {% elif q.status == 'contacted' %}
+              <span class="inline-block px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700">已聯絡</span>
+            {% elif q.status == 'converted' %}
+              <span class="inline-block px-2 py-0.5 text-xs rounded bg-green-100 text-green-700">已成交</span>
+            {% else %}
+              <span class="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">未成交</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-xs">
+            {% if q.handled_by %}{{ q.handled_by.username }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{{ q.created_at|date:"Y/m/d H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-12 text-gray-400">尚無諮詢紀錄</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    {% include "case_management/_pagination.html" %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "public_site/base.html" %}
+{% load static wagtailcore_tags wagtailimages_tags %}
+
+{% block title %}{{ page.title }} · 勤信季刊{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/blog-article.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="read-progress" id="read-progress" style="width:0"></div>
+
+<section class="article-hero">
+  <div class="container">
+    <div class="article-breadcrumb">
+      <a href="/">首頁</a><span class="sep">/</span>
+      {% if page.get_parent %}<a href="{% pageurl page.get_parent %}">{{ page.get_parent.title }}</a><span class="sep">/</span>{% endif %}
+      <span>{{ page.title }}</span>
+    </div>
+
+    {% with cat=page.categories.first %}
+      {% if cat %}<span class="article-cat-tag">{{ cat.name }}</span>{% endif %}
+    {% endwith %}
+
+    <h1 class="article-title">{{ page.title }}</h1>
+    {% if page.lead %}<p class="article-lead">{{ page.lead|linebreaksbr }}</p>{% endif %}
+
+    <div class="article-meta">
+      {% with author=page.authors.first %}
+        {% if author %}
+          <div class="author">
+            <div class="avatar">{{ author.avatar_initial|default:author.name|slice:":1" }}</div>
+            <div class="author-info">
+              <span class="author-name">{{ author.name }}</span>
+              <span class="author-role">{{ author.role }}</span>
+            </div>
+          </div>
+          <div class="meta-divider"></div>
+        {% endif %}
+      {% endwith %}
+      <div class="meta-item">
+        <div class="ml">PUBLISHED</div>
+        <div class="mv">{% if page.publish_date %}{{ page.publish_date|date:"Y.m.d" }}{% else %}{{ page.first_published_at|date:"Y.m.d" }}{% endif %}</div>
+      </div>
+      {% if page.read_minutes %}
+        <div class="meta-divider"></div>
+        <div class="meta-item">
+          <div class="ml">READ</div>
+          <div class="mv">{{ page.read_minutes }} 分鐘</div>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if page.cover %}
+      <div class="article-hero-img">
+        {% image page.cover fill-1680x720 %}
+        {% if page.cover_caption %}<div class="img-caption">{{ page.cover_caption }}</div>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="article-layout">
+  <div class="container">
+    <div class="article-grid">
+      <div class="article-body">
+        {% for block in page.body %}
+          {% include_block block %}
+        {% endfor %}
+
+        <div class="article-footer">
+          {% with tags=page.tags.all %}
+            {% if tags %}
+              <div class="article-tags">
+                {% for tag in tags %}<span class="article-tag">#{{ tag.name }}</span>{% endfor %}
+              </div>
+            {% endif %}
+          {% endwith %}
+          <div class="article-share-row">
+            <span class="article-share-label">SHARE</span>
+            <div class="article-share-actions">
+              <button type="button" class="share-btn" data-share-copy>複製連結</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="article-sidebar">
+        <nav class="toc" id="article-toc" hidden>
+          <div class="toc-label">CONTENTS · 目錄</div>
+          <ul class="toc-list" id="article-toc-list"></ul>
+        </nav>
+
+        {% with author=page.authors.first %}
+          {% if author %}
+            <div class="author-card">
+              <div class="ac-label">AUTHOR</div>
+              <div class="ac-row">
+                <div class="ac-avatar">{{ author.avatar_initial|default:author.name|slice:":1" }}</div>
+                <div>
+                  <div class="ac-name">{{ author.name }}</div>
+                  <div class="ac-role">{{ author.role }}</div>
+                </div>
+              </div>
+              {% if author.bio %}<div class="ac-bio">{{ author.bio|linebreaksbr }}</div>{% endif %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="cta-card">
+          <div class="cc-label">CONSULTATION</div>
+          <h4>有相關問題？</h4>
+          <p>30 分鐘免費諮詢，與我們的會計師聊聊您的狀況。</p>
+          <button type="button" data-open-modal>預約諮詢 →</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  // 閱讀進度條
+  const bar = document.getElementById('read-progress');
+  if (bar) {
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      bar.style.width = pct + '%';
+    });
+  }
+  // 自動目錄：從 .article-body h2 產生 TOC，並做 scroll-spy 高亮
+  const headings = document.querySelectorAll('.article-body h2');
+  const tocList = document.getElementById('article-toc-list');
+  const toc = document.getElementById('article-toc');
+  if (headings.length && tocList) {
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'h-' + i;
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent.trim();
+      a.dataset.tocFor = h.id;
+      li.appendChild(a);
+      tocList.appendChild(li);
+    });
+    toc.hidden = false;
+
+    const links = tocList.querySelectorAll('a');
+    function spy() {
+      let current = headings[0];
+      const y = window.scrollY + 120;
+      headings.forEach(h => { if (h.offsetTop <= y) current = h; });
+      links.forEach(a => a.classList.toggle('active', a.dataset.tocFor === current.id));
+    }
+    window.addEventListener('scroll', spy);
+    spy();
+  }
+
+  // 複製連結
+  document.querySelectorAll('[data-share-copy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(window.location.href);
+      btn.textContent = '已複製 ✓';
+      setTimeout(() => btn.textContent = '複製連結', 2000);
+    });
+  });
+})();
+</script>
+{% endblock %}

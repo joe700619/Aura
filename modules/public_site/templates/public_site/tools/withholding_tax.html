@@ -1,0 +1,94 @@
+{% extends "public_site/tools/_tools_base.html" %}
+{% load static %}
+
+{% block title %}扣繳計算機 · 勤信工具{% endblock %}
+{% block tool_eyebrow %}TOOL · 04{% endblock %}
+{% block tool_title %}扣繳計算機{% endblock %}
+{% block tool_subtitle %}輸入金額即時試算勞務報酬、執行業務所得與租金的應扣繳稅額及二代健保補充保費。支援實領金額反算應付。{% endblock %}
+
+{% block tool_body %}
+<div class="t-two-col t-two-col-wide">
+  <div class="t-form-col">
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 01</div>
+      <h2 class="t-section-title">所得類型</h2>
+      <div class="t-tabs" id="wt-tabs">
+        <button type="button" class="t-tab active" data-tab="salary">勞務報酬（薪資）</button>
+        <button type="button" class="t-tab" data-tab="professional">執行業務所得</button>
+        <button type="button" class="t-tab" data-tab="rent">租金</button>
+      </div>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 02</div>
+      <h2 class="t-section-title">納稅人身份</h2>
+      <label class="tf">
+        <span class="tf-label">國籍</span>
+        <div class="t-radio-group t-radio-row" id="wt-resident">
+          <label class="t-radio active"><input type="radio" name="wt-res" value="yes" checked/><span class="t-radio-dot"></span><span>本國居住者（待滿 183 天）</span></label>
+          <label class="t-radio"><input type="radio" name="wt-res" value="no"/><span class="t-radio-dot"></span><span>非居住者（未滿 183 天）</span></label>
+        </div>
+      </label>
+
+      <label class="tf" id="wt-nhi-row">
+        <span class="tf-label">二代健保補充保費</span>
+        <div class="t-radio-group t-radio-row" id="wt-nhi">
+          <label class="t-radio active"><input type="radio" name="wt-nhi-r" value="charge" checked/><span class="t-radio-dot"></span><span>正常扣繳（單筆 ≥ 20,000 元）</span></label>
+          <label class="t-radio"><input type="radio" name="wt-nhi-r" value="exempt"/><span class="t-radio-dot"></span><span>符合免扣條件</span></label>
+        </div>
+      </label>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 03</div>
+      <h2 class="t-section-title">所得類別與金額</h2>
+      <label class="tf">
+        <span class="tf-label">所得類別</span>
+        <select id="wt-type" class="tf-input"></select>
+        <span class="tf-hint" id="wt-type-note"></span>
+      </label>
+
+      <label class="tf">
+        <span class="tf-label">金額</span>
+        <div class="tf-input-wrap">
+          <input type="number" id="wt-amount" class="tf-input" value="50000" placeholder="0" style="padding-right:60px"/>
+          <span class="tf-suffix">NTD</span>
+        </div>
+        <span class="tf-hint" id="wt-amount-hint">輸入應付給對方的金額（稅前）</span>
+      </label>
+
+      <label class="t-toggle-row">
+        <input type="checkbox" id="wt-reverse"/>
+        <span class="t-toggle"></span>
+        <div class="t-toggle-text">
+          <span class="t-toggle-label">實領金額反算應付金額</span>
+          <span class="t-toggle-hint">已知對方應實際拿到多少，回推你需要付的金額</span>
+        </div>
+      </label>
+    </section>
+  </div>
+
+  <div class="t-result-col">
+    <div class="t-result-panel">
+      <div class="trp-head"><span class="trp-eyebrow">RESULT · 試算結果</span><span class="trp-title" id="wt-headline-label">對方實領</span></div>
+      <div class="t-headline-num"><span class="thn-val" id="wt-headline">0</span><span class="thn-unit">元</span></div>
+      <div class="t-calc-flow">
+        <div class="tcf-row"><span class="tcf-label">應付金額（稅前）</span><span class="tcf-val" id="wt-payable">0 元</span></div>
+        <div class="tcf-row neg"><span class="tcf-label" id="wt-withhold-label">代扣繳稅額</span><span class="tcf-val" id="wt-withhold">− 0 元</span></div>
+        <div class="tcf-row neg"><span class="tcf-label" id="wt-nhi-label">二代健保（2.11%）</span><span class="tcf-val" id="wt-nhi-val">− 0 元</span></div>
+        <div class="tcf-row final"><span class="tcf-label">實領金額</span><span class="tcf-val" id="wt-net">0 元</span></div>
+      </div>
+    </div>
+
+    <div class="t-tip-card">
+      <div class="t-tip-eyebrow">會計師補充</div>
+      <p id="wt-tip"></p>
+      <a href="{% url 'public_site:bookkeeping' %}" class="t-tip-link">了解記帳代理 →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block tool_js %}
+<script src="{% static 'public_site/js/tool_withholding.js' %}"></script>
+{% endblock %}

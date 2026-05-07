@@ -10,6 +10,7 @@ from .views import (
     ExternalCaseAccessView, ExternalCaseReplyView,
     BookkeepingClientLookupView, StaffUserLookupView,
     ClientCaseAnalyticsView,
+    InquiryListView, InquiryDetailView, InquiryUpdateView, InquiryClaimView,
 )
 
 app_name = 'case_management'
@@ -31,4 +32,10 @@ urlpatterns = [
     path('<int:pk>/attachment/', InternalCaseAttachmentUploadView.as_view(), name='internal_attachment'),
     path('<int:pk>/magic-link/', InternalCaseIssueMagicLinkView.as_view(), name='internal_magic_link'),
     path('analytics/clients/', ClientCaseAnalyticsView.as_view(), name='client_analytics'),
+
+    # 諮詢預約（潛在客戶）
+    path('inquiries/', InquiryListView.as_view(), name='inquiry_list'),
+    path('inquiries/<int:pk>/', InquiryDetailView.as_view(), name='inquiry_detail'),
+    path('inquiries/<int:pk>/update/', InquiryUpdateView.as_view(), name='inquiry_update'),
+    path('inquiries/<int:pk>/claim/', InquiryClaimView.as_view(), name='inquiry_claim'),
 ]

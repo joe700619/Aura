@@ -1,0 +1,5 @@
+{% load wagtailimages_tags %}
+<figure>
+  {% image value.image fill-1200x675 %}
+  {% if value.caption %}<figcaption>{{ value.caption }}</figcaption>{% endif %}
+</figure>

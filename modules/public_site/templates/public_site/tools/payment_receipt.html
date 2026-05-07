@@ -1,0 +1,110 @@
+{% extends "public_site/tools/_tools_base.html" %}
+{% load static %}
+
+{% block title %}勞務報酬單 · 勤信工具{% endblock %}
+{% block tool_eyebrow %}TOOL · 02{% endblock %}
+{% block tool_title %}勞務報酬單{% endblock %}
+{% block tool_subtitle %}填寫付款方、收款方與項目，即時產生勞務報酬單預覽，自動計算應扣繳稅額與二代健保補充保費。{% endblock %}
+
+{% block tool_body %}
+<div class="t-two-col t-two-col-wide">
+  <div class="t-form-col">
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 01</div>
+      <h2 class="t-section-title">付款方資訊</h2>
+      <label class="tf"><span class="tf-label">名稱 / 公司名</span><input id="pr-payer-name" class="tf-input" value="勤信聯合會計師事務所"/></label>
+      <div class="t-grid t-grid-2">
+        <label class="tf"><span class="tf-label">統一編號</span><input id="pr-payer-id" class="tf-input" value="12345678"/></label>
+        <label class="tf"><span class="tf-label">聯絡人</span><input id="pr-payer-contact" class="tf-input" value="陳會計師 02-2345-6789"/></label>
+      </div>
+      <label class="tf"><span class="tf-label">地址</span><input id="pr-payer-addr" class="tf-input" value="台北市中正區重慶南路一段 100 號"/></label>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 02</div>
+      <h2 class="t-section-title">收款方資訊</h2>
+      <div class="t-grid t-grid-2">
+        <label class="tf"><span class="tf-label">姓名</span><input id="pr-payee-name" class="tf-input" value="王小明"/></label>
+        <label class="tf"><span class="tf-label">身分證字號 / 統編</span><input id="pr-payee-id" class="tf-input" value="A123456789"/></label>
+      </div>
+      <label class="tf"><span class="tf-label">戶籍地址</span><input id="pr-payee-addr" class="tf-input" value="台北市信義區忠孝東路五段 88 號"/></label>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 03</div>
+      <h2 class="t-section-title">所得類別</h2>
+      <label class="tf">
+        <span class="tf-label">所得格式</span>
+        <select id="pr-tax-type" class="tf-input">
+          <option value="9a">9A · 執行業務所得（10%）</option>
+          <option value="9b">9B · 兼職薪資所得（5%）</option>
+          <option value="50">50 · 其他所得（10%）</option>
+        </select>
+        <span class="tf-hint">決定扣繳稅率與起扣門檻</span>
+      </label>
+      <div class="t-grid t-grid-2">
+        <label class="tf"><span class="tf-label">給付日期</span><input type="date" id="pr-date" class="tf-input" value="2026-04-30"/></label>
+        <label class="tf"><span class="tf-label">文件編號</span><input id="pr-doc-no" class="tf-input" value="Q-2026-0042"/></label>
+      </div>
+    </section>
+
+    <section class="t-section">
+      <div class="t-section-eyebrow">STEP 04</div>
+      <h2 class="t-section-title">服務項目</h2>
+      <div class="t-items-table" id="pr-items">
+        <div class="t-item-row">
+          <input class="tf-input" placeholder="項目說明" value="顧問服務 · 2026 年 4 月" data-item-desc/>
+          <input type="number" class="tf-input ti-amount" placeholder="金額" value="30000" data-item-amount/>
+          <button type="button" class="ti-remove" data-item-remove disabled>×</button>
+        </div>
+      </div>
+      <button type="button" class="t-add-row" id="pr-add">＋ 新增項目</button>
+    </section>
+  </div>
+
+  <div class="t-result-col t-preview-col">
+    <div class="t-preview-label">A4 預覽 · PREVIEW</div>
+    <div class="a4-doc">
+      <div class="a4-head">
+        <div class="a4-title">勞務報酬單</div>
+        <div class="a4-subtitle">PAYMENT VOUCHER</div>
+        <div class="a4-meta">
+          <span>文件編號：<span id="pv-doc">—</span></span>
+          <span>給付日期：<span id="pv-date">—</span></span>
+        </div>
+      </div>
+      <div class="a4-section">
+        <div class="a4-sec-head">付款方 / PAYER</div>
+        <div class="a4-row"><span>名稱</span><span id="pv-payer-name">—</span></div>
+        <div class="a4-row"><span>統一編號</span><span id="pv-payer-id">—</span></div>
+        <div class="a4-row"><span>地址</span><span id="pv-payer-addr">—</span></div>
+        <div class="a4-row"><span>聯絡人</span><span id="pv-payer-contact">—</span></div>
+      </div>
+      <div class="a4-section">
+        <div class="a4-sec-head">收款方 / PAYEE</div>
+        <div class="a4-row"><span>姓名</span><span id="pv-payee-name">—</span></div>
+        <div class="a4-row"><span>身分證字號</span><span id="pv-payee-id">—</span></div>
+        <div class="a4-row"><span>地址</span><span id="pv-payee-addr">—</span></div>
+      </div>
+      <table class="a4-items">
+        <thead><tr><th>項目說明</th><th style="width:30%; text-align:right">金額（NTD）</th></tr></thead>
+        <tbody id="pv-items"></tbody>
+      </table>
+      <div class="a4-totals">
+        <div class="a4-total-row"><span>給付總額</span><span id="pv-total">0 元</span></div>
+        <div class="a4-total-row neg"><span id="pv-withhold-label">扣繳稅額</span><span id="pv-withhold">− 0 元</span></div>
+        <div class="a4-total-row neg"><span id="pv-nhi-label">二代健保補充保費（2.11%）</span><span id="pv-nhi">− 0 元</span></div>
+        <div class="a4-total-row final"><span>實付金額</span><span id="pv-net">0 元</span></div>
+      </div>
+      <div class="a4-foot">
+        <div class="a4-stamp">勤<br/>信</div>
+        <div class="a4-foot-text">本單據經核對無誤，付款方依規定辦理扣繳申報，<br/>並於次年 1 月底前開立扣繳憑單予收款方。</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block tool_js %}
+<script src="{% static 'public_site/js/tool_payment.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block title %}經營顧問 · 勤信聯合會計師事務所{% endblock %}
+
+{% block content %}
+<section class="sub-hero sub-hero-reverse">
+  <div class="container">
+    <div class="sub-hero-grid">
+      <div class="sub-hero-text">
+        <div class="sub-hero-eyebrow"><span class="seal">顧</span><span>經營顧問 · ADVISORY</span></div>
+        <h1 class="sub-hero-title">讓數字<span class="accent-mark">變成決策</span></h1>
+        <p class="sub-hero-sub">看懂財報只是開始。<br/>我們把數據翻譯成可行動的洞察，<br/>幫你做下一步的經營決策。</p>
+        <div class="sub-hero-actions">
+          <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+        </div>
+      </div>
+      <div class="sub-hero-visual">
+        <div class="ledger-illust">
+          <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="ad-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#e8e0cd"/><stop offset="100%" stop-color="#bca888"/>
+              </linearGradient>
+            </defs>
+            <rect width="400" height="500" fill="url(#ad-bg)"/>
+            <g transform="translate(40 70)">
+              <rect width="320" height="360" fill="#fdf8ec" stroke="#a89878" stroke-width="0.8"/>
+              <text x="20" y="28" font-family="serif" font-size="13" fill="#3a2f1f">經營儀表板</text>
+              <text x="20" y="44" font-family="monospace" font-size="9" fill="#9b8a64" letter-spacing="2">DASHBOARD · Q2 2026</text>
+              <line x1="20" y1="56" x2="300" y2="56" stroke="#7a6a48" stroke-width="0.4"/>
+              <g transform="translate(20 70)"><rect width="80" height="60" fill="none" stroke="#c2a884" stroke-width="0.4"/><text x="8" y="18" font-family="monospace" font-size="8" fill="#7a6a48" letter-spacing="1">營收成長</text><text x="8" y="44" font-family="serif" font-size="20" fill="#0d6b3f">+18%</text></g>
+              <g transform="translate(120 70)"><rect width="80" height="60" fill="none" stroke="#c2a884" stroke-width="0.4"/><text x="8" y="18" font-family="monospace" font-size="8" fill="#7a6a48" letter-spacing="1">毛利率</text><text x="8" y="44" font-family="serif" font-size="20" fill="#3a2f1f">42.3%</text></g>
+              <g transform="translate(220 70)"><rect width="80" height="60" fill="none" stroke="#c2a884" stroke-width="0.4"/><text x="8" y="18" font-family="monospace" font-size="8" fill="#7a6a48" letter-spacing="1">現金天數</text><text x="8" y="44" font-family="serif" font-size="20" fill="#a0332a">58天</text></g>
+              <g transform="translate(20 160)">
+                <text x="0" y="0" font-family="monospace" font-size="9" fill="#7a6a48" letter-spacing="1">月度營收 · MONTHLY REVENUE</text>
+                <line x1="0" y1="120" x2="280" y2="120" stroke="#7a6a48" stroke-width="0.4"/>
+                <rect x="4" y="78" width="14" height="42" fill="#7a6a48"/><rect x="27" y="65" width="14" height="55" fill="#7a6a48"/><rect x="50" y="82" width="14" height="38" fill="#7a6a48"/><rect x="73" y="52" width="14" height="68" fill="#7a6a48"/><rect x="96" y="48" width="14" height="72" fill="#7a6a48"/><rect x="119" y="35" width="14" height="85" fill="#7a6a48"/><rect x="142" y="42" width="14" height="78" fill="#7a6a48"/><rect x="165" y="28" width="14" height="92" fill="#7a6a48"/><rect x="188" y="32" width="14" height="88" fill="#a0332a"/><rect x="211" y="25" width="14" height="95" fill="#a0332a"/><rect x="234" y="38" width="14" height="82" fill="#7a6a48" opacity="0.4"/><rect x="257" y="22" width="14" height="98" fill="#7a6a48" opacity="0.4"/>
+              </g>
+              <g transform="translate(20 310)">
+                <text x="0" y="0" font-family="monospace" font-size="9" fill="#7a6a48" letter-spacing="1">毛利率走勢 · MARGIN TREND</text>
+                <polyline points="0,30 40,25 80,18 120,22 160,12 200,15 240,8 280,5" fill="none" stroke="#0d6b3f" stroke-width="1.5"/>
+              </g>
+            </g>
+          </svg>
+          <div class="illust-tag"><span>顧問 · ADVISORY</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">WHAT WE ADVISE · 顧問範圍</div>
+      <h2 class="sub-section-title">四個經營者最關心的領域</h2>
+    </div>
+    <div class="service-grid-3" style="grid-template-columns:repeat(2, 1fr)">
+      <div class="service-card"><div class="service-num">01</div><h3>財務分析 · 經營儀表板</h3><ul><li>關鍵指標 (KPI) 設計</li><li>月度經營檢視會議</li><li>同業比較 · 行業基準</li><li>成本結構分析</li></ul></div>
+      <div class="service-card"><div class="service-num">02</div><h3>預算規劃 · 現金流</h3><ul><li>年度預算 · 季度滾動</li><li>現金流預測</li><li>損益平衡分析</li><li>投資回收期評估</li></ul></div>
+      <div class="service-card"><div class="service-num">03</div><h3>內部控制 · 流程設計</h3><ul><li>三權分立檢視</li><li>採購 · 入帳 · 付款</li><li>費用核決權限</li><li>稽核 · 風險管理</li></ul></div>
+      <div class="service-card"><div class="service-num">04</div><h3>稅務與股權規劃</h3><ul><li>股東分潤策略</li><li>跨境投資架構</li><li>員工股票選擇權 (ESOP)</li><li>家族傳承稅務</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">HOW WE WORK · 合作模式</div>
+      <h2 class="sub-section-title">兩種模式，依需求挑選</h2>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-card"><h4>專案制</h4><ul><li>單次性議題 · 例如增資、跨境設點、合併評估</li><li>2-8 週交付 · 含調研、分析、建議書</li><li>NT$ 80,000 起 · 依議題複雜度報價</li><li>適合：策略性決策 · 重大資本變動</li></ul></div>
+      <div class="compare-card highlight"><h4>長期顧問</h4><ul><li>每月固定會議 · 滾動式優化</li><li>含經營儀表板 · 月度檢視會議</li><li>NT$ 30,000 / 月起 · 半年起跳</li><li>適合：穩定成長期 · 想建立內部財務體系</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">OUTCOMES · 你會得到什麼</div>
+      <h2 class="sub-section-title">不只是一份報告</h2>
+    </div>
+    <div class="sub-stat-row">
+      <div class="sub-stat"><div class="sub-stat-num">15<span>+</span></div><div class="sub-stat-label">關鍵指標儀表板</div></div>
+      <div class="sub-stat"><div class="sub-stat-num">4<span>季</span></div><div class="sub-stat-label">財務檢視會議</div></div>
+      <div class="sub-stat"><div class="sub-stat-num">1<span>份</span></div><div class="sub-stat-label">年度經營建議書</div></div>
+      <div class="sub-stat"><div class="sub-stat-num">24<span>H</span></div><div class="sub-stat-label">電話 · 訊息諮詢</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-section alt-bg">
+  <div class="container">
+    <div class="sub-section-head">
+      <div class="sub-section-eyebrow">FAQ</div>
+      <h2 class="sub-section-title">準客戶最常問的</h2>
+    </div>
+    <div class="sub-faq-list">
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 我已經有記帳，還需要顧問嗎？</div><div class="sub-faq-a">記帳是「過去」的紀錄，顧問是「未來」的決策。如果你想知道下一步怎麼走、要不要擴張、要不要加股東，就需要顧問。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 我們是小公司，預算有限怎麼辦？</div><div class="sub-faq-a">專案制是好選擇。例如做一次完整的「年度經營檢視」，找出 3-5 個優先改善點，後續自己執行。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 顧問會接觸到我們敏感資料嗎？</div><div class="sub-faq-a">是的。我們有完整的保密協議與資料隔離流程，所有專案都有專屬負責人，資料不會跨案使用。</div></div>
+      <div class="sub-faq-item"><div class="sub-faq-q">Q · 見效需要多久？</div><div class="sub-faq-a">專案制通常在 2-8 週內看到具體建議；長期顧問通常在 3 個月內，能看到財務體系的明顯改善。</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sub-cta">
+  <div class="container">
+    <h2>準備讓數字幫你做決策？</h2>
+    <p>30 分鐘諮詢，了解你目前的經營課題。</p>
+    <button type="button" class="btn-primary-lg" data-open-modal>預約諮詢 <span class="btn-arrow">→</span></button>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'public_site/js/subpage.js' %}"></script>
+{% endblock %}
