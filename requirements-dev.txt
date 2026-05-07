@@ -1,0 +1,15 @@
+-r requirements.txt
+
+# 開發 / Debug 工具
+django-debug-toolbar
+django-extensions
+django-silk
+
+# 測試
+pytest
+pytest-django
+factory-boy
+model-bakery
+
+# 環境變數
+django-environ
