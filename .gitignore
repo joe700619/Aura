@@ -102,8 +102,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# .agent folder
-.agent/
+# .agent skills/workflows 納入版控
 .gemini/
 
 # IDE files
