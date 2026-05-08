@@ -183,6 +183,8 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://127.0.0.1:6379/0')
 CELERY_TIMEZONE = 'Asia/Taipei'
 CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
+# 預防累積式記憶體洩漏：worker 處理 1000 個 task 後自動重啟
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 
 AUTH_USER_MODEL = 'core.User'

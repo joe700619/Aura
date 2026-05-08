@@ -68,12 +68,10 @@ class IncomeTaxMediaUploadView(BusinessRequiredMixin, View):
         media_data.raw_file = uploaded_file
         media_data.save(update_fields=['raw_file'])
 
-        # 解析檔案
+        # 解析檔案（用 with 確保檔案描述子在例外時也會被關閉）
         try:
-            # 重新開啟檔案進行解析
-            media_data.raw_file.open('rb')
-            parsed_data = parse_001_file(media_data.raw_file)
-            media_data.raw_file.close()
+            with media_data.raw_file.open('rb') as fh:
+                parsed_data = parse_001_file(fh)
 
             # 將解析結果寫入 Model
             apply_parsed_data(media_data, parsed_data)
