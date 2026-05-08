@@ -14,9 +14,9 @@ class Voucher(BaseModel):
         COLLECTION = 'COLLECTION', '收款過帳'
 
     voucher_no = models.CharField(max_length=50, unique=True, blank=True, verbose_name="傳票編號")
-    date = models.DateField(verbose_name="日期")
+    date = models.DateField(db_index=True, verbose_name="日期")
     description = models.TextField(blank=True, verbose_name="摘要")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, verbose_name="狀態")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True, verbose_name="狀態")
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.MANUAL, verbose_name="來源")
     
     created_by = models.ForeignKey('core.User', on_delete=models.SET_NULL, null=True, verbose_name="建立者")

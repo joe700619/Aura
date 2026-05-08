@@ -74,7 +74,7 @@ class Case(BaseModel):
 
     needs_followup = models.BooleanField(default=False, verbose_name="是否需要追蹤")
     next_followup_date = models.DateField(null=True, blank=True, verbose_name="下次追蹤日")
-    last_activity_at = models.DateTimeField(default=timezone.now, verbose_name="最後活動時間")
+    last_activity_at = models.DateTimeField(default=timezone.now, db_index=True, verbose_name="最後活動時間")
     closed_at = models.DateTimeField(null=True, blank=True, verbose_name="結案時間")
 
     class Meta:

@@ -28,8 +28,8 @@ class Progress(BaseModel):
 
     # 1. Basic Data
     registration_no = models.CharField(_('登記單號'), max_length=20, unique=True, editable=False)
-    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
-    company_name = models.CharField(_('公司名稱'), max_length=255)
+    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True, db_index=True)
+    company_name = models.CharField(_('公司名稱'), max_length=255, db_index=True)
     line_id = models.CharField(_('Line ID'), max_length=100, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=100, blank=True, null=True)
 
@@ -40,7 +40,7 @@ class Progress(BaseModel):
     address = models.CharField(_('通訊地址'), max_length=255, blank=True, null=True)
 
     # 3. Other
-    progress_status = models.IntegerField(_('登記進度'), choices=ProgressStatus.choices, default=ProgressStatus.NEW_CASE)
+    progress_status = models.IntegerField(_('登記進度'), choices=ProgressStatus.choices, default=ProgressStatus.NEW_CASE, db_index=True)
     mandate_return = models.CharField(_('委任書簽回'), max_length=20, choices=MandateReturn.choices, default=MandateReturn.DRAFT)
     acceptance_date = models.DateField(_('承接日期'), default=timezone.now)
     # Using JSONField for multiple selection as we are on Postgres

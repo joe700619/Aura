@@ -23,8 +23,9 @@ class SystemBulletin(BaseModel):
     )
         
     publish_date = models.DateField(
-        _('日期'), 
+        _('日期'),
         default=timezone.now,
+        db_index=True,
         help_text=_('公佈日期')
     )
     subject = models.CharField(
@@ -35,10 +36,11 @@ class SystemBulletin(BaseModel):
         _('相關說明')
     )
     status = models.CharField(
-        _('狀態'), 
-        max_length=20, 
-        choices=StatusChoices.choices, 
-        default=StatusChoices.ACTIVE
+        _('狀態'),
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.ACTIVE,
+        db_index=True,
     )
 
     class Meta:

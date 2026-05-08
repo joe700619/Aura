@@ -37,7 +37,7 @@ class Employee(models.Model):
         editable=False,
         help_text=_("自動生成，格式：西元年+序號（如：2026001）")
     )
-    name = models.CharField(_("姓名"), max_length=100)
+    name = models.CharField(_("姓名"), max_length=100, db_index=True)
     gender = models.CharField(_("性別"), max_length=1, choices=GENDER_CHOICES)
     id_number = models.CharField(
         _("身分證字號"),
@@ -58,7 +58,8 @@ class Employee(models.Model):
         _("在職狀態"),
         max_length=20,
         choices=STATUS_CHOICES,
-        default='ACTIVE'
+        default='ACTIVE',
+        db_index=True,
     )
     hire_date = models.DateField(_("到職日期"))
     resignation_date = models.DateField(_("離職日期"), blank=True, null=True)

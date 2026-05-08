@@ -18,8 +18,8 @@ class CaseAssessment(BaseModel):
     )
     
     # Basic Data
-    company_name = models.CharField(_('公司名稱'), max_length=255, blank=True, null=True)
-    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
+    company_name = models.CharField(_('公司名稱'), max_length=255, blank=True, null=True, db_index=True)
+    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True, db_index=True)
     line_id = models.CharField(_('Line ID'), max_length=100, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=100, blank=True, null=True)
 

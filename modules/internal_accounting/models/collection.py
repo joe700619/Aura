@@ -20,7 +20,7 @@ class Collection(BaseModel):
         verbose_name=_('應收帳款')
     )
     collection_no = models.CharField(_('收款單號'), max_length=50, unique=True, blank=True)
-    date = models.DateField(_('收款日期'), default=timezone.now)
+    date = models.DateField(_('收款日期'), default=timezone.now, db_index=True)
     method = models.CharField(_('收款方式'), max_length=20, choices=METHOD_CHOICES, default='bank')
     
     amount = models.DecimalField(_('收款金額'), max_digits=12, decimal_places=0, default=0)

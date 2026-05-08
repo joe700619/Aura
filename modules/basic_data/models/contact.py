@@ -5,7 +5,7 @@ from .customer import Customer
 class Contact(BaseModel):
     """Contact Person Data"""
     
-    name = models.CharField(max_length=100, verbose_name="姓名")
+    name = models.CharField(max_length=100, db_index=True, verbose_name="姓名")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="電話")
     mobile = models.CharField(max_length=20, blank=True, null=True, verbose_name="手機")
     fax = models.CharField(max_length=20, blank=True, null=True, verbose_name="傳真")
@@ -20,7 +20,7 @@ class Contact(BaseModel):
         verbose_name="公司名稱"
     )
     
-    tax_id = models.CharField(max_length=20, verbose_name="統一編號", blank=True, null=True)
+    tax_id = models.CharField(max_length=20, db_index=True, verbose_name="統一編號", blank=True, null=True)
     notes = models.TextField(verbose_name="備註", blank=True, null=True)
 
     class Meta:

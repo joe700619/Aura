@@ -73,7 +73,7 @@ class BookkeepingClient(BaseModel):
         _('國稅局轄區代碼'), max_length=5, blank=True, null=True,
         help_text=_('城市代號(1碼) + 稅籍單位代碼(4碼)，例如 A0300'),
     )
-    name = models.CharField(_('公司名稱'), max_length=100)
+    name = models.CharField(_('公司名稱'), max_length=100, db_index=True)
     line_id = models.CharField(_('Line ID'), max_length=50, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=50, blank=True, null=True)
 
@@ -90,11 +90,13 @@ class BookkeepingClient(BaseModel):
         _('承接狀態'), max_length=20,
         choices=AcceptanceStatus.choices,
         default=AcceptanceStatus.ACTIVE,
+        db_index=True,
     )
     billing_status = models.CharField(
         _('計費狀態'), max_length=20,
         choices=BillingStatus.choices,
         default=BillingStatus.BILLING,
+        db_index=True,
     )
     service_type = models.CharField(
         _('提供服務'), max_length=20,

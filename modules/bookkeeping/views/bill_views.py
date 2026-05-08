@@ -3,6 +3,7 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
 from django.db import models as db_models
+from django.db.models import Prefetch, Q
 from django.db import transaction
 from django.forms import ModelForm, HiddenInput
 from django.shortcuts import get_object_or_404, redirect
@@ -10,6 +11,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, SearchMixin, PrevNextMixin, SoftDeleteMixin
 from ..models import BookkeepingClient, ClientBill
+from ..models.billing import ServiceFee
 from modules.administrative.models import AdvancePaymentDetail
 from modules.internal_accounting.services import ReceivableTransferService
 
@@ -48,25 +50,25 @@ def _get_clients_for_batch(month):
     回傳本月應開帳單的客戶清單（list of dict）。
     Step 1: 依 billing_cycle 判斷本月是否發單。
     Step 2: 判斷是否為年度發單月。
+
+    用 Prefetch 把「目前有效的服務費」一次抓回，避免 N+1。
     """
+    today = date.today()
+    active_fee_qs = (
+        ServiceFee.objects
+        .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
+        .order_by('-effective_date')
+    )
     clients = (
         BookkeepingClient.objects
         .filter(is_deleted=False, billing_status='billing')
-        .prefetch_related('service_fees')
         .select_related('bookkeeping_assistant')
+        .prefetch_related(Prefetch('service_fees', queryset=active_fee_qs, to_attr='_active_fees'))
         .order_by('name')
     )
-    today = date.today()
     result = []
     for client in clients:
-        active_fee = (
-            client.service_fees
-            .filter(
-                db_models.Q(end_date__isnull=True) | db_models.Q(end_date__gte=today)
-            )
-            .order_by('-effective_date')
-            .first()
-        )
+        active_fee = client._active_fees[0] if client._active_fees else None
         if not active_fee:
             continue
         cycle = active_fee.billing_cycle

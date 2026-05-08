@@ -188,7 +188,7 @@ class TaxFilingPeriod(BaseModel):
     )
 
     # ── 申報狀態 ──
-    is_filed = models.BooleanField(_('是否已申報'), default=False)
+    is_filed = models.BooleanField(_('是否已申報'), default=False, db_index=True)
     filing_date = models.DateField(_('申報日期'), null=True, blank=True)
 
     # ── 繳稅作業 ──
@@ -201,7 +201,8 @@ class TaxFilingPeriod(BaseModel):
     filing_status = models.CharField(
         _('繳納狀態'), max_length=20,
         choices=FilingStatus.choices,
-        default=FilingStatus.NOT_NOTIFIED
+        default=FilingStatus.NOT_NOTIFIED,
+        db_index=True,
     )
     reply_time = models.DateTimeField(_('回覆時間'), null=True, blank=True)
     reply_method = models.CharField(

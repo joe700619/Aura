@@ -436,3 +436,98 @@ For quick setup, use the template scaffolds in `templates/scaffolds/`:
 - `list_view_views.py` - View class boilerplate
 
 See the Implementation Plan artifact for details on using these scaffolds.
+
+---
+
+## ⚡ 查詢效能規範（強制檢查）
+
+任何 ListView 完成後，**必須**用 django-debug-toolbar 確認 SQL 數 < 15。
+這是上線前批次 2 後的硬規則，違反會在 5,000+ 客戶資料量下卡頓。
+
+### 規則 1：FK 一律 `select_related`
+
+```python
+def get_queryset(self):
+    return super().get_queryset().select_related(
+        'group_assistant',           # FK
+        'bookkeeping_assistant',     # FK
+        'customer',                  # FK
+    )
+```
+
+模板用到 `{{ obj.group_assistant.name }}` 但 view 沒有 select_related → N+1。
+
+### 規則 2：M2M 或反向 FK 用 `prefetch_related`
+
+```python
+def get_queryset(self):
+    return super().get_queryset().prefetch_related(
+        'service_fees',              # 反向 FK
+        'tags',                      # M2M
+    )
+```
+
+### 規則 3：迴圈內需要 filter 子集合 → 用 `Prefetch` + `to_attr`
+
+❌ **錯誤**（每個 client 各一條 SQL）
+```python
+clients = BookkeepingClient.objects.prefetch_related('service_fees')
+for client in clients:
+    active_fee = client.service_fees.filter(end_date__isnull=True).first()
+```
+
+✅ **正確**（一條 SQL 抓全部、按客戶分組存到 `_active_fees` 屬性）
+```python
+from django.db.models import Prefetch, Q
+active_fee_qs = ServiceFee.objects.filter(
+    Q(end_date__isnull=True) | Q(end_date__gte=today)
+).order_by('-effective_date')
+
+clients = BookkeepingClient.objects.prefetch_related(
+    Prefetch('service_fees', queryset=active_fee_qs, to_attr='_active_fees')
+)
+for client in clients:
+    active_fee = client._active_fees[0] if client._active_fees else None
+```
+
+### 規則 4：聚合計數用 `annotate(Count)`，不要在 Python 算
+
+❌
+```python
+for status, _ in Inquiry.Status.choices:
+    counts[status] = Inquiry.objects.filter(status=status).count()  # N 條 SQL
+```
+
+✅
+```python
+all_inq = Inquiry.objects.values('status').annotate(c=Count('id'))
+counts = {row['status']: row['c'] for row in all_inq}  # 1 條 SQL
+```
+
+### 規則 5：避免 `for x in qs.all(): ... .filter(...)` 模式
+
+任何迴圈中對 ORM `.filter()` `.first()` `.count()` 的呼叫都是 N+1 警訊。
+解法：
+
+- 改用 `Prefetch` + `to_attr`（規則 3）
+- 改用 annotate（規則 4）
+- 改用 Subquery（複雜情境）
+
+### 規則 6：限制欄位用 `.only()` 或 `.defer()`
+
+當清單頁只用 model 的少數欄位時：
+```python
+.only('id', 'name', 'tax_id', 'status')  # 只查這些欄位
+```
+能大幅減少 DB 傳輸與 ORM hydrate 成本。但**會 trigger 額外查詢若取了未列入的欄位**，要小心。
+
+---
+
+## 🔍 自我檢查 checklist（每個新 ListView）
+
+- [ ] FK 都加了 `select_related`
+- [ ] 反向 FK / M2M 都加了 `prefetch_related`
+- [ ] 模板裡 `for obj in list:` 內部沒有 `obj.related.filter()` / `.count()`
+- [ ] 用 debug-toolbar 確認 SQL 數 < 15
+- [ ] 高頻搜尋的欄位（name / tax_id / status 等）model 上加了 `db_index=True`
+- [ ] 列表 ordering 對應的欄位有 index（避免 ORDER BY 全表掃描）

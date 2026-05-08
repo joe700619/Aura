@@ -85,6 +85,7 @@ class ClientBill(BaseModel):
         max_length=20,
         choices=BillStatus.choices,
         default=BillStatus.DRAFT,
+        db_index=True,
     )
     total_amount = models.DecimalField('合計金額', max_digits=12, decimal_places=0, default=0)
     quotation_data = models.JSONField('帳單明細', default=list, blank=True)
@@ -99,6 +100,10 @@ class ClientBill(BaseModel):
         verbose_name_plural = '客戶帳單'
         ordering = ['-year', '-month', '-client__name']
         unique_together = [['client', 'year', 'month']]
+        indexes = [
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['-year', '-month']),
+        ]
 
     def __str__(self):
         return f"{self.bill_no} - {self.client.name} ({self.year}/{self.month})"

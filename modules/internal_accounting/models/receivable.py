@@ -10,8 +10,8 @@ class Receivable(BaseModel):
     date = models.DateField(_('立帳日期'), null=True, blank=True)
 
     # Basic Data (Matches ClientAssessment)
-    company_name = models.CharField(_('公司名稱'), max_length=255)
-    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True)
+    company_name = models.CharField(_('公司名稱'), max_length=255, db_index=True)
+    unified_business_no = models.CharField(_('統一編號'), max_length=20, blank=True, null=True, db_index=True)
     line_id = models.CharField(_('Line ID'), max_length=100, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=100, blank=True, null=True)
 

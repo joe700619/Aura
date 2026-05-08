@@ -24,18 +24,18 @@ class IrsAuditNotice(BaseModel):
 
     # Card 1: 主要資訊 (Main Info)
     customer = models.ForeignKey('basic_data.Customer', on_delete=models.CASCADE, verbose_name="客戶")
-    tax_id = models.CharField(max_length=20, blank=True, null=True, verbose_name="統一編號") # Add JS auto-fill
-    attributable_year = models.IntegerField(blank=True, null=True, verbose_name="歸屬年度")
+    tax_id = models.CharField(max_length=20, blank=True, null=True, db_index=True, verbose_name="統一編號") # Add JS auto-fill
+    attributable_year = models.IntegerField(blank=True, null=True, db_index=True, verbose_name="歸屬年度")
     tax_category = models.CharField(max_length=50, choices=TAX_CATEGORY_CHOICES, blank=True, null=True, verbose_name="稅種分類")
     subject = models.CharField(max_length=255, verbose_name="信件主旨")
-    receipt_date = models.DateField(default=timezone.now, verbose_name="收文日期")
+    receipt_date = models.DateField(default=timezone.now, db_index=True, verbose_name="收文日期")
     assigned_assistant = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='assigned_audit_notices', verbose_name="指派助理")
     assistant_email = models.EmailField(blank=True, null=True, verbose_name="助理Email")
 
     # Card 2: 狀態與附件 (Status & Attachments)
     reply_deadline = models.DateField(blank=True, null=True, verbose_name="回復截止日")
     merge_annual_income_tax = models.BooleanField(default=False, verbose_name="併入年度所得稅處理事項")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='待處理', verbose_name="處理狀態")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='待處理', db_index=True, verbose_name="處理狀態")
     attachment = models.FileField(upload_to='irs_audit_notices/%Y/%m/', blank=True, null=True, verbose_name="附件上傳")
     remarks = models.TextField(blank=True, null=True, verbose_name="備註")
 

@@ -210,6 +210,27 @@ TAILWIND_APP_NAME = 'theme'
 
 INTERNAL_IPS = ['127.0.0.1']
 
+
+# -----------------------------------------------------------------------------
+# Debug Toolbar（僅在 DEBUG=True 啟用）
+# -----------------------------------------------------------------------------
+if DEBUG:
+    try:
+        import debug_toolbar  # noqa: F401
+        INSTALLED_APPS += ['debug_toolbar']
+        # 必須放在 CommonMiddleware 之後、其他 middleware 前面
+        MIDDLEWARE.insert(
+            MIDDLEWARE.index('django.middleware.common.CommonMiddleware') + 1,
+            'debug_toolbar.middleware.DebugToolbarMiddleware',
+        )
+        # Docker 環境下 client IP 是 docker 內網 IP，需要 callback 判定
+        DEBUG_TOOLBAR_CONFIG = {
+            'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+        }
+    except ImportError:
+        # production image 沒裝 dev 套件，跳過
+        pass
+
 NPM_BIN_PATH = env('NPM_BIN_PATH', default='npm.cmd')
 
 

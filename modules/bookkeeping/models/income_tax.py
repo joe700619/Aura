@@ -120,6 +120,7 @@ class IncomeTaxItemBase(BaseModel):
         _('繳納狀態'), max_length=20,
         choices=FilingStatus.choices,
         default=FilingStatus.NOT_NOTIFIED,
+        db_index=True,
     )
     filing_date = models.DateField(_('申報日期'), null=True, blank=True)
     tax_deadline = models.DateField(_('繳稅截止日'), null=True, blank=True)
@@ -131,7 +132,7 @@ class IncomeTaxItemBase(BaseModel):
         choices=PaymentMethod.choices,
         blank=True, null=True,
     )
-    is_filed = models.BooleanField(_('是否已申報'), default=False)
+    is_filed = models.BooleanField(_('是否已申報'), default=False, db_index=True)
     filing_document = models.FileField(
         _('申報書'), upload_to=get_income_tax_document_path,
         blank=True, null=True,

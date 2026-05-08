@@ -9,8 +9,8 @@ class Customer(BaseModel):
         TRANSFERRED_IN = 'TRANSFERRED', '他所轉入'
 
     # 一、基本資訊
-    tax_id = models.CharField(max_length=20, blank=True, null=True, verbose_name="統一編號")
-    name = models.CharField(max_length=100, verbose_name="公司名稱")
+    tax_id = models.CharField(max_length=20, blank=True, null=True, db_index=True, verbose_name="統一編號")
+    name = models.CharField(max_length=100, db_index=True, verbose_name="公司名稱")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     phone = models.CharField(max_length=50, blank=True, null=True, verbose_name="電話號碼")
     mobile = models.CharField(max_length=50, blank=True, null=True, verbose_name="手機號碼")
