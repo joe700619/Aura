@@ -26,6 +26,7 @@
 | debug list/form view | `.agent/skills/debug_list_and_form_view/`（**強制**，不可手動推斷） |
 | 新增模組 | `.agent/skills/debug_new_module/` |
 | 任何 PR 前 | `.agent/skills/code_review_checklist/` |
+| 新增/移除/改選單 | `.agent/skills/manage_menus/` |
 | 跨 module 依賴 | `docs/MODULE_DEPENDENCY.md` |
 
 ---
@@ -37,10 +38,19 @@
 - **跨 module 取資料走 service**：A module 要 B module 的資料，透過 `core/services/` 提供的 function，禁止直接 import B 的 model 操作
 - **依賴方向單向**：業務 module（bookkeeping、case_management 等）可依賴 `core` / `basic_data` / `shared`，但不可互相依賴
 
-### 3.2 Signal 禁用
-- **新功能禁用 `@receiver` / `post_save` signal**
-- 必要的副作用（例如建立關聯資料）改用顯式 service function call
-- 既有 signal 在批次 1 會逐步清理
+### 3.2 Signal 使用規範
+**可以使用，但必須遵守規則。** 既有 signal 是合理設計（主檔建立 → 子檔自動建），不刪。
+
+**規則：**
+1. **只用於「主檔成立 → 子檔必然成立」** 的強耦合關係，不用於「順便也做一下」
+2. **集中註冊**：每個 module 的 signal 集中在 `<module>/models/signals.py` 或 `<module>/signals.py`，禁止散落在各 model 檔案
+3. **必須 idempotent**：用 `get_or_create` 而非 `create`，確保重跑安全
+4. **失敗直接 raise**：不要 try/except 吞掉錯誤；外層的 `ATOMIC_REQUESTS` 會自動 rollback
+5. **必有 docstring**：寫清楚「觸發時機」「副作用清單」
+6. **禁止跨 module 偷做事**：A module 的 signal 不該去動 B module 的資料（同步 Customer → BookkeepingClient 這類由共用層下推是允許的）
+
+**設定：** `DATABASES['default']['ATOMIC_REQUESTS'] = True` 已啟用，
+保證「view → save → signal」失敗時整筆 rollback。
 
 ### 3.3 Mixin 強制使用
 - 新 ListView 必須繼承 `core.mixins.SearchMixin` + `FilterMixin` + `ListActionMixin`

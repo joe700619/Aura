@@ -1,7 +1,6 @@
 import os
 from django.db import models
 from django.utils import timezone
-from modules.basic_data.models.customer import Customer
 from core.models import BaseModel
 
 
@@ -25,7 +24,7 @@ class DocumentReceipt(BaseModel):
         ('已結案', '已結案'),
     ]
 
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="客戶")
+    customer = models.ForeignKey('basic_data.Customer', on_delete=models.CASCADE, verbose_name="客戶")
     receipt_date = models.DateField(default=timezone.now, verbose_name="收文日期")
     subject = models.CharField(max_length=255, verbose_name="信件主旨")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, blank=True, null=True, verbose_name="信件分類")

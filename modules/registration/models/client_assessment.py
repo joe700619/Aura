@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.fields import GenericRelation
-from modules.workflow.models import ApprovalRequest
 from django.urls import reverse
 from core.models import BaseModel
 
@@ -49,7 +48,7 @@ class ClientAssessment(BaseModel):
     # h.是否為員工持股信託、員工福利儲蓄信託
     is_employee_trust = models.BooleanField(_('是否為員工持股信託、員工福利儲蓄信託'), default=False)
 
-    approval_requests = GenericRelation(ApprovalRequest, related_query_name='client_assessment')
+    approval_requests = GenericRelation('workflow.ApprovalRequest', related_query_name='client_assessment')
 
     class Meta:
         verbose_name = _('客戶評估表')

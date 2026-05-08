@@ -158,6 +158,9 @@ DATABASES = {
         'PASSWORD': env('DB_PASSWORD', default=''),
         'HOST': env('DB_HOST', default='localhost'),
         'PORT': env('DB_PORT'),
+        # 每個 view 包在 transaction.atomic：任何例外（含 signal 失敗）都 rollback
+        # 確保「主檔建立 + signal 自動建子檔」保持原子性
+        'ATOMIC_REQUESTS': True,
     }
 }
 

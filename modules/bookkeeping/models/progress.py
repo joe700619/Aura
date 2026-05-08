@@ -1,8 +1,6 @@
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from core.models import BaseModel
 from .bookkeeping_client import BookkeepingClient
@@ -108,11 +106,4 @@ class BookkeepingPeriod(BaseModel):
         return f"{self.period_start_month:02d}-{self.period_start_month+1:02d}月"
 
 
-# ── Signals ──
-@receiver(post_save, sender=BookkeepingClient)
-def auto_create_bookkeeping_setting(sender, instance, created, **kwargs):
-    """
-    當新增 BookkeepingClient 時，自動建立其對應的 BookkeepingSetting 表。
-    """
-    if created:
-        BookkeepingSetting.objects.get_or_create(client=instance)
+# Signal 已集中到 modules/bookkeeping/models/signals.py

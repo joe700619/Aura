@@ -2,8 +2,6 @@ import os
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from core.models import BaseModel
 from .bookkeeping_client import BookkeepingClient
@@ -58,8 +56,4 @@ class BusinessRegistrationDocument(BaseModel):
         return f"{self.registration.client.name} - {self.name}"
 
 
-@receiver(post_save, sender=BookkeepingClient)
-def auto_create_business_registration(sender, instance, created, **kwargs):
-    """新增 BookkeepingClient 時，自動建立 BusinessRegistration"""
-    if created:
-        BusinessRegistration.objects.get_or_create(client=instance)
+# Signal 已集中到 modules/bookkeeping/models/signals.py

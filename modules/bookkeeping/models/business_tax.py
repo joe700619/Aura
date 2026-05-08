@@ -2,8 +2,6 @@ import os
 import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from core.models import BaseModel
 from .bookkeeping_client import BookkeepingClient
@@ -255,25 +253,4 @@ class TaxFilingPeriod(BaseModel):
         return getattr(self.year_record.client, 'room_id', None)
 
 
-# ── Signals ──
-@receiver(post_save, sender=BookkeepingClient)
-def auto_create_tax_filing_setting(sender, instance, created, **kwargs):
-    """
-    當新增 BookkeepingClient 且 service_type 是需要報營業稅時，
-    自動建立其對應的第一層 TaxFilingSetting 表。
-    """
-    if created:
-        needs_vat = [
-            BookkeepingClient.ServiceType.VAT_BUSINESS,
-            BookkeepingClient.ServiceType.MIXED_DIRECT,
-            BookkeepingClient.ServiceType.MIXED_RATIO,
-        ]
-        if instance.service_type in needs_vat:
-            form_type = TaxFilingSetting.FormType.FORM_401
-            if instance.service_type in [BookkeepingClient.ServiceType.MIXED_DIRECT, BookkeepingClient.ServiceType.MIXED_RATIO]:
-                form_type = TaxFilingSetting.FormType.FORM_403
-                
-            TaxFilingSetting.objects.create(
-                client=instance,
-                form_type=form_type
-            )
+# Signal 已集中到 modules/bookkeeping/models/signals.py

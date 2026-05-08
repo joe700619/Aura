@@ -3,7 +3,6 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from core.models import BaseModel
-from modules.basic_data.models import Customer
 
 
 class BookkeepingClient(BaseModel):
@@ -64,7 +63,7 @@ class BookkeepingClient(BaseModel):
         help_text=_('綁定供外部客戶登入的帳號')
     )
     customer = models.ForeignKey(
-        Customer, on_delete=models.SET_NULL,
+        'basic_data.Customer', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='bookkeeping_clients',
         verbose_name=_('關聯客戶'),
     )

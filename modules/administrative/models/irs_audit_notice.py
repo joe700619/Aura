@@ -2,7 +2,6 @@ import os
 from django.db import models
 from django.utils import timezone
 from core.models import BaseModel
-from modules.basic_data.models.customer import Customer
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -24,7 +23,7 @@ class IrsAuditNotice(BaseModel):
     ]
 
     # Card 1: 主要資訊 (Main Info)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="客戶")
+    customer = models.ForeignKey('basic_data.Customer', on_delete=models.CASCADE, verbose_name="客戶")
     tax_id = models.CharField(max_length=20, blank=True, null=True, verbose_name="統一編號") # Add JS auto-fill
     attributable_year = models.IntegerField(blank=True, null=True, verbose_name="歸屬年度")
     tax_category = models.CharField(max_length=50, choices=TAX_CATEGORY_CHOICES, blank=True, null=True, verbose_name="稅種分類")

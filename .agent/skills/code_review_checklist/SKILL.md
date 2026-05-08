@@ -24,7 +24,9 @@
 - [ ] 跨 module 取資料走 `core/services/`
 
 ### D. 架構規範
-- [ ] 沒有新增 `@receiver` / `signals.connect`
+- [ ] 新 signal 集中在 `<module>/signals.py`，未散落在 model 檔案
+- [ ] signal 用 `get_or_create`（idempotent），失敗 raise 不 try/except 吞錯
+- [ ] signal 上方有 docstring 說明觸發時機與副作用
 - [ ] ListView 有繼承 `core.mixins` 的 SearchMixin / FilterMixin
 - [ ] FormView 有遵循 `standard_form_view` skill
 
