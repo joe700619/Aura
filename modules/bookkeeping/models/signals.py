@@ -140,16 +140,20 @@ def sync_client_portal_user(sender, instance, created, **kwargs):
     username = str(instance.tax_id).strip()
 
     if not instance.user:
-        user = User.objects.create_user(
-            username=username,
-            password=username,
-            role='EXTERNAL',
-            first_name=instance.name[:30],
-            is_staff=False,
-            is_superuser=False,
-            email=instance.email or '',
-        )
+        # 先看 User 是否已存在（保 idempotent：重複 save 不會重建）
+        user = User.objects.filter(username=username).first()
+        if not user:
+            user = User.objects.create_user(
+                username=username,
+                password=username,
+                role='EXTERNAL',
+                first_name=instance.name[:30],
+                is_staff=False,
+                is_superuser=False,
+                email=instance.email or '',
+            )
         type(instance).objects.filter(pk=instance.pk).update(user=user)
+        instance.user = user  # 同步 in-memory 避免後續判斷再走進這分支
     else:
         user = instance.user
         changed = False

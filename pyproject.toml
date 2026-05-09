@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--reuse-db",
+    "-v",
+    "--tb=short",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# Celery 在測試環境同步執行，不必開 worker
+[tool.pytest_env]
+CELERY_TASK_ALWAYS_EAGER = "True"

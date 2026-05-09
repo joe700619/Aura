@@ -12,6 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
+        ('core', '0009_create_pgvector_extension'),
         ('case_management', '0005_alter_case_category_alter_casetasktemplate_category_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

@@ -161,9 +161,30 @@
 - [ ] 寫 celery beat 排程：每月清理超過 1 年的 history（用 simple_history 的 `clean_old_history` command）
 - [ ] 可選：對某些超高頻寫入的 model（如 log 類）評估是否關閉 HistoricalRecords
 
-### 4D. 媒體與靜態檔（半天）
-- [ ] 媒體檔接 S3 / MinIO（用 django-storages）
-- [ ] 靜態檔走 whitenoise + nginx
+### 4D. 媒體與靜態檔（半天 → 上線前**必處理**）
+
+> 🔴 **使用者重要備註（2026-05-09）**：
+> 1. 客戶上傳資料種類多：**申報書、對話紀錄、公司章程**等供客戶下載
+> 2. 時間久後檔案會大量累積，**需要集中管理**（不能散在各 server 本地 volume）
+> 3. **冷熱分層**：2 年前的資料較少存取，慢一點沒關係 → 適合走分層儲存
+>
+> 設計建議：
+> - 走 **S3-compatible**（雲端 AWS S3 / Cloudflare R2 / 自建 MinIO 都可）
+> - 用 `django-storages` + `boto3` 接 backend
+> - 熱資料（< 2 年）放 **Standard tier**（即時存取）
+> - 冷資料（> 2 年）走 **Glacier / Infrequent Access tier**（成本低 80%）
+> - 用 lifecycle policy 自動轉移（不用寫 cron）
+> - 媒體檔 URL 用 **presigned URL** 簽署（避免直接公開）
+> - 備份策略：S3 啟用 versioning + cross-region replication
+
+**待做事項：**
+- [ ] 評估 S3 vs MinIO（依預算與資料量）
+- [ ] 實作 `MediaStorage` 子類別、設定 `DEFAULT_FILE_STORAGE`
+- [ ] 寫資料遷移指令把現有 `media/` 上傳到 bucket
+- [ ] 設定 lifecycle rule：upload date > 2 年 → Infrequent Access
+- [ ] 設定 versioning + 7 天 soft-delete（防誤刪）
+- [ ] 文件下載走 presigned URL，TTL 5-10 分鐘
+- [ ] 靜態檔走 whitenoise + nginx（上線前部署設定）
 
 **驗收**：寄信不卡 request、月結背景跑、Redis cache 命中率 > 50%、history 有清理排程。
 

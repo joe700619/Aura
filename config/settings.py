@@ -271,6 +271,28 @@ TAGGIT_CASE_INSENSITIVE = True
 
 
 # -----------------------------------------------------------------------------
+# Sentry（僅在 SENTRY_DSN 有設時啟用）
+# -----------------------------------------------------------------------------
+SENTRY_DSN = env('SENTRY_DSN', default='')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.celery import CeleryIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration(), CeleryIntegration()],
+            traces_sample_rate=env.float('SENTRY_TRACES_SAMPLE_RATE', default=0.1),
+            send_default_pii=False,  # 不送個資（password、email body 等）
+            environment=env('SENTRY_ENVIRONMENT', default='development'),
+            release=env('SENTRY_RELEASE', default=None),
+        )
+    except ImportError:
+        pass  # production image 沒裝就靜默
+
+
+# -----------------------------------------------------------------------------
 # Logging
 # -----------------------------------------------------------------------------
 LOGGING = {
