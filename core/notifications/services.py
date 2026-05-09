@@ -48,8 +48,23 @@ class EmailService:
             logger.info(f"Email scheduled for {schedule_time} to {recipients}")
             return True
 
-        # Send Immediately
-        return EmailService._send_from_log(log, attachments=attachments)
+        # 非同步寄送（不卡 request thread）
+        # 附件 bytes 不能直接 JSON 序列化，先 base64 編碼
+        import base64
+        from core.tasks import send_email_log_async
+
+        attachments_b64 = None
+        if attachments:
+            attachments_b64 = [
+                {
+                    'filename': filename,
+                    'content_b64': base64.b64encode(content).decode('ascii'),
+                    'mimetype': mimetype,
+                }
+                for (filename, content, mimetype) in attachments
+            ]
+        send_email_log_async.delay(log.id, attachments_b64=attachments_b64)
+        return True
 
     @staticmethod
     def _send_from_log(log, attachments=None) -> bool:

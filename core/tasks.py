@@ -96,13 +96,19 @@ def send_email_async(self, subject: str, body_html: str, recipients: list,
 
 
 @shared_task(name='core.send_email_log_async')
-def send_email_log_async(log_id: int) -> dict:
+def send_email_log_async(log_id: int, attachments_b64: list = None) -> dict:
     """
     非同步寄出已建立的 EmailLog。
     呼叫端先建立 EmailLog（status='pending'），然後 .delay(log.id) 觸發實際寄送。
 
     這個 task 走 EmailService._send_from_log，會更新 EmailLog 的 status 與 sent_at。
+
+    Args:
+        log_id: EmailLog 的 pk
+        attachments_b64: 附件 list，元素格式 dict
+            {'filename': str, 'content_b64': str, 'mimetype': str}
     """
+    import base64
     from core.notifications.models import EmailLog
     from core.notifications.services import EmailService
 
@@ -111,7 +117,15 @@ def send_email_log_async(log_id: int) -> dict:
         logger.warning(f'EmailLog {log_id} not found, skip')
         return {'sent': False, 'reason': 'log not found'}
 
-    success = EmailService._send_from_log(log)
+    # 還原附件 bytes（_send_from_log 預期 [(filename, bytes, mimetype)]）
+    decoded_attachments = None
+    if attachments_b64:
+        decoded_attachments = [
+            (a['filename'], base64.b64decode(a['content_b64']), a.get('mimetype', 'application/octet-stream'))
+            for a in attachments_b64
+        ]
+
+    success = EmailService._send_from_log(log, attachments=decoded_attachments)
     return {'sent': success, 'log_id': log_id}
 
 

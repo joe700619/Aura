@@ -256,70 +256,32 @@ class BillBatchPreviewView(BusinessRequiredMixin, View):
 
 class BillBatchGenerateView(BusinessRequiredMixin, View):
     """
-    POST: 批次建立帳單（已存在的跳過）。
+    POST: 派發批次產帳的 celery task（不卡 request thread）。
     POST params: year, month, bill_date, due_date, annual_override
+
+    Response: 立刻回傳 task_id，前端可選擇輪詢狀態或重新整理列表。
     """
     def post(self, request):
         try:
-            year  = int(request.POST.get('year', 0))
+            year = int(request.POST.get('year', 0))
             month = int(request.POST.get('month', 0))
         except (ValueError, TypeError):
             return JsonResponse({'error': '無效的年度或月份'}, status=400)
         if not (1 <= month <= 12) or not year:
             return JsonResponse({'error': '月份必須介於 1-12'}, status=400)
 
-        try:
-            bill_date_str = request.POST.get('bill_date', '')
-            due_date_str  = request.POST.get('due_date', '')
-            bill_date = (
-                datetime.strptime(bill_date_str, '%Y-%m-%d').date()
-                if bill_date_str else date.today()
-            )
-            due_date = (
-                datetime.strptime(due_date_str, '%Y-%m-%d').date()
-                if due_date_str else date.today() + timedelta(days=30)
-            )
-        except ValueError:
-            return JsonResponse({'error': '無效的日期格式'}, status=400)
-
-        annual_override = request.POST.get('annual_override', '')
-        candidates = _get_clients_for_batch(month)
-        if annual_override == 'yes':
-            for c in candidates: c['is_annual'] = True
-        elif annual_override == 'no':
-            for c in candidates: c['is_annual'] = False
-
-        created_count = skipped_count = 0
-        with transaction.atomic():
-            for c in candidates:
-                active_fee     = c['active_fee']
-                is_annual      = c['is_annual']
-                quotation_data = _build_quotation_data(active_fee, year, month, is_annual)
-                total          = sum(r['amount'] for r in quotation_data)
-
-                _, created = ClientBill.objects.get_or_create(
-                    client=c['client'],
-                    year=year,
-                    month=month,
-                    defaults={
-                        'bill_date':      bill_date,
-                        'due_date':       due_date,
-                        'status':         ClientBill.BillStatus.DRAFT,
-                        'quotation_data': quotation_data,
-                        'cost_sharing_data': c['client'].cost_sharing_data or [],
-                        'total_amount':   total,
-                    },
-                )
-                if created:
-                    created_count += 1
-                else:
-                    skipped_count += 1
-
+        from modules.bookkeeping.tasks import generate_bills_batch
+        async_result = generate_bills_batch.delay(
+            year=year,
+            month=month,
+            bill_date_str=request.POST.get('bill_date', ''),
+            due_date_str=request.POST.get('due_date', ''),
+            annual_override=request.POST.get('annual_override', ''),
+        )
         return JsonResponse({
-            'success':  True,
-            'created':  created_count,
-            'skipped':  skipped_count,
-            'message':  f'批次產帳完成：新建 {created_count} 筆，跳過 {skipped_count} 筆（已存在）',
+            'success': True,
+            'task_id': async_result.id,
+            'message': f'已開始產生 {year}/{month:02d} 月帳單（背景處理中），稍後重新整理列表查看結果。',
         })
 
 
