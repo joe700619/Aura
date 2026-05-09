@@ -1,35 +1,51 @@
 from django import template
+from django.core.cache import cache
 from django.urls import resolve, reverse
 from ..models import MenuItem
 
 register = template.Library()
 
+
+# 快取版本：MenuItem.save() 訊號會更新此版本號讓 cache 失效（見 models.py）
+SIDEBAR_CACHE_VERSION_KEY = 'sidebar_menu_version'
+SIDEBAR_CACHE_TTL = 300  # 5 分鐘
+
+
+def _get_visible_items_cached(user):
+    """
+    回傳 user 可見的 MenuItem id 集合 + items dict（per-user 快取 5 分鐘）。
+    cache key 包含 user.id 與 menu version，新增/改選單或改權限後自然失效。
+    """
+    if not user.is_authenticated:
+        return []
+
+    version = cache.get(SIDEBAR_CACHE_VERSION_KEY) or 1
+    cache_key = f'sidebar_visible:{user.pk}:v{version}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    all_items = list(MenuItem.objects.filter(is_active=True).select_related('parent'))
+    visible_items = []
+    for item in all_items:
+        if user.is_superuser:
+            visible_items.append(item)
+        elif item.required_permission:
+            if user.has_perm(item.required_permission):
+                visible_items.append(item)
+        else:
+            visible_items.append(item)
+
+    cache.set(cache_key, visible_items, SIDEBAR_CACHE_TTL)
+    return visible_items
+
+
 @register.inclusion_tag('layouts/components/menu_renderer.html', takes_context=True)
 def render_dynamic_sidebar(context):
     request = context['request']
     user = request.user
-    
-    # 1. Get all active items
-    all_items = MenuItem.objects.filter(is_active=True).select_related('parent')
 
-    # 2. Filter by permissions
-    visible_items = []
-    for item in all_items:
-        if not user.is_authenticated:
-            continue
-
-        # Superuser sees everything
-        if user.is_superuser:
-            visible_items.append(item)
-            continue
-
-        if item.required_permission:
-            # Has a required permission: show only if user has it
-            if user.has_perm(item.required_permission):
-                visible_items.append(item)
-        else:
-            # No permission required: visible to all logged-in users
-            visible_items.append(item)
+    visible_items = _get_visible_items_cached(user)
 
     # 3. Initialize attributes & check active path
     current_path = request.path

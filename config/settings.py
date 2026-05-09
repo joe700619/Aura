@@ -186,6 +186,18 @@ CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
 # 預防累積式記憶體洩漏：worker 處理 1000 個 task 後自動重啟
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
+# Celery Beat 定期排程
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    # 每月 1 號凌晨 3 點清除 1 年前的 simple-history 紀錄
+    'cleanup-old-history-monthly': {
+        'task': 'core.cleanup_old_history',
+        'schedule': crontab(hour=3, minute=0, day_of_month=1),
+        'kwargs': {'days': 365},
+    },
+}
+
 
 AUTH_USER_MODEL = 'core.User'
 

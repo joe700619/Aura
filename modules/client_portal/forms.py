@@ -90,31 +90,10 @@ class ClientPasswordResetForm(forms.Form):
         subject = ''.join(subject.splitlines())
         body_html = loader.render_to_string('client_portal/auth/password_reset_email.html', context)
 
-        from modules.system_config.helpers import get_system_param
-        from django.core.mail.backends.smtp import EmailBackend as SMTPBackend
-
-        host = get_system_param('EMAIL_HOST', '')
-        from_email = get_system_param('DEFAULT_FROM_EMAIL', django_settings.DEFAULT_FROM_EMAIL)
-
-        if host:
-            port = int(get_system_param('EMAIL_PORT', 587))
-            smtp_user = get_system_param('EMAIL_HOST_USER', '')
-            smtp_pass = get_system_param('EMAIL_HOST_PASSWORD', '')
-            use_tls = str(get_system_param('EMAIL_USE_TLS', 'True')).lower() == 'true'
-            connection = SMTPBackend(
-                host=host, port=port,
-                username=smtp_user, password=smtp_pass,
-                use_tls=use_tls, fail_silently=False,
-            )
-        else:
-            connection = get_connection(fail_silently=False)
-
-        msg = EmailMultiAlternatives(
+        # 非同步寄送，使用者按「重設密碼」立刻得到回應，不必等 SMTP
+        from core.tasks import send_email_async
+        send_email_async.delay(
             subject=subject,
-            body='',
-            from_email=from_email,
-            to=[user.email],
-            connection=connection,
+            body_html=body_html,
+            recipients=[user.email],
         )
-        msg.attach_alternative(body_html, 'text/html')
-        msg.send()
