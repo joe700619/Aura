@@ -154,8 +154,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 #   1. Railway / Heroku 等 PaaS：給 DATABASE_URL（postgresql://user:pass@host:port/db）
 #   2. 本機 Docker compose：給個別 DB_* 變數
 # DATABASE_URL 優先；沒設才用個別變數。
-if env('DATABASE_URL', default=''):
-    DATABASES = {'default': env.db_url('DATABASE_URL')}
+_db_from_url = env.db_url('DATABASE_URL', default=None)
+if _db_from_url is not None:
+    DATABASES = {'default': _db_from_url}
 else:
     DATABASES = {
         'default': {
