@@ -11,6 +11,9 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+# 例外：tailwind build 產出的 CSS 要進 repo 否則 Railway 部署會 404
+!theme/static/**/dist/
+!theme/static/**/dist/**
 downloads/
 eggs/
 .eggs/
