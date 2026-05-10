@@ -39,5 +39,7 @@ COPY . /app/
 
 EXPOSE 8000
 
-# 預設用 gunicorn；docker-compose 可 override 成 runserver / celery
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60"]
+# 預設啟動命令：本機 docker-compose 用 8000；Railway/Heroku 走 $PORT。
+# 各服務（web / celery worker / celery beat）會在 docker-compose.yml 或 Railway service 設定
+# 用自己的 startCommand override 這行。
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 60 --max-requests 1000 --max-requests-jitter 100"]

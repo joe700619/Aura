@@ -150,37 +150,48 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='aura_db'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT'),
-        # 每個 view 包在 transaction.atomic：任何例外（含 signal 失敗）都 rollback
-        # 確保「主檔建立 + signal 自動建子檔」保持原子性
-        'ATOMIC_REQUESTS': True,
+# 雙模式：
+#   1. Railway / Heroku 等 PaaS：給 DATABASE_URL（postgresql://user:pass@host:port/db）
+#   2. 本機 Docker compose：給個別 DB_* 變數
+# DATABASE_URL 優先；沒設才用個別變數。
+if env('DATABASE_URL', default=''):
+    DATABASES = {'default': env.db_url('DATABASE_URL')}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DB_NAME', default='aura_db'),
+            'USER': env('DB_USER', default='postgres'),
+            'PASSWORD': env('DB_PASSWORD', default=''),
+            'HOST': env('DB_HOST', default='localhost'),
+            'PORT': env('DB_PORT'),
+        }
     }
-}
+# 每個 view 包在 transaction.atomic：任何例外（含 signal 失敗）都 rollback
+# 確保「主檔建立 + signal 自動建子檔」保持原子性
+DATABASES['default']['ATOMIC_REQUESTS'] = True
 
 
 # -----------------------------------------------------------------------------
 # Cache (Redis)
+# Railway 提供 REDIS_URL（已包含密碼），本機 Docker 也用同一個變數名
 # -----------------------------------------------------------------------------
+REDIS_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/1')
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://127.0.0.1:6379/1'),
+        'LOCATION': REDIS_URL,
     }
 }
 
 
 # -----------------------------------------------------------------------------
 # Celery
+# Railway 自動提供 REDIS_URL；celery 預設用 db 0，cache 用 db 1
+# 若 REDIS_URL 已含 db number，沿用之；否則組合
 # -----------------------------------------------------------------------------
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
-CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://127.0.0.1:6379/0')
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=REDIS_URL.rsplit('/', 1)[0] + '/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=CELERY_BROKER_URL)
 CELERY_TIMEZONE = 'Asia/Taipei'
 CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
 # 預防累積式記憶體洩漏：worker 處理 1000 個 task 後自動重啟
