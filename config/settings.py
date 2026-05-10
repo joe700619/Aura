@@ -220,8 +220,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# 只在本機 static/ 存在時才加入 STATICFILES_DIRS（避免部署環境 W004）
+_STATIC_SRC = BASE_DIR / "static"
+STATICFILES_DIRS = [_STATIC_SRC] if _STATIC_SRC.is_dir() else []
+# 改用 CompressedStaticFilesStorage（不嚴格要求 manifest 完整），
+# 避免 collectstatic 後遺漏檔案就 raise；production 上若需嚴格快取可改回 manifest 版
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
