@@ -218,7 +218,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 # 只在本機 static/ 存在時才加入 STATICFILES_DIRS（避免部署環境 W004）
 _STATIC_SRC = BASE_DIR / "static"
