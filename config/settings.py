@@ -188,10 +188,11 @@ CACHES = {
 
 # -----------------------------------------------------------------------------
 # Celery
-# Railway 自動提供 REDIS_URL；celery 預設用 db 0，cache 用 db 1
-# 若 REDIS_URL 已含 db number，沿用之；否則組合
+# Railway 提供的 REDIS_URL 可能結尾沒 /db_num（例如 redis://x:6379），
+# 因此 broker/result_backend 直接沿用 REDIS_URL，redis 預設會用 db 0
+# 本機 Docker 環境 REDIS_URL=redis://redis:6379/1 也仍可正常運作
 # -----------------------------------------------------------------------------
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=REDIS_URL.rsplit('/', 1)[0] + '/0')
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=REDIS_URL)
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=CELERY_BROKER_URL)
 CELERY_TIMEZONE = 'Asia/Taipei'
 CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
