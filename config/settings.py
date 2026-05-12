@@ -224,12 +224,52 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # 只在本機 static/ 存在時才加入 STATICFILES_DIRS（避免部署環境 W004）
 _STATIC_SRC = BASE_DIR / "static"
 STATICFILES_DIRS = [_STATIC_SRC] if _STATIC_SRC.is_dir() else []
-# 改用 CompressedStaticFilesStorage（不嚴格要求 manifest 完整），
-# 避免 collectstatic 後遺漏檔案就 raise；production 上若需嚴格快取可改回 manifest 版
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# -----------------------------------------------------------------------------
+# Storage backends（Django 4.2+ 統一用 STORAGES dict）
+# - default：使用者上傳的 media；本機走 FileSystemStorage，production 走 R2
+# - staticfiles：whitenoise（serve compressed static）
+# -----------------------------------------------------------------------------
+USE_R2 = env.bool('USE_R2', default=False)
+
+if USE_R2:
+    # Cloudflare R2（S3 相容）
+    AWS_ACCESS_KEY_ID = env('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = env('R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = env('R2_BUCKET_NAME', default='aura-media-prod')
+    AWS_S3_ENDPOINT_URL = env('R2_ENDPOINT_URL')
+    AWS_S3_REGION_NAME = 'auto'  # R2 用 auto
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    AWS_DEFAULT_ACL = None  # R2 不支援 ACL
+    AWS_S3_FILE_OVERWRITE = False  # 同名檔自動加 hash 後綴，避免覆蓋
+    AWS_QUERYSTRING_AUTH = True  # 用 presigned URL 下載
+    AWS_QUERYSTRING_EXPIRE = 600  # presigned URL 10 分鐘有效
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        },
+    }
+else:
+    # 本機開發：檔案存在 docker volume
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+        },
+    }
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'

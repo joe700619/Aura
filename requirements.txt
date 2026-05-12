@@ -145,3 +145,7 @@ gunicorn
 whitenoise
 django-environ
 sentry-sdk
+
+# Object storage（Cloudflare R2 / S3）
+django-storages[s3]
+boto3
