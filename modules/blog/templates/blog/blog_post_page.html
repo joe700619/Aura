@@ -142,8 +142,11 @@
       const numEl = h.querySelector('.h-num');
       const num = numEl ? numEl.textContent.trim() : '';
       const rest = (num ? h.textContent.replace(num, '') : h.textContent).trim();
-      if (num) {
-        a.innerHTML = '<span class="toc-num">' + num + '</span> ' + rest;
+      const cnMap = ['零','一','二','三','四','五','六','七','八','九','十'];
+      const n = parseInt(num, 10);
+      const cnNum = (!isNaN(n) && n >= 1 && n <= 10) ? cnMap[n] : num;
+      if (cnNum) {
+        a.innerHTML = '<span class="toc-num">' + cnNum + '、</span>' + rest;
       } else {
         a.textContent = rest;
       }
