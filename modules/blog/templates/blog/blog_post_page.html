@@ -139,7 +139,14 @@
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.href = '#' + h.id;
-      a.textContent = h.textContent.trim();
+      const numEl = h.querySelector('.h-num');
+      const num = numEl ? numEl.textContent.trim() : '';
+      const rest = (num ? h.textContent.replace(num, '') : h.textContent).trim();
+      if (num) {
+        a.innerHTML = '<span class="toc-num">' + num + '</span> ' + rest;
+      } else {
+        a.textContent = rest;
+      }
       a.dataset.tocFor = h.id;
       li.appendChild(a);
       tocList.appendChild(li);
