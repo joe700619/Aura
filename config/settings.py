@@ -298,6 +298,11 @@ if DEBUG:
         # Docker 環境下 client IP 是 docker 內網 IP，需要 callback 判定
         DEBUG_TOOLBAR_CONFIG = {
             'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+            'DISABLE_PANELS': {
+                'debug_toolbar.panels.history.HistoryPanel',
+                'debug_toolbar.panels.profiling.ProfilingPanel',
+                'debug_toolbar.panels.redirects.RedirectsPanel',
+            },
         }
     except ImportError:
         # production image 沒裝 dev 套件，跳過

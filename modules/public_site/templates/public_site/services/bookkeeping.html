@@ -64,35 +64,20 @@
           <div class="ps-num">PAIN POINT · 01</div>
           <h3 class="ps-pain">「那個會計小姐又不在了…」</h3>
           <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>傳統事務所只能透過電話、LINE 索取檔案，承辦助理請假、離職、忙線，你就只能等。投標、申貸、稽核臨時要用一份報表，常常拿不到。</p></div>
-          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>曾有客戶因等不到上年度財報、錯失 800 萬政府標案投標時間。</p></div></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">模擬場景</div><p>急著給銀行財務報表、卻拖延多天才能拿到資料。</p></div></div>
           <div class="ps-arrow-down">↓</div>
           <div class="ps-solution">
             <div class="ps-solution-eyebrow">勤信的解法</div>
             <h4>你的檔案，本來就該屬於你。</h4>
             <p>我們建立專屬於你的雲端檔案庫，所有財報、傳票、申報書、扣繳憑單，從第一份到最新一份，全部分類歸檔，24 小時自助下載。</p>
-            <ul><li><span class="ps-bullet"></span>所有歷史檔案一次到位</li><li><span class="ps-bullet"></span>權限分級，會計、老闆各看各的</li><li><span class="ps-bullet"></span>下載紀錄完整可追溯</li></ul>
+            <ul><li><span class="ps-bullet"></span>所有歷史檔案一次到位</li><li><span class="ps-bullet"></span>24 小時隨時下載</li><li><span class="ps-bullet"></span>公司登記可完整可追溯</li></ul>
           </div>
         </div>
         <div class="ps-visual">
           <div class="ps-visual-wrap">
-            <div class="ui-mock">
-              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / files</div></div>
-              <div class="um-body um-vault">
-                <div class="umv-head">
-                  <div class="umv-title"><span class="umv-icon">📁</span><div><div class="umv-h">我的檔案庫</div><div class="umv-sub">康晉企業有限公司 · 共 142 份文件</div></div></div>
-                  <div class="umv-search">🔍 搜尋檔案…</div>
-                </div>
-                <div class="umv-tabs"><span class="umv-tab active">全部</span><span class="umv-tab">財務報表 <em>32</em></span><span class="umv-tab">稅務申報 <em>48</em></span><span class="umv-tab">憑證</span><span class="umv-tab">合約文件</span></div>
-                <div class="umv-table">
-                  <div class="umv-thead"><span>檔案名稱</span><span>更新日期</span><span>大小</span><span></span></div>
-                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>2026-Q1 損益表.pdf</span><span class="umv-d">2026/04/15</span><span class="umv-sz">284 KB</span><span class="umv-dl">↓ 下載</span></div>
-                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>2026-Q1 資產負債表.pdf</span><span class="umv-d">2026/04/15</span><span class="umv-sz">312 KB</span><span class="umv-dl">↓ 下載</span></div>
-                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>114 年度營所稅申報書.pdf</span><span class="umv-d">2026/03/28</span><span class="umv-sz">1.2 MB</span><span class="umv-dl">↓ 下載</span></div>
-                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>3 月營業稅申報.pdf</span><span class="umv-d">2026/04/10</span><span class="umv-sz">198 KB</span><span class="umv-dl">↓ 下載</span></div>
-                  <div class="umv-row"><span class="umv-fname"><em class="umv-fi">PDF</em>3 月扣繳憑單匯總.xlsx</span><span class="umv-d">2026/04/02</span><span class="umv-sz">56 KB</span><span class="umv-dl">↓ 下載</span></div>
-                </div>
-              </div>
-            </div>
+            <img src="{% static 'public_site/images/mock_document_center.png' %}"
+                 alt="客戶端下載專區後台示意"
+                 class="ps-visual-img" />
           </div>
           <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
         </div>
@@ -126,7 +111,7 @@
               </div>
             </div>
           </div>
-          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+          <div class="ps-visual-cap">模擬畫面 · 客戶可登入操作</div>
         </div>
       </div>
     </div>
@@ -149,26 +134,9 @@
         </div>
         <div class="ps-visual">
           <div class="ps-visual-wrap">
-            <div class="ui-mock">
-              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / labor-income</div></div>
-              <div class="um-body um-labor">
-                <div class="umv-head"><div class="umv-title"><div><div class="umv-h">勞務報酬發放</div><div class="umv-sub">2026 年 4 月 · 共 8 筆 · 全部完成</div></div></div><button type="button" class="ull-new">+ 新增發放</button></div>
-                <div class="ull-flow">
-                  <div class="ull-step done"><div class="ull-dot">1</div><div class="ull-l">線上填寫</div></div><div class="ull-bar"></div>
-                  <div class="ull-step done"><div class="ull-dot">2</div><div class="ull-l">所得人確認</div></div><div class="ull-bar"></div>
-                  <div class="ull-step done"><div class="ull-dot">3</div><div class="ull-l">產生扣繳書</div></div><div class="ull-bar"></div>
-                  <div class="ull-step done"><div class="ull-dot">4</div><div class="ull-l">自動扣款</div></div>
-                </div>
-                <div class="ull-table">
-                  <div class="ull-thead"><span>所得人</span><span>類別</span><span>金額</span><span>稅款</span><span>狀態</span></div>
-                  <div class="ull-row"><span>陳○華</span><span class="ull-tag">9A 執行業務</span><span class="ull-num">$30,000</span><span class="ull-num">$3,000</span><span class="ull-status">● 已扣繳</span></div>
-                  <div class="ull-row"><span>林○宏</span><span class="ull-tag">50 薪資</span><span class="ull-num">$45,000</span><span class="ull-num">$0</span><span class="ull-status">● 已扣繳</span></div>
-                  <div class="ull-row"><span>王○芬</span><span class="ull-tag">9B 稿費</span><span class="ull-num">$18,000</span><span class="ull-num">$1,800</span><span class="ull-status">● 已扣繳</span></div>
-                  <div class="ull-row"><span>張○德</span><span class="ull-tag">9A 執行業務</span><span class="ull-num">$22,000</span><span class="ull-num">$2,200</span><span class="ull-status">● 已扣繳</span></div>
-                </div>
-                <div class="ull-foot"><span>本期合計　應發 <strong>NT$ 115,000</strong> · 代扣稅款 <strong>NT$ 7,000</strong></span><span class="ull-auto">⚡ 已開啟自動扣款</span></div>
-              </div>
-            </div>
+            <img src="{% static 'public_site/images/mock_service.png' %}"
+                 alt="勞務報酬發放後台示意"
+                 class="ps-visual-img" />
           </div>
           <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
         </div>
@@ -181,8 +149,8 @@
         <div class="ps-text">
           <div class="ps-num">PAIN POINT · 04</div>
           <h3 class="ps-pain">「五月才知道要繳這麼多？」</h3>
-          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>傳統作法是年度結束、帳務完成後才試算稅額，老闆通常 4、5 月才被通知要補多少稅。等發現金額不對勁，節稅、調整、現金佈局的時間全部歸零。</p></div>
-          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>一通五月的電話，可能就是七位數的補稅、外加打亂整年的現金流規劃。</p></div></div>
+          <div class="ps-state"><div class="ps-state-label">— 客戶常遇到的狀況 —</div><p>傳統作法是年度結束、帳務完成後才試算稅額，老闆通常 4、5 月才能知道要繳多少稅。等來的不是對於財務的安全感，而是充滿驚嚇。</p></div>
+          <div class="ps-consequence"><span class="psc-icon">⚠</span><div><div class="psc-label">曾經發生的後果</div><p>五月最後幾天才告知，明天不繳稅會就要馬上被罰錢，為什麼不能早點規劃?</p></div></div>
           <div class="ps-arrow-down">↓</div>
           <div class="ps-solution">
             <div class="ps-solution-eyebrow">勤信的解法</div>
@@ -193,26 +161,9 @@
         </div>
         <div class="ps-visual">
           <div class="ps-visual-wrap">
-            <div class="ui-mock">
-              <div class="um-bar"><div class="um-dots"><span></span><span></span><span></span></div><div class="um-url">app.qinxin.tw / tax-simulator</div></div>
-              <div class="um-body um-sim">
-                <div class="umv-head"><div class="umv-title"><div><div class="umv-h">114 年度 · 營所稅即時試算</div><div class="umv-sub">截至 2026/04/30 · 隨帳本即時更新</div></div></div><div class="usim-live">● LIVE</div></div>
-                <div class="usim-grid">
-                  <div class="usim-card"><div class="usim-l">本期淨利</div><div class="usim-v">NT$ 2,840,000</div><div class="usim-t up">↑ 較去年同期 +18%</div></div>
-                  <div class="usim-card"><div class="usim-l">預估應納稅額</div><div class="usim-v hl">NT$ 568,000</div><div class="usim-t">稅率 20%</div></div>
-                  <div class="usim-card"><div class="usim-l">已預繳</div><div class="usim-v">NT$ 320,000</div><div class="usim-t">暫繳 + 扣抵</div></div>
-                  <div class="usim-card alert"><div class="usim-l">預估應補</div><div class="usim-v">NT$ 248,000</div><div class="usim-t">建議 2026/05 前準備</div></div>
-                </div>
-                <div class="usim-strat">
-                  <div class="usim-strat-h">💡 系統建議的節稅策略</div>
-                  <ul>
-                    <li><span class="us-tag">研發投抵</span>本期研發費用 NT$ 420,000，可抵減稅額約 <strong>NT$ 63,000</strong></li>
-                    <li><span class="us-tag">設備加速折舊</span>10 月新購機台適用，可遞延稅負約 <strong>NT$ 38,000</strong></li>
-                    <li><span class="us-tag">盈餘分配</span>建議於 2026/06 前完成分派，可避免 5% 未分配稅</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <img src="{% static 'public_site/images/mock_financial_analysis.png' %}"
+                 alt="即時稅務試算後台示意"
+                 class="ps-visual-img" />
           </div>
           <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
         </div>
@@ -231,8 +182,8 @@
           <div class="ps-solution">
             <div class="ps-solution-eyebrow">勤信的解法</div>
             <h4>讓系統幫你看醫生。</h4>
-            <p>我們開發稅務健檢模組，自動分析十幾項財務指標——毛利率、費用率、關係人交易、存貨周轉等等——對照同業常規與國稅局關注點，量化你的查核風險，並給出優先處理建議。</p>
-            <ul><li><span class="ps-bullet"></span>12+ 項財務與稅務風險指標</li><li><span class="ps-bullet"></span>對照同業與歷史數據自動分級</li><li><span class="ps-bullet"></span>給出具體可執行的改善建議</li></ul>
+            <p>我們開發稅務健檢模組，自動分析30幾項財務指標——毛利率、費用率、關係人交易、存貨周轉等等——對照同業常規與國稅局關注點，量化你的查核風險，並給出優先處理建議。</p>
+            <ul><li><span class="ps-bullet"></span>30+ 項財務與稅務風險指標</li><li><span class="ps-bullet"></span>對照同業與歷史數據自動分級</li><li><span class="ps-bullet"></span>給出具體可執行的改善建議</li></ul>
           </div>
         </div>
         <div class="ps-visual">
@@ -262,7 +213,7 @@
               </div>
             </div>
           </div>
-          <div class="ps-visual-cap">後台實際畫面 · 客戶可登入操作</div>
+          <div class="ps-visual-cap">模擬畫面 · 客戶可登入操作</div>
         </div>
       </div>
     </div>
@@ -364,9 +315,9 @@
       </div>
       <ul class="faq-list">
         <li class="faq-item open"><button type="button" class="faq-q"><span>我可以中途轉到勤信記帳嗎？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">當然可以。我們會協助你跟原會計師交接，並把過往帳目重新整理到我們的系統。轉移期間不收額外費用。</div></div></li>
-        <li class="faq-item"><button type="button" class="faq-q"><span>報表多久能拿到？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">每月 15 日前完成上個月帳務並出具報表。年度營所稅與年度報表於 5 月底前送出。</div></div></li>
-        <li class="faq-item"><button type="button" class="faq-q"><span>如果國稅局來函查核怎麼辦？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">我們會代表你回覆，並全程協助處理。所有客戶皆享有「函詢回覆」服務，不收額外費用。</div></div></li>
-        <li class="faq-item"><button type="button" class="faq-q"><span>可以只委託部分服務嗎？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">可以。例如只做申報、不含記帳；或只做某幾個月份。我們可以客製方案。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>報表多久能拿到？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">通常在營業稅報後次月即可登入後台查詢報表，法定報表將依照法定期間提供。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>如果國稅局來函查核怎麼辦？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">「會計如醫學，預防勝於治療」透過專屬稅務分析，平常可降低風險外，若有國稅局查帳案件，我們將協助處理。</div></div></li>
+        <li class="faq-item"><button type="button" class="faq-q"><span>可以只委託部分服務嗎？</span><span class="faq-icon"></span></button><div class="faq-a"><div class="faq-a-inner">可以。例如只做申報或是特殊帳務需求。我們可以客製方案。</div></div></li>
       </ul>
     </div>
   </div>
