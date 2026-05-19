@@ -1,0 +1,1200 @@
+{% extends "public_site/base.html" %}
+{% load static %}
+
+{% block title %}設立流程 · 勤信聯合會計師事務所{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'public_site/css/process_flow.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pf-root" data-numbering="formal" data-rail="standard" data-qa-style="dialogue" data-paper="warm">
+
+<nav class="crumb" aria-label="Breadcrumb">
+  <a href="{% url 'public_site:landing' %}">首頁</a>
+  <span class="sep">›</span>
+  <a href="{% url 'public_site:startup_analysis' %}">實用工具</a>
+  <span class="sep">›</span>
+  <span class="cur">設立流程圖</span>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- ── Page head ───────────────────────────────────────────── -->
+  <header class="page-head">
+    <div class="page-eyebrow">GUIDE · 設立流程</div>
+    <h1 class="page-title">
+      跟著步驟走，<br />
+      把公司<span class="accent-mark">合法地</span>立起來
+    </h1>
+    <p class="page-sub">
+      從名稱預查到拿到統編、開始開立發票，每一步要準備什麼、需要花多少時間、可能會卡在哪裡，
+      這頁全部說清楚。點擊左側任一步驟，查看細節與常見問題。
+    </p>
+  </header>
+
+  <!-- ── Tab switcher (公司 / 行號) ──────────────────────────── -->
+  <nav class="flow-tabs" role="tablist">
+    <button class="tab active" data-flow="company" role="tab" aria-selected="true">
+      <span class="tab-zh">公司組織</span>
+      <span class="tab-en">Company</span>
+      <span class="tab-count">8 步驟</span>
+    </button>
+    <button class="tab" data-flow="firm" role="tab" aria-selected="false">
+      <span class="tab-zh">行號組織</span>
+      <span class="tab-en">Sole Proprietor</span>
+      <span class="tab-count">5 步驟</span>
+    </button>
+    <span class="flow-tabs-summary" id="totalSummary">總計 約 3 週</span>
+  </nav>
+
+  <!-- ── Two-column layout ──────────────────────────────────── -->
+  <div class="flow-layout">
+
+    <!-- LEFT: steps rail -->
+    <aside class="steps-rail">
+      <div class="steps-rail-eyebrow">PROCESS · 階段</div>
+
+      <!-- Company steps -->
+      <ol class="step-list" data-flow="company">
+        <button class="step" data-step="c1" data-index="0">
+          <span class="step-mark" data-formal="壹" data-num="01"></span>
+          <span class="step-body">
+            <h3 class="step-title">名稱審查</h3>
+            <span class="step-meta">
+              <span class="step-duration">2 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">預查</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c2" data-index="1">
+          <span class="step-mark" data-formal="貳" data-num="02"></span>
+          <span class="step-body">
+            <h3 class="step-title">銀行開設籌備戶</h3>
+            <span class="step-meta">
+              <span class="step-duration">1 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">資本驗證</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c3" data-index="2">
+          <span class="step-mark" data-formal="參" data-num="03"></span>
+          <span class="step-body">
+            <h3 class="step-title">存入資本額</h3>
+            <span class="step-meta">
+              <span class="step-duration">1 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">入金</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c4" data-index="3">
+          <span class="step-mark" data-formal="肆" data-num="04"></span>
+          <span class="step-body">
+            <h3 class="step-title">準備文件與簽證</h3>
+            <span class="step-meta">
+              <span class="step-duration">1–2 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">會計師查核</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c5" data-index="4">
+          <span class="step-mark" data-formal="伍" data-num="05"></span>
+          <span class="step-body">
+            <h3 class="step-title">政府審查取得統編</h3>
+            <span class="step-meta">
+              <span class="step-duration">3–5 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">商業處</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c6" data-index="5">
+          <span class="step-mark" data-formal="陸" data-num="06"></span>
+          <span class="step-body">
+            <h3 class="step-title">稅務登記 取得稅籍</h3>
+            <span class="step-meta">
+              <span class="step-duration">3–5 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">國稅局</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c7" data-index="6">
+          <span class="step-mark" data-formal="柒" data-num="07"></span>
+          <span class="step-body">
+            <h3 class="step-title">銀行轉為正式戶</h3>
+            <span class="step-meta">
+              <span class="step-duration">1 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">啟用帳戶</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="c8" data-index="7">
+          <span class="step-mark" data-formal="捌" data-num="08"></span>
+          <span class="step-body">
+            <h3 class="step-title">其他後續事項</h3>
+            <span class="step-meta">
+              <span class="step-duration">視需求而定</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">勞健保等</span>
+            </span>
+          </span>
+        </button>
+      </ol>
+
+      <!-- Firm steps -->
+      <ol class="step-list" data-flow="firm" hidden>
+        <button class="step" data-step="f1" data-index="0">
+          <span class="step-mark" data-formal="壹" data-num="01"></span>
+          <span class="step-body">
+            <h3 class="step-title">行號名稱預查</h3>
+            <span class="step-meta">
+              <span class="step-duration">1–2 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">縣市範圍</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="f2" data-index="1">
+          <span class="step-mark" data-formal="貳" data-num="02"></span>
+          <span class="step-body">
+            <h3 class="step-title">準備文件送件</h3>
+            <span class="step-meta">
+              <span class="step-duration">1 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">免驗資</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="f3" data-index="2">
+          <span class="step-mark" data-formal="參" data-num="03"></span>
+          <span class="step-body">
+            <h3 class="step-title">設立登記 取得統編</h3>
+            <span class="step-meta">
+              <span class="step-duration">1–2 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">商業抄本</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="f4" data-index="3">
+          <span class="step-mark" data-formal="肆" data-num="04"></span>
+          <span class="step-body">
+            <h3 class="step-title">取得稅籍編號</h3>
+            <span class="step-meta">
+              <span class="step-duration">3–5 工作日</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">國稅局</span>
+            </span>
+          </span>
+        </button>
+
+        <button class="step" data-step="f5" data-index="4">
+          <span class="step-mark" data-formal="伍" data-num="05"></span>
+          <span class="step-body">
+            <h3 class="step-title">其他後續事項</h3>
+            <span class="step-meta">
+              <span class="step-duration">視需求而定</span>
+              <span class="meta-sep">·</span>
+              <span class="step-cue">勞健保等</span>
+            </span>
+          </span>
+        </button>
+      </ol>
+    </aside>
+
+    <!-- RIGHT: detail stack -->
+    <main class="detail-stack">
+
+      <!-- Conclusion card mount (renders from localStorage) -->
+      <div id="conclusionMount"></div>
+
+      <!-- Empty state -->
+      <article class="detail empty" id="emptyDetail">
+        <span class="empty-mark">引</span>
+        <h2>請從左側選擇一個步驟</h2>
+        <p>點擊任一階段，這裡會顯示詳細的作業期間、需要準備的文件，與常見問題的編輯室回答。</p>
+      </article>
+
+      <!-- ── Company step details ──────────────────────────── -->
+      <article class="detail" data-step="c1" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">
+              STEP 01 · 公司設立
+              <span class="formal">壹 · 預查階段</span>
+            </div>
+            <h2 class="detail-title">名稱審查 <small>Name Pre-check</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>2 工作日</strong> · 作業估計</span>
+              <span class="badge">主管機關 · 經濟部商業司</span>
+              <span class="badge">線上申辦</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head">
+            <h3>常見問題</h3>
+            <span class="en">FAQ</span>
+          </div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">公司名字可以跟別人重複嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">不可以喔！在同一個區域不能有相同名稱。建議準備 <strong>3–5 個名字依序排列</strong>，預查時系統會由上而下逐一檢核，第一個准就用第一個。</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">預查核准後有時效性嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">有的，有效期為 <strong>6 個月</strong>。超過期限就要重新預查，建議拿到名稱核准後 30 天內接著辦理銀行籌備戶與後續設立程序。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c2" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 02 · 公司設立<span class="formal">貳 · 資本驗證</span></div>
+            <h2 class="detail-title">銀行開設籌備戶 <small>Preparatory Bank Account</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1 工作日</strong> · 作業估計</span>
+              <span class="badge">通常當天可完成</span>
+              <span class="badge">建議事前預約</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">什麼是「公司籌備戶」？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">因為公司還沒拿到統編，不能開正式戶。為了存放資本額並給會計師驗證用，銀行會以「<strong>○○公司籌備處</strong>」名義開立暫時戶頭，登記完成後再轉成正式戶。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">需要準備甚麼？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">通常準備負責人雙證件、小章、公司名稱預查核准函。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c3" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 03 · 公司設立<span class="formal">參 · 資本入金</span></div>
+            <h2 class="detail-title">存入資本額 <small>Capital Deposit</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1 工作日</strong> · 作業估計</span>
+              <span class="badge">需保留 1–3 天</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">錢要存進去多久？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">大約 1–3 天。存入後列印<strong>存摺影本及餘額證明</strong>交給會計師驗證，會計師會出具《資本額查核報告書》，這是送件必備文件。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c4" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 04 · 公司設立<span class="formal">肆 · 文件簽證</span></div>
+            <h2 class="detail-title">準備文件與簽證 <small>Document Preparation</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1–2 工作日</strong> · 作業估計</span>
+              <span class="badge">會計師簽證</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">要準備那些文件？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">包含：會計師資本額查核報告、<strong>房屋同意書或租約影本（擇一）</strong>、房屋稅單影本、股東會議紀錄、公司章程、負責人與股東身分證影本、及設立登記表。我們會逐一陪您整理。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c5" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 05 · 公司設立<span class="formal">伍 · 政府審查</span></div>
+            <h2 class="detail-title">政府審查取得統編 <small>Business ID Issuance</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>3–5 工作日</strong> · 作業估計</span>
+              <span class="badge">市政府商業處/經發局</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">去哪裡拿這張公文？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">市政府<strong>商業處/經發局</strong>。審查通過後會拿到「設立登記核准函」後，右上角那個 <strong>8 位數</strong>就是您的公司統一編號了，從這一刻起公司就正式存在。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c6" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 06 · 公司設立<span class="formal">陸 · 稅務登記</span></div>
+            <h2 class="detail-title">稅務登記 取得稅籍 <small>Tax Registration</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>3–5 工作日</strong> · 作業估計</span>
+              <span class="badge">國稅局</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">為何還要辦稅籍？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">統編是公司的<strong>身分證</strong>，稅籍是公司的<strong>開票/報稅資格</strong>。向國稅局辦理稅籍登記後，才能開立統一發票、申報營業稅。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c7" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 07 · 公司設立<span class="formal">柒 · 啟用帳戶</span></div>
+            <h2 class="detail-title">銀行轉為正式戶 <small>Official Bank Account</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1 工作日</strong> · 作業估計</span>
+              <span class="badge">原銀行辦理</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">轉正式戶要帶什麼？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">帶<strong>設立核准函、稅籍核准證明、公司大小章、負責人身分證</strong>到銀行辦理。原本籌備戶的餘額會直接轉到正式戶，公司就可以開始營運收付款了。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="c8" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 08 · 公司設立<span class="formal">捌 · 後續事項</span></div>
+            <h2 class="detail-title">其他後續事項 <small>Follow-up Tasks</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>視需求而定</strong></span>
+              <span class="badge">非必須一次完成</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">還有什麼需要辦理的？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">包含：<strong>領取購票證、勞健保單位成立、進出口卡</strong>、特許行業執照（如有）、加入公會、申請補助資格認定等。我們會給您一份「開業 30 天清單」逐項打勾。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ── Firm step details ─────────────────────────────── -->
+      <article class="detail" data-step="f1" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 01 · 行號設立<span class="formal">壹 · 預查</span></div>
+            <h2 class="detail-title">行號名稱預查 <small>Firm Name Pre-check</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1–2 工作日</strong> · 作業估計</span>
+              <span class="badge">縣市範圍</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">行號名字可以跟別人重複嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">不行，在「<strong>同一個縣市</strong>」不能有相同名稱。比起公司是全國檢索，行號的範圍小很多，名稱可選擇空間相對大。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="f2" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 02 · 行號設立<span class="formal">貳 · 文件</span></div>
+            <h2 class="detail-title">準備文件送件 <small>Documentation</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1 工作日</strong> · 作業估計</span>
+              <span class="badge">25 萬以下免驗資</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">行號要驗資嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">資本額 <strong>25 萬以下不需要驗資證明</strong>。這也是行號相比公司最方便的地方，少了一個會計師簽證步驟，整體時程也更短。</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">需要什麼文件？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">負責人身分證、房屋同意書（或租約）、房屋稅單、申請書等。實際清單參考<a href="https://eservices.taichung.gov.tw/AdvSearch/CaseInfo/160/Notices/170132/170027?isHandling=True" target="_blank" rel="noopener">各縣市商業處公告</a>。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="f3" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 03 · 行號設立<span class="formal">參 · 取得統編</span></div>
+            <h2 class="detail-title">設立登記 取得統編 <small>Registration &amp; ID</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>1–2 工作日</strong> · 作業估計</span>
+              <span class="badge">商業抄本</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">行號的統編是什麼？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">設立登記完成後，會取得<strong>商業抄本</strong>，抄本上面就會有統一編號。從這一刻開始，您的行號就具有對外開立發票、簽訂合約的法律身分。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="f4" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 04 · 行號設立<span class="formal">肆 · 稅籍</span></div>
+            <h2 class="detail-title">取得稅籍編號 <small>Tax Registration</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>3–5 工作日</strong> · 作業估計</span>
+              <span class="badge">國稅局</span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">行號可以免用發票嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">若月營收低於 <strong>20 萬</strong>，可以向國稅局申請免用統一發票，按季繳納稅捐（小規模營業人）。是否核准由國稅局核定，視營業性質而定。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="detail" data-step="f5" hidden>
+        <div class="detail-card">
+          <header class="detail-head">
+            <div class="detail-eyebrow">STEP 05 · 行號設立<span class="formal">伍 · 後續事項</span></div>
+            <h2 class="detail-title">其他後續事項 <small>Follow-up Tasks</small></h2>
+            <div class="detail-meta">
+              <span class="badge time"><strong>視需求而定</strong></span>
+            </div>
+          </header>
+
+          <div class="detail-section-head"><h3>常見問題</h3><span class="en">FAQ</span></div>
+
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">還有什麼需要辦理的？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">包含：<strong>勞健保投保單位成立、公會加入、領取購票證(若需要開發票)</strong>等。各項並非必須一次完成，視營運需要逐步處理。</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <span class="qa-marker"></span>
+              <div>
+                <h4 class="qa-q">行號也要刻印章嗎？</h4>
+                <div class="qa-a">
+                  <span class="qa-marker qa-marker-a"></span>
+                  <p class="qa-a-text">是的，同樣需要準備<strong>行號的大章與負責人的小章</strong>，用於合約與報稅。我們的設立方案皆含刻製。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </main>
+  </div>
+
+  <!-- ── 快速登記表單 ──────────────────────────────────────── -->
+  <section class="quick-form" id="quickFormSection">
+    <header class="qf-head" style="width: 800px">
+      <div class="page-eyebrow">QUICK START · 開始登記</div>
+      <h2>看完流程，現在告訴我們幾件事</h2>
+      <p style="width: 600.719px">
+        這份簡短的資料只需 <strong>約 2 分鐘</strong>填完。送出後，我們會在
+        <strong>1 個工作日內</strong>把「Magic Link」寄到您的 Email
+        — 打開連結即可繼續填寫詳細資料（含證件、租約等敏感文件上傳），
+        可隨時回來、不必一次填完。
+      </p>
+
+      <ol class="qf-mini-flow" aria-hidden="true">
+        <li class="qf-mini-step current">
+          <span class="qf-mini-num">壹</span>
+          <span class="qf-mini-label">填基本資料</span>
+          <span class="qf-mini-time">現在 · 2 分鐘</span>
+        </li>
+        <li class="qf-mini-step" data-tooltip="為方便上傳及填寫資料，在您送出資料後，我們將會寄送 Email 給您，裡面會有報價及網頁連結，協助您完成後續填寫。">
+          <span class="qf-mini-num">貳</span>
+          <span class="qf-mini-label">收 Magic Link</span>
+          <span class="qf-mini-time">1-2個工作日內</span>
+        </li>
+        <li class="qf-mini-step" data-tooltip="Magic Link 可隨時查閱及上傳資料，並且資料保密。">
+          <span class="qf-mini-num">參</span>
+          <span class="qf-mini-label">上傳資料</span>
+          <span class="qf-mini-time">分次填寫</span>
+        </li>
+      </ol>
+    </header>
+
+    <form class="qf-form" id="quickForm" novalidate>
+
+      <!-- 壹 · 聯絡人 -->
+      <fieldset class="qf-section">
+        <legend class="qf-legend">
+          <span class="qf-sect-num">壹</span>
+          <span class="qf-sect-title">聯絡人資料</span>
+          <span class="qf-sect-en">Contact Information</span>
+        </legend>
+
+        <div class="qf-grid">
+          <label class="qf-field">
+            <span class="qf-label-text">姓名 <span class="req">必填</span></span>
+            <input type="text" name="name" required placeholder="例：王大明" autocomplete="name" />
+          </label>
+
+          <label class="qf-field">
+            <span class="qf-label-text">電話 <span class="req">必填</span></span>
+            <input type="tel" name="phone" required placeholder="0912-345-678" autocomplete="tel" inputmode="tel" />
+          </label>
+
+          <label class="qf-field">
+            <span class="qf-label-text">Email <span class="req">必填</span></span>
+            <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" />
+            <span class="qf-field-hint">Magic Link 會寄到這個信箱</span>
+          </label>
+
+          <label class="qf-field">
+            <span class="qf-label-text">聯絡地址 <span class="opt">選填</span></span>
+            <input type="text" name="address" placeholder="便於後續寄送紙本公文" autocomplete="address-line1" />
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- 貳 · 組織類別 -->
+      <fieldset class="qf-section">
+        <legend class="qf-legend">
+          <span class="qf-sect-num">貳</span>
+          <span class="qf-sect-title">想登記的組織類別</span>
+          <span class="qf-sect-en">Entity Type</span>
+        </legend>
+
+        <div class="qf-radio-cards">
+          <label class="qf-radio-card">
+            <input type="radio" name="entity" value="firm" required />
+            <span class="qf-rc-body">
+              <span class="qf-rc-title">行號 <small>獨資 / 合夥</small></span>
+              <span class="qf-rc-desc">25 萬以下免驗資 · 責任無限 · 流程最簡</span>
+              <span class="qf-rc-meta">約 1 週完成</span>
+            </span>
+          </label>
+
+          <label class="qf-radio-card">
+            <input type="radio" name="entity" value="limited" />
+            <span class="qf-rc-body">
+              <span class="qf-rc-title">有限公司</span>
+              <span class="qf-rc-desc">中小企業最常用 · 責任有限 · 可獨立報稅</span>
+              <span class="qf-rc-meta">約 1-2 週完成</span>
+            </span>
+          </label>
+
+          <label class="qf-radio-card">
+            <input type="radio" name="entity" value="corp" />
+            <span class="qf-rc-body">
+              <span class="qf-rc-title">股份有限公司</span>
+              <span class="qf-rc-desc">多股東 · 可發股票 · 適合未來增資/IPO</span>
+              <span class="qf-rc-meta">約 1–2 週完成</span>
+            </span>
+          </label>
+        </div>
+
+        <p class="qf-hint">還不確定？沒關係，先填您目前的傾向即可，我們諮詢時可一起重新討論。</p>
+      </fieldset>
+
+      <!-- 參 · 公司名稱 -->
+      <fieldset class="qf-section">
+        <legend class="qf-legend">
+          <span class="qf-sect-num">參</span>
+          <span class="qf-sect-title">公司名稱候選</span>
+          <span class="qf-sect-en">Proposed Names</span>
+        </legend>
+
+        <p class="qf-hint">
+          至少 <strong>1 個</strong>、最多 <strong>5 個</strong>，依優先序由上而下排列。
+          預查時會由上而下逐一檢核，第一個獲准就以該名稱送件。
+        </p>
+
+        <div class="qf-name-list" id="nameList">
+          <!-- One row pre-rendered; more added by JS -->
+          <div class="qf-name-row" data-index="0">
+            <span class="qf-name-rank" data-formal="壹">壹</span>
+            <input type="text" name="names[]" required placeholder="例：日光烘焙坊 / 勤信精密科技" />
+            <button type="button" class="qf-name-remove" aria-label="移除這個候選" hidden>✕</button>
+          </div>
+        </div>
+
+        <button type="button" class="qf-add-name" id="addNameBtn">
+          <span class="plus">＋</span>
+          <span>新增候選名稱</span>
+          <span class="qf-add-count" id="addCount">1 / 5</span>
+        </button>
+      </fieldset>
+
+      <!-- 肆 · 主要營業項目 -->
+      <fieldset class="qf-section">
+        <legend class="qf-legend">
+          <span class="qf-sect-num">肆</span>
+          <span class="qf-sect-title">主要營業項目</span>
+          <span class="qf-sect-en">Business Activities</span>
+        </legend>
+
+        <p class="qf-hint">
+          請用一兩句話描述事業內容 —
+          <strong>不必查業別代碼，我們會幫您選好標準項目供確認</strong>。
+        </p>
+
+        <label class="qf-field">
+          <textarea name="activities" rows="4" required
+                    placeholder="例：經營網路販售烘焙產品，未來增設實體門市販售麵包與蛋糕。"></textarea>
+        </label>
+      </fieldset>
+
+      <!-- 送出 -->
+      <div class="qf-foot">
+        <p class="qf-privacy">
+          <svg class="ico-lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="3" y="7" width="10" height="7" rx="1.5"/>
+            <path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+          </svg>
+          <span>
+            這份資料僅用於聯繫您與後續登記服務，不會分享給第三方。
+            <a href="#">隱私權政策 →</a>
+          </span>
+        </p>
+
+        <button type="submit" class="qf-submit">
+          <span>送出 · 1-2日內會聯繫您</span>
+          <span class="arrow">→</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- 送出成功狀態（預設隱藏） -->
+    <div class="qf-success" id="quickFormSuccess" hidden>
+      <div class="qf-success-seal" aria-hidden="true">收</div>
+      <div class="qf-success-body">
+        <div class="qf-success-eyebrow">SUBMISSION RECEIVED · 已收到</div>
+        <h3 class="qf-success-title">已收到您的資料，謝謝</h3>
+        <p>
+          我們會在 <strong>1 個工作日內</strong>，把繼續填寫的「Magic Link」寄到
+          <strong id="successEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="740d1b0106341119151d185a171b19">[email&#160;protected]</a></strong>。
+          打開連結就能上傳證件、租約等文件，可分次填寫。
+        </p>
+        <p>
+          同時，您的負責顧問會在 <strong>24 小時內</strong>透過電話與您聯繫，
+          確認流程細節與時程。
+        </p>
+
+        <dl class="qf-success-meta">
+          <div><dt>申請編號</dt><dd id="successId">QX-2026-—</dd></div>
+          <div><dt>送出時間</dt><dd id="successTime">—</dd></div>
+        </dl>
+
+        <div class="qf-success-actions">
+          <a href="{% url 'public_site:landing' %}" class="qf-home-btn">返回首頁</a>
+          <button type="button" class="qf-edit-btn" id="editFormBtn">修改資料</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Foot CTA: ready to engage ──────────────────────────── -->
+  <section class="foot-cta">
+    <div class="foot-cta-body">
+      <div class="foot-cta-eyebrow">READY TO START · 準備好開始了嗎</div>
+      <h2>看完流程後，把繁瑣的步驟交給我們</h2>
+      <p>
+        我們已經陪超過 1000 家中小企業跑完這套流程。
+        從預查、簽證、送件到開立發票，全程代辦，您只需要決定公司名字和喝幾杯咖啡。
+      </p>
+    </div>
+    <div class="foot-cta-actions">
+      <a href="{% url 'public_site:registration' %}" class="btn-primary">
+        看商工登記服務 →
+      </a>
+      <a href="{% url 'public_site:startup_analysis' %}" class="btn-ghost">
+        先做創業評估
+      </a>
+    </div>
+  </section>
+
+  <footer class="foot-note">
+    <span>勤信聯合會計師事務所 · 設立流程</span>
+    <span id="totalDays">PROCESS · 公司組織 · 約 3 週</span>
+  </footer>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ===========================================================================
+   Process flow — interaction logic + Tweaks panel
+   Pure vanilla. Static markup; JS toggles state classes only.
+   =========================================================================== */
+
+/* ── Tweaks defaults (host-editable) ───────────────────── */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "numbering": "formal",
+  "rail": "standard",
+  "qaStyle": "dialogue",
+  "paper": "warm"
+}/*EDITMODE-END*/;
+
+let tweaks = { ...TWEAK_DEFAULTS };
+
+function applyTweaks() {
+  const r = document.documentElement;
+  r.dataset.numbering = tweaks.numbering;
+  r.dataset.rail = tweaks.rail;
+  r.dataset.qaStyle = tweaks.qaStyle;
+  r.dataset.paper = tweaks.paper;
+}
+applyTweaks();
+
+/* ── Flow tab switching ────────────────────────────────── */
+const SUMMARY = {
+  company: "公司組織 · 約 3 週（12–19 工作日）",
+  firm:    "行號組織 · 約 2 週（7–13 工作日）"
+};
+
+function switchFlow(flow) {
+  document.querySelectorAll('.tab').forEach(t => {
+    const on = t.dataset.flow === flow;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.step-list').forEach(ol => {
+    ol.hidden = ol.dataset.flow !== flow;
+  });
+  document.getElementById('totalSummary').textContent =
+    flow === 'company' ? '總計 約 14 天' : '總計 約 5 天';
+  document.getElementById('totalDays').textContent =
+    'PROCESS · ' + SUMMARY[flow];
+  // Reset detail
+  showDetail(null);
+}
+
+/* ── Step click → show detail panel ────────────────────── */
+function showDetail(stepId) {
+  const steps = document.querySelectorAll('.step-list:not([hidden]) .step');
+
+  // Empty state
+  if (!stepId) {
+    document.getElementById('emptyDetail').hidden = false;
+    document.querySelectorAll('.detail[data-step]').forEach(d => d.hidden = true);
+    steps.forEach(s => { s.classList.remove('active'); s.classList.remove('done'); });
+    setProgress(0);
+    return;
+  }
+
+  // Show selected detail (within active flow)
+  document.getElementById('emptyDetail').hidden = true;
+  document.querySelectorAll('.detail[data-step]').forEach(d => {
+    d.hidden = d.dataset.step !== stepId;
+  });
+
+  // Mark steps active / done up to selected
+  let activeIdx = -1;
+  steps.forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (s.dataset.step === stepId) { s.classList.add('active'); activeIdx = i; }
+  });
+  steps.forEach((s, i) => {
+    if (i < activeIdx) s.classList.add('done');
+  });
+
+  // Progress line
+  if (activeIdx >= 0) {
+    const activeStep = steps[activeIdx];
+    const list = activeStep.parentElement;
+    const mark = activeStep.querySelector('.step-mark');
+    // The mark's center relative to the list's `::before` start (22px from list top)
+    const listRect = list.getBoundingClientRect();
+    const markRect = mark.getBoundingClientRect();
+    const center = (markRect.top + markRect.height / 2) - listRect.top;
+    setProgress(Math.max(0, center - 22));
+  }
+}
+
+function setProgress(px) {
+  document.documentElement.style.setProperty('--progress', px + 'px');
+}
+
+/* ── Wire flow tabs ────────────────────────────────────── */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => switchFlow(btn.dataset.flow));
+});
+
+/* ── Wire step buttons (event delegation, since multiple lists) */
+document.querySelectorAll('.step').forEach(btn => {
+  btn.addEventListener('click', () => showDetail(btn.dataset.step));
+});
+
+/* ── Conclusion card: prompt user to take the assessment ─ */
+(function renderConclusion() {
+  const mount = document.getElementById('conclusionMount');
+  if (!mount) return;
+  mount.innerHTML = `
+    <div class="conclusion-card">
+      <div class="conclusion-mark">引</div>
+      <div class="conclusion-body">
+        <div class="conclusion-eyebrow">想要量身建議？</div>
+        <h3 class="conclusion-title">先做一份創業評估，再回來看流程</h3>
+        <p>花 3 分鐘回答 4 個段落的問題，系統會根據你的事業類型、資金規劃、稅務狀況，給你針對性的設立建議。沒有填寫也沒關係——可以直接點擊左側步驟瀏覽整個流程。</p>
+        <a href="{% url 'public_site:startup_analysis' %}" class="conclusion-cta">前往創業評估 →</a>
+      </div>
+    </div>`;
+})();
+
+/* ── Quick form: dynamic name rows, autosave, submission ─ */
+(function setupQuickForm() {
+  const FORMAL = ['壹', '貳', '參', '肆', '伍'];
+  const MAX_NAMES = 5;
+  const STORAGE_KEY = 'quickFormDraft';
+  const SUBMISSION_KEY = 'quickFormSubmission';
+
+  const form = document.getElementById('quickForm');
+  const nameList = document.getElementById('nameList');
+  const addBtn = document.getElementById('addNameBtn');
+  const addCount = document.getElementById('addCount');
+  const successCard = document.getElementById('quickFormSuccess');
+  const editBtn = document.getElementById('editFormBtn');
+  if (!form) return;
+
+  /* ── Name list management ─────────────────────────────── */
+  function refreshNameList() {
+    const rows = [...nameList.querySelectorAll('.qf-name-row')];
+    rows.forEach((row, i) => {
+      row.dataset.index = String(i);
+      const rank = row.querySelector('.qf-name-rank');
+      rank.textContent = FORMAL[i] || (i + 1);
+      rank.dataset.formal = FORMAL[i] || '';
+      const removeBtn = row.querySelector('.qf-name-remove');
+      removeBtn.hidden = rows.length === 1; // first row stays
+      const input = row.querySelector('input');
+      input.required = i === 0;
+      input.placeholder = i === 0
+        ? '例：日光烘焙坊 / 勤信精密科技'
+        : `候選 ${FORMAL[i] || (i + 1)}（選填）`;
+    });
+    addCount.textContent = `${rows.length} / ${MAX_NAMES}`;
+    addBtn.disabled = rows.length >= MAX_NAMES;
+  }
+
+  function makeNameRow(value = '') {
+    const row = document.createElement('div');
+    row.className = 'qf-name-row';
+    row.innerHTML = `
+      <span class="qf-name-rank"></span>
+      <input type="text" name="names[]" value="${escapeAttr(value)}" />
+      <button type="button" class="qf-name-remove" aria-label="移除這個候選">✕</button>`;
+    row.querySelector('.qf-name-remove').addEventListener('click', () => {
+      row.style.transition = 'opacity 180ms, transform 180ms';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(-8px)';
+      setTimeout(() => {
+        row.remove();
+        refreshNameList();
+        autosave();
+      }, 180);
+    });
+    row.querySelector('input').addEventListener('input', autosave);
+    return row;
+  }
+
+  // First row: hook up listeners + ensure remove button is hidden
+  const firstRow = nameList.querySelector('.qf-name-row');
+  if (firstRow) {
+    const rb = firstRow.querySelector('.qf-name-remove');
+    rb.addEventListener('click', () => {/* first row never removable */});
+    firstRow.querySelector('input').addEventListener('input', autosave);
+  }
+  refreshNameList();
+
+  addBtn.addEventListener('click', () => {
+    const count = nameList.querySelectorAll('.qf-name-row').length;
+    if (count >= MAX_NAMES) return;
+    nameList.appendChild(makeNameRow());
+    refreshNameList();
+    nameList.querySelectorAll('.qf-name-row input').forEach((inp, i) => {
+      if (i === count) inp.focus();
+    });
+    autosave();
+  });
+
+  /* ── Autosave to localStorage as user types ───────────── */
+  function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+
+  function collectData() {
+    const fd = new FormData(form);
+    const names = fd.getAll('names[]').map(s => String(s).trim()).filter(Boolean);
+    return {
+      name:       fd.get('name')       || '',
+      phone:      fd.get('phone')      || '',
+      email:      fd.get('email')      || '',
+      address:    fd.get('address')    || '',
+      entity:     fd.get('entity')     || '',
+      activities: fd.get('activities') || '',
+      names,
+    };
+  }
+
+  function autosave() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }
+    catch (e) {}
+  }
+
+  function restoreDraft() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      ['name','phone','email','address','activities'].forEach(k => {
+        const el = form.elements[k];
+        if (el && d[k]) el.value = d[k];
+      });
+      if (d.entity) {
+        const radio = form.querySelector(`input[name="entity"][value="${d.entity}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (Array.isArray(d.names) && d.names.length) {
+        // Replace name list with restored values
+        nameList.innerHTML = '';
+        d.names.slice(0, MAX_NAMES).forEach((v, i) => {
+          const row = makeNameRow(v);
+          // First row treats remove specially in our wiring; rebuild fresh
+          nameList.appendChild(row);
+        });
+        // Ensure at least one row
+        if (nameList.children.length === 0) {
+          nameList.appendChild(makeNameRow());
+        }
+        // Re-wire first-row listener edge case: makeNameRow already attaches listeners, fine.
+        refreshNameList();
+      }
+    } catch (e) {}
+  }
+  restoreDraft();
+
+  form.addEventListener('input', autosave);
+  form.addEventListener('change', autosave);
+
+  /* ── Submission handling ──────────────────────────────── */
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Native validation
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const data = collectData();
+    if (!data.entity) {
+      alert('請選擇組織類別');
+      return;
+    }
+    if (!data.names.length) {
+      alert('請至少填寫 1 個公司名稱候選');
+      return;
+    }
+
+    const submission = {
+      ...data,
+      submittedAt: new Date().toISOString(),
+      id: 'QX-' + new Date().getFullYear() + '-' +
+          Math.random().toString(36).slice(2, 8).toUpperCase(),
+    };
+    try {
+      localStorage.setItem(SUBMISSION_KEY, JSON.stringify(submission));
+      localStorage.removeItem(STORAGE_KEY); // clear draft
+    } catch (e) {}
+
+    showSuccess(submission);
+  });
+
+  function showSuccess(submission) {
+    form.hidden = true;
+    successCard.hidden = false;
+    document.getElementById('successEmail').textContent = submission.email;
+    document.getElementById('successId').textContent = submission.id;
+    document.getElementById('successTime').textContent =
+      new Date(submission.submittedAt).toLocaleString('zh-Hant', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+      });
+    // Scroll the success card into view smoothly
+    const y = successCard.getBoundingClientRect().top + window.pageYOffset - 80;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
+
+  editBtn.addEventListener('click', () => {
+    form.hidden = false;
+    successCard.hidden = true;
+    const y = form.getBoundingClientRect().top + window.pageYOffset - 80;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  });
+
+  /* ── If a prior submission exists, show success state ─ */
+  const priorRaw = localStorage.getItem(SUBMISSION_KEY);
+  if (priorRaw) {
+    try { showSuccess(JSON.parse(priorRaw)); } catch (e) {}
+  }
+})();
+</script>
+{% endblock %}

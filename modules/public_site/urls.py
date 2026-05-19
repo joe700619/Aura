@@ -17,4 +17,5 @@ urlpatterns = [
     path("tools/payment-receipt/", views.PaymentReceiptView.as_view(), name="payment_receipt"),
     path("tools/startup-analysis/", views.StartupAnalysisView.as_view(), name="startup_analysis"),
     path("tools/withholding-tax/", views.WithholdingTaxView.as_view(), name="withholding_tax"),
+    path("tools/process-flow/", views.ProcessFlowView.as_view(), name="process_flow"),
 ]

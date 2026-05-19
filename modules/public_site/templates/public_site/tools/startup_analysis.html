@@ -1,103 +1,123 @@
 {% extends "public_site/tools/_tools_base.html" %}
 {% load static %}
 
-{% block title %}創業分析表 · 勤信工具{% endblock %}
+{% block title %}創業設立評估 · 勤信工具{% endblock %}
 {% block tool_eyebrow %}TOOL · 03{% endblock %}
-{% block tool_title %}創業分析表{% endblock %}
-{% block tool_subtitle %}花 3 分鐘回答 4 個段落的問題，產生你的創業財務初步診斷報告。{% endblock %}
+{% block tool_title %}創業設立評估{% endblock %}
+{% block tool_subtitle %}花 3 分鐘回答 6 個問題，產生你的企業設立藍圖，包含組織型態、稅負影響、設立流程與健保規劃。{% endblock %}
 
 {% block tool_body %}
 <div id="sa-wizard">
-  <div class="t-wizard">
-    <div class="t-wizard-progress">
-      <div class="t-wp-bar"><div class="t-wp-fill" id="sa-progress" style="width:25%"></div></div>
-      <div class="t-wp-text"><span id="sa-step-text">1 / 4</span><span id="sa-pct">25%</span></div>
-    </div>
 
-    {# Step 1 #}
-    <div class="t-wizard-card" data-step="0">
-      <div class="t-wc-eyebrow">STEP 01 · 基本資料</div>
-      <h2 class="t-wc-title">你的事業輪廓</h2>
-      <div class="t-wc-fields">
-        <label class="tf"><span class="tf-label">事業名稱（暫定即可）</span><input class="tf-input" data-field="name" placeholder="例：日光烘焙坊"/></label>
-        <label class="tf"><span class="tf-label">產業類別</span>
-          <select class="tf-input" data-field="industry">
-            <option value="">請選擇…</option>
-            <option>餐飲 / 食品</option><option>零售 / 電商</option><option>服務業（個人 / B2C）</option><option>顧問 / B2B 服務</option>
-            <option>製造 / 加工</option><option>文創 / 設計</option><option>科技 / 軟體</option><option>其他</option>
-          </select>
-        </label>
-        <label class="tf"><span class="tf-label">目前階段</span>
-          <div class="t-radio-group" data-radio-field="stage">
-            <label class="t-radio"><input type="radio" name="sa-stage" value="想法構思中"/><span class="t-radio-dot"></span><span>想法構思中</span></label>
-            <label class="t-radio"><input type="radio" name="sa-stage" value="準備登記"/><span class="t-radio-dot"></span><span>準備登記</span></label>
-            <label class="t-radio"><input type="radio" name="sa-stage" value="已登記未開業"/><span class="t-radio-dot"></span><span>已登記未開業</span></label>
-            <label class="t-radio"><input type="radio" name="sa-stage" value="開業 6 個月內"/><span class="t-radio-dot"></span><span>開業 6 個月內</span></label>
-          </div>
-        </label>
-        <label class="tf"><span class="tf-label">創始團隊人數</span><input type="number" class="tf-input" data-field="founders" placeholder="1"/></label>
-      </div>
-    </div>
-
-    {# Step 2 #}
-    <div class="t-wizard-card" data-step="1" style="display:none">
-      <div class="t-wc-eyebrow">STEP 02 · 資金結構</div>
-      <h2 class="t-wc-title">投入與收入預估</h2>
-      <div class="t-wc-fields">
-        <label class="tf"><span class="tf-label">預計投入資本（元）</span><input type="number" class="tf-input" data-field="capital" placeholder="1000000"/><span class="tf-hint">個人積蓄 + 親友 + 借款</span></label>
-        <label class="tf"><span class="tf-label">每月固定支出（元）</span><input type="number" class="tf-input" data-field="fixedCost" placeholder="150000"/><span class="tf-hint">房租、薪資、水電、軟體訂閱等</span></label>
-        <label class="tf"><span class="tf-label">預期穩定後月營收（元）</span><input type="number" class="tf-input" data-field="expectedRevenue" placeholder="400000"/></label>
-        <label class="tf"><span class="tf-label">毛利率（%）</span><input type="number" class="tf-input" data-field="grossMargin" placeholder="40"/><span class="tf-hint">營收扣除直接成本後的比例</span></label>
-      </div>
-    </div>
-
-    {# Step 3 #}
-    <div class="t-wizard-card" data-step="2" style="display:none">
-      <div class="t-wc-eyebrow">STEP 03 · 組織結構</div>
-      <h2 class="t-wc-title">你想用什麼方式登記？</h2>
-      <div class="t-wc-fields">
-        <label class="tf"><span class="tf-label">傾向的事業型態</span>
-          <div class="t-radio-group" data-radio-field="entity">
-            <label class="t-radio"><input type="radio" name="sa-entity" value="獨資 / 行號（便宜、彈性、責任無限）"/><span class="t-radio-dot"></span><span>獨資 / 行號（便宜、彈性、責任無限）</span></label>
-            <label class="t-radio"><input type="radio" name="sa-entity" value="有限公司（較正式、責任有限、稅務分離）"/><span class="t-radio-dot"></span><span>有限公司（較正式、責任有限、稅務分離）</span></label>
-            <label class="t-radio"><input type="radio" name="sa-entity" value="股份有限公司（多股東、可發股票、規模大）"/><span class="t-radio-dot"></span><span>股份有限公司（多股東、可發股票、規模大）</span></label>
-            <label class="t-radio"><input type="radio" name="sa-entity" value="尚未決定 — 想要建議"/><span class="t-radio-dot"></span><span>尚未決定 — 想要建議</span></label>
-          </div>
-        </label>
-        <label class="tf"><span class="tf-label">預期年營收</span>
-          <div class="t-radio-group" data-radio-field="vat">
-            <label class="t-radio"><input type="radio" name="sa-vat" value="未滿 240 萬（小規模 / 1% 營業稅）"/><span class="t-radio-dot"></span><span>未滿 240 萬（小規模 / 1% 營業稅）</span></label>
-            <label class="t-radio"><input type="radio" name="sa-vat" value="240 萬 ～ 1,000 萬（一般 / 5% 營業稅）"/><span class="t-radio-dot"></span><span>240 萬 ～ 1,000 萬（一般 / 5% 營業稅）</span></label>
-            <label class="t-radio"><input type="radio" name="sa-vat" value="1,000 萬 以上"/><span class="t-radio-dot"></span><span>1,000 萬 以上</span></label>
-          </div>
-        </label>
-        <label class="tf"><span class="tf-label">預計第一年聘僱員工數</span><input type="number" class="tf-input" data-field="employees" placeholder="0"/></label>
-      </div>
-    </div>
-
-    {# Step 4 #}
-    <div class="t-wizard-card" data-step="3" style="display:none">
-      <div class="t-wc-eyebrow">STEP 04 · 你的擔憂</div>
-      <h2 class="t-wc-title">勾選你最在意的問題</h2>
-      <div class="t-wc-fields">
-        <label class="tf"><span class="tf-label">（可多選）</span>
-          <div class="t-check-group" id="sa-concerns">
-            {% for c in concerns %}
-              <label class="t-check"><input type="checkbox" value="{{ c }}"/><span class="t-check-box"></span><span>{{ c }}</span></label>
-            {% endfor %}
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <div class="t-wizard-nav">
-      <button type="button" class="btn-secondary-lg" id="sa-back" disabled>上一步</button>
-      <button type="button" class="btn-primary-lg" id="sa-next">下一步</button>
+  {# 進度條 #}
+  <div class="t-wizard-progress sa-progress">
+    <div class="t-wp-bar"><div class="t-wp-fill" id="sa-progress-fill"></div></div>
+    <div class="t-wp-text">
+      <span>第 <span id="sa-step-current">1</span> 題、共 {{ sa_steps|length }} 題</span>
+      <span><span id="sa-step-pct">17</span>%</span>
     </div>
   </div>
+
+  {# 6 張題目卡（display:none 切換） #}
+  {% for s in sa_steps %}
+    <section class="t-section sa-card" data-step-index="{{ forloop.counter0 }}" data-step-id="{{ s.id }}"
+             {% if not forloop.first %}style="display:none"{% endif %}>
+      <div class="t-section-eyebrow">QUESTION {{ forloop.counter|stringformat:"02d" }} / {{ sa_steps|length|stringformat:"02d" }}</div>
+      <h2 class="t-section-title">{{ s.title }}</h2>
+      {% if s.hint %}<p class="sa-hint">{{ s.hint }}</p>{% endif %}
+
+      <div class="t-radio-group">
+        {% for opt in s.options %}
+          <label class="t-radio">
+            <input type="radio" name="sa-{{ s.id }}" value="{{ opt }}"/>
+            <span class="t-radio-dot"></span>
+            <span>{{ opt }}</span>
+          </label>
+        {% endfor %}
+      </div>
+
+      <div class="sa-card-nav">
+        <button type="button" class="btn-secondary-lg" data-sa-back {% if forloop.first %}disabled{% endif %}>
+          ← 上一題
+        </button>
+        <button type="button" class="btn-primary-lg" data-sa-next disabled>
+          {% if forloop.last %}完成評估{% else %}下一題{% endif %} →
+        </button>
+      </div>
+      
+      <div class="sa-tips">
+        <div class="sa-tips-label">填寫小提示</div>
+        <ul class="faq-list">
+          {% for t in s.tips %}
+            <li class="faq-item">
+              <button type="button" class="faq-q">
+                <span>{{ t.q }}</span>
+                <span class="faq-icon"></span>
+              </button>
+              <div class="faq-a">
+                <div class="faq-a-inner">
+                  {% if t.a %}{{ t.a }}{% else %}<span class="sa-tip-placeholder">— 內容待補 —</span>{% endif %}
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  {% endfor %}
 </div>
 
-<div id="sa-report" style="display:none"></div>
+{# 結果頁 — 完成評估後切換到這裡 #}
+<div id="sa-report" style="display:none">
+
+  <section class="t-section sa-r-summary">
+    <div class="t-section-eyebrow">REPORT · 您的企業設立藍圖</div>
+    <h2 class="t-section-title">根據您的選擇，我們整理了以下建議</h2>
+
+    <div class="sa-r-answers">
+      <div class="sa-r-answers-label">您的作答清單</div>
+      {% for s in sa_steps %}
+        <div class="sa-r-answer-row" data-answer-row="{{ s.id }}">
+          <span class="sa-r-answer-q">{{ s.title }}</span>
+          <span class="sa-r-answer-a" data-answer-value="{{ s.id }}">—</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="t-section sa-r-conclusion">
+    <div class="t-section-eyebrow">CONCLUSION · 您的專屬評估結論</div>
+    <h2 class="t-section-title">會計師建議</h2>
+    <div class="sa-r-conclusion-body" id="sa-conclusion-body">
+      <p class="sa-r-placeholder-line"></p>
+      <p class="sa-r-placeholder-line"></p>
+      <p class="sa-r-placeholder-line short"></p>
+      <p class="sa-r-placeholder-note">
+        ※ 此區結論內容由會計師依您的作答撰寫，動態說明設立目的、組織型態、稅負估算與健保規劃。
+      </p>
+    </div>
+  </section>
+
+
+  <section class="sa-r-cta">
+    <div class="sa-r-cta-text">
+      <div class="sa-r-cta-eyebrow">NEXT STEP</div>
+      <h3>需要進一步的專人協助嗎？</h3>
+      <p>這份報告為初步評估，實際情況可能因詳細經營狀況而有所不同。<br/>勤信會計師團隊隨時準備為您服務。</p>
+    </div>
+    <div class="sa-r-cta-actions">
+      <button type="button" class="btn-primary-lg" data-open-modal>立即預約諮詢 <span class="btn-arrow">→</span></button>
+      <button type="button" class="btn-secondary-lg" id="sa-restart">重新評估</button>
+    </div>
+  </section>
+</div>
+
+<div class="sa-process-cta">
+  <div class="sa-pc-eyebrow">GUIDE · 設立流程</div>
+  <h3 class="sa-pc-title">已經有方向了，想直接看實際流程？</h3>
+  <p>從名稱預查、資本額簽證、設立登記到統編開通，每一步要準備什麼、卡點在哪，<br/>我們整理成一頁 step-by-step 的流程指南。</p>
+  <a href="{% url 'public_site:process_flow' %}" class="btn-secondary-lg">查看設立流程 →</a>
+</div>
 {% endblock %}
 
 {% block tool_js %}

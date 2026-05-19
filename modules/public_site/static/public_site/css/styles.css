@@ -271,6 +271,11 @@ a {
   min-width: 320px;
   padding: 10px;
 }
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 8px 12px;
+}
 
 .dropdown-tool-item {
   display: grid !important;

@@ -529,12 +529,19 @@
   padding: 36px 32px;
   border: 1px solid var(--border-subtle);
   background: #fff;
+  color: var(--fg1);
 }
 .compare-card.highlight {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
+  background: var(--accent-soft);
+  color: var(--fg1);
+  border: 2px solid var(--accent);
+  padding: 35px 31px;
 }
+.compare-card.highlight h4 {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.compare-card li::before { opacity: 0.7; }
 .compare-card h4 {
   font-family: var(--font-serif);
   font-size: 22px;

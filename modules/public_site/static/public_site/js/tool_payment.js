@@ -1,10 +1,10 @@
 // 勞務報酬單
 (function () {
   'use strict';
-  const TAX_RATES = { "9a": 0.10, "9b": 0.05, "50": 0.10 };
-  const TAX_THRESHOLDS = { "9a": 20000, "9b": 88501, "50": 5000 };
+  const TAX_RATES = { "9a": 0.10, "9b": 0.10 };
+  const WITHHOLD_TAX_FLOOR = 2000;   // 扣繳稅額 > 2000 才需扣繳
   const NHI_RATE = 0.0211;
-  const NHI_THRESHOLD = 20000;
+  const NHI_THRESHOLD = 20000;       // 給付金額 >= 20000 須扣補充保費
 
   const fmt = (n) => Math.round(n).toLocaleString();
   const $ = (id) => document.getElementById(id);
@@ -18,8 +18,12 @@
     }));
   }
 
+  function getRadio(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : '';
+  }
+
   function render() {
-    setText('pv-doc', $('pr-doc-no').value);
     setText('pv-date', $('pr-date').value);
     setText('pv-payer-name', $('pr-payer-name').value);
     setText('pv-payer-id', $('pr-payer-id').value);
@@ -41,22 +45,38 @@
     });
 
     const taxType = $('pr-tax-type').value;
-    const rate = TAX_RATES[taxType];
-    const threshold = TAX_THRESHOLDS[taxType];
-    const willWithhold = total >= threshold;
+    const residency = getRadio('pr-residency') || 'local';
+    const inUnion = getRadio('pr-union') === 'yes';
+
+    // 外國人未滿 183 天：扣繳稅率一律 20%，全額扣繳（無 2000 起扣保留）
+    // 本國人 / 外國人滿 183 天：依所得類別套用稅率；應扣稅額 > 2000 才需扣繳
+    let rate, willWithhold, rateLabel;
+    if (residency === 'foreign_nonresident') {
+      rate = 0.20;
+      willWithhold = total > 0;
+      rateLabel = '非居住者 20%';
+    } else {
+      rate = TAX_RATES[taxType];
+      const provisional = total * rate;
+      willWithhold = provisional > WITHHOLD_TAX_FLOOR;
+      rateLabel = `${taxType.toUpperCase()} · ${(rate * 100).toFixed(0)}%`;
+    }
     const withhold = willWithhold ? Math.round(total * rate) : 0;
-    const willNHI = total >= NHI_THRESHOLD && taxType !== '9b';
+
+    // 二代健保補充保費：已加入職業工會則免扣
+    const willNHI = !inUnion && total >= NHI_THRESHOLD && taxType !== '9b';
     const nhi = willNHI ? Math.round(total * NHI_RATE) : 0;
     const net = total - withhold - nhi;
 
     setText('pv-total', fmt(total) + ' 元');
-    let wlbl = `扣繳稅額（${taxType.toUpperCase()} · ${(rate * 100).toFixed(0)}%）`;
+    let wlbl = `扣繳稅額（${rateLabel}）`;
     if (!willWithhold) wlbl += ' · 未達起扣門檻';
     setText('pv-withhold-label', wlbl);
     setText('pv-withhold', '− ' + fmt(withhold) + ' 元');
 
     let nlbl = '二代健保補充保費（2.11%）';
-    if (!willNHI) nlbl += ' · 不適用';
+    if (inUnion) nlbl += ' · 已加入職業工會免扣';
+    else if (!willNHI) nlbl += ' · 不適用';
     setText('pv-nhi-label', nlbl);
     setText('pv-nhi', '− ' + fmt(nhi) + ' 元');
     setText('pv-net', fmt(net) + ' 元');
@@ -92,10 +112,14 @@
   });
 
   // bind static fields
-  ['pr-payer-name','pr-payer-id','pr-payer-contact','pr-payer-addr','pr-payee-name','pr-payee-id','pr-payee-addr','pr-tax-type','pr-date','pr-doc-no'].forEach((id) => {
+  ['pr-payer-name','pr-payer-id','pr-payer-contact','pr-payer-addr','pr-payee-name','pr-payee-id','pr-payee-addr','pr-tax-type','pr-date'].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener('input', render);
     if (el) el.addEventListener('change', render);
+  });
+  // bind new radio groups
+  document.querySelectorAll('input[name="pr-residency"], input[name="pr-union"]').forEach((el) => {
+    el.addEventListener('change', render);
   });
 
   render();
