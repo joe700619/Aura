@@ -13,7 +13,7 @@
       <div class="t-section-eyebrow">STEP 01</div>
       <h2 class="t-section-title">所得類型</h2>
       <div class="t-tabs" id="wt-tabs">
-        <button type="button" class="t-tab active" data-tab="salary">勞務報酬（薪資）</button>
+        <button type="button" class="t-tab active" data-tab="salary">薪資所得</button>
         <button type="button" class="t-tab" data-tab="professional">執行業務所得</button>
         <button type="button" class="t-tab" data-tab="rent">租金</button>
       </div>
@@ -34,7 +34,7 @@
         <span class="tf-label">二代健保補充保費</span>
         <div class="t-radio-group t-radio-row" id="wt-nhi">
           <label class="t-radio active"><input type="radio" name="wt-nhi-r" value="charge" checked/><span class="t-radio-dot"></span><span>正常扣繳（單筆 ≥ 20,000 元）</span></label>
-          <label class="t-radio"><input type="radio" name="wt-nhi-r" value="exempt"/><span class="t-radio-dot"></span><span>符合免扣條件</span></label>
+          <label class="t-radio" id="wt-nhi-exempt-opt" title="1. 若您是自營作業者，並以「執行業務所得」為投保金額參加職業工會，則您的執行業務收入免扣補充保費。只需向給付單位出具職業工會的在保證明或繳費證明即可；2. 若屬於不具備中華民國健保投保資格者、低收入戶成員等，所有法定 6 大類所得均免扣取補充保險費。"><input type="radio" name="wt-nhi-r" value="exempt"/><span class="t-radio-dot"></span><span>符合免扣條件<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:6px;border-radius:50%;border:1px solid currentColor;font-size:10px;line-height:1;opacity:.7;vertical-align:middle">?</span></span></label>
         </div>
       </label>
     </section>

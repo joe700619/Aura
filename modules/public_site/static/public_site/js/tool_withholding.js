@@ -6,40 +6,39 @@
     salary: {
       label: "勞務報酬（薪資）",
       options: [
-        { value: "9b", label: "9B · 兼職薪資所得", rate: 0.05, threshold: 88501,
-          note: "單次給付未達 88,501 元免扣繳；超過則扣 5%", foreign: false },
-        { value: "9b-foreign", label: "9B · 非居住者薪資", rate: 0.18, threshold: 0,
+        { value: "50", label: "50 · 兼職所得", rate: 0.05, threshold: 88501, nhiThreshold: 29500,
+          note: "單次給付未達 88,501 元免扣繳；超過則扣 5%。單次給付超過基本工資 29,500 元另扣補充保費 2.11%", foreign: false },
+        { value: "50-foreign", label: "50 · 非居住者薪資", rate: 0.18, threshold: 0, nhiThreshold: 0,
           note: "非居住者一律扣 18%（每月給付未達基本工資 1.5 倍時為 6%）", foreign: true }
       ]
     },
     professional: {
       label: "執行業務所得",
       options: [
-        { value: "9a-1", label: "9A · 一般執行業務（10%）", rate: 0.10, threshold: 20001,
+        { value: "9a-1", label: "9A · 一般執行業務所得（10%）", rate: 0.10, threshold: 20001, nhiThreshold: 20000,
           note: "如顧問、講師、設計、翻譯等；單次未達 20,001 元免扣", foreign: false },
-        { value: "9a-2", label: "9A · 稿費 / 版稅（10%）", rate: 0.10, threshold: 20001,
+        { value: "9b", label: "9B · 稿費 / 版稅（10%）", rate: 0.10, threshold: 20001, nhiThreshold: 20000,
           note: "稿費、版稅、樂譜等執行業務所得", foreign: false },
-        { value: "9a-foreign", label: "9A · 非居住者執行業務", rate: 0.20, threshold: 0,
+        { value: "9a-foreign", label: "9A · 非居住者執行業務", rate: 0.20, threshold: 0, nhiThreshold: 0,
           note: "非居住者執行業務所得扣 20%", foreign: true },
       ]
     },
     rent: {
       label: "租金",
       options: [
-        { value: "51", label: "51 · 不動產租金（10%）", rate: 0.10, threshold: 20001,
+        { value: "51", label: "51 · 不動產租金（10%）", rate: 0.10, threshold: 20001, nhiThreshold: 20000,
           note: "土地、房屋、工廠、廠房等租金；單次未達 20,001 元免扣", foreign: false },
-        { value: "51-foreign", label: "51 · 非居住者租金", rate: 0.20, threshold: 0,
+        { value: "51-foreign", label: "51 · 非居住者租金", rate: 0.20, threshold: 0, nhiThreshold: 0,
           note: "非居住者租金所得扣 20%", foreign: true },
       ]
     }
   };
-  const NHI_THRESHOLD = 20000;
   const NHI_RATE = 0.0211;
 
   const TIPS = {
     salary: "薪資所得不適用二代健保補充保費，但需依公司規模申報勞健保。",
     professional: "執行業務所得需於每年 1 月底前由扣繳義務人開立扣繳憑單。若同一年度給付同一人累計達 1,000 元以上需申報免扣繳憑單。",
-    rent: "租金扣繳需注意：押金生息（年息 1%）也需列入計算。承租戶為公司行號時需扣繳，個人之間租賃通常不需扣繳。"
+    rent: "租金扣繳需注意：房東是自然人才需要進行扣繳及繳納補充保費，若房東是法人則不適用。"
   };
 
   let state = { tab: "salary", resident: "yes", nhiExempt: false, typeIdx: 0, amount: 50000, reverse: false };
@@ -72,11 +71,13 @@
     const amt = parseFloat(state.amount) || 0;
     const rate = cur.rate;
     const threshold = cur.threshold;
+    const nhiThreshold = cur.nhiThreshold || 0;
+    const nhiApplicable = nhiThreshold > 0;
     let payable, withhold, nhi, net;
 
     if (state.reverse) {
       const trial = amt / (1 - rate);
-      const willCharge = !state.nhiExempt && trial >= NHI_THRESHOLD && state.tab !== "salary";
+      const willCharge = !state.nhiExempt && nhiApplicable && trial >= nhiThreshold;
       const willWithhold = trial >= threshold;
       const r = willWithhold ? rate : 0;
       const n = willCharge ? NHI_RATE : 0;
@@ -87,7 +88,7 @@
     } else {
       payable = Math.round(amt);
       const willWithhold = payable >= threshold;
-      const willCharge = !state.nhiExempt && payable >= NHI_THRESHOLD && state.tab !== "salary";
+      const willCharge = !state.nhiExempt && nhiApplicable && payable >= nhiThreshold;
       withhold = willWithhold ? Math.round(payable * rate) : 0;
       nhi = willCharge ? Math.round(payable * NHI_RATE) : 0;
       net = payable - withhold - nhi;
@@ -95,8 +96,9 @@
     return {
       payable, withhold, nhi, net,
       withholdRate: rate, threshold,
+      nhiThreshold, nhiApplicable,
       willWithhold: payable >= threshold,
-      willChargeNhi: !state.nhiExempt && payable >= NHI_THRESHOLD && state.tab !== "salary"
+      willChargeNhi: !state.nhiExempt && nhiApplicable && payable >= nhiThreshold
     };
   }
 
@@ -115,9 +117,9 @@
     $('wt-withhold').textContent = '− ' + fmt(c.withhold) + ' 元';
 
     let nhiLabel = '二代健保（2.11%）';
-    if (state.tab === "salary") nhiLabel += ' <span class="tcf-tag">薪資不適用</span>';
+    if (!c.nhiApplicable) nhiLabel += ' <span class="tcf-tag">不適用</span>';
     else if (state.nhiExempt) nhiLabel += ' <span class="tcf-tag">免扣</span>';
-    else if (!c.willChargeNhi) nhiLabel += ' <span class="tcf-tag">未達 20,000</span>';
+    else if (!c.willChargeNhi) nhiLabel += ` <span class="tcf-tag">未達 ${c.nhiThreshold.toLocaleString()}</span>`;
     $('wt-nhi-label').innerHTML = nhiLabel;
     $('wt-nhi-val').textContent = '− ' + fmt(c.nhi) + ' 元';
     $('wt-net').textContent = fmt(c.net) + ' 元';
@@ -126,7 +128,17 @@
       ? '輸入實領金額，自動回推應付總額'
       : '輸入應付給對方的金額（稅前）';
     $('wt-tip').textContent = TIPS[state.tab];
-    $('wt-nhi-row').style.display = state.tab === "salary" ? 'none' : '';
+    $('wt-nhi-row').style.display = c.nhiApplicable ? '' : 'none';
+    const exemptOpt = $('wt-nhi-exempt-opt');
+    if (exemptOpt) exemptOpt.style.display = state.tab === "rent" ? 'none' : '';
+    if (state.tab === "rent" && state.nhiExempt) {
+      state.nhiExempt = false;
+      const chargeInput = document.querySelector('#wt-nhi input[value="charge"]');
+      if (chargeInput) chargeInput.checked = true;
+      document.querySelectorAll('#wt-nhi .t-radio').forEach((label) => {
+        label.classList.toggle('active', label.querySelector('input').checked);
+      });
+    }
   }
 
   // Tab change
