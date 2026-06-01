@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget, CharWidget
@@ -116,7 +117,7 @@ class BookkeepingClientAdmin(ImportExportModelAdmin):
             '<p><strong>帳號：</strong>{} &nbsp;|&nbsp; <strong>狀態：</strong>{}</p>'
             '<a href="{}" class="button default" style="margin-right:6px;">重設密碼（→ {}）</a>'
             '<a href="{}" class="button default" style="{}">{}</a>',
-            u.username, format_html(status),
+            u.username, mark_safe(status),
             reset_url, DEFAULT_PORTAL_PASSWORD,
             toggle_url, toggle_style, toggle_label,
         )
