@@ -25,6 +25,7 @@ from .models import (
     NHIConfig,
     TaxUnit,
 )
+from .models.bookkeeping_client import DEFAULT_PORTAL_PASSWORD
 from modules.hr.models import Employee
 from core.auth.models import User
 
@@ -67,9 +68,6 @@ class BookkeepingClientResource(resources.ModelResource):
         for key in list(row.keys()):
             if isinstance(row[key], str):
                 row[key] = row[key].strip() or None
-
-
-DEFAULT_PORTAL_PASSWORD = 'Aura@2026'
 
 
 @admin.register(BookkeepingClient)

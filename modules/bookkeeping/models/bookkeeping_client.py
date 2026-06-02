@@ -5,6 +5,11 @@ from django.utils import timezone
 from core.models import BaseModel
 
 
+# Client Portal 帳號的預設初始密碼。
+# 自動建立（signal）與 admin 手動建立 / 重設密碼都使用此常數，確保一致。
+DEFAULT_PORTAL_PASSWORD = 'Aura@2026'
+
+
 class BookkeepingClient(BaseModel):
     """記帳客戶基本資料"""
 

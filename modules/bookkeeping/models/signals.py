@@ -18,7 +18,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from .convenience_bag_log import ConvenienceBagLog
-from .bookkeeping_client import BookkeepingClient
+from .bookkeeping_client import BookkeepingClient, DEFAULT_PORTAL_PASSWORD
 from .business_registration import BusinessRegistration
 from .business_tax import TaxFilingSetting
 from .income_tax import (
@@ -121,7 +121,7 @@ def sync_client_portal_user(sender, instance, created, **kwargs):
 
     - 軟刪除：停用關聯帳號
     - 無 tax_id：跳過（無法產生 username）
-    - 未綁定帳號：建立新 User（初始密碼 = tax_id）
+    - 未綁定帳號：建立新 User（初始密碼 = DEFAULT_PORTAL_PASSWORD）
     - 已綁定帳號：同步 username / first_name / email（不覆蓋密碼）
 
     失敗 raise 由外層 atomic 處理 rollback。
@@ -145,7 +145,7 @@ def sync_client_portal_user(sender, instance, created, **kwargs):
         if not user:
             user = User.objects.create_user(
                 username=username,
-                password=username,
+                password=DEFAULT_PORTAL_PASSWORD,
                 role='EXTERNAL',
                 first_name=instance.name[:30],
                 is_staff=False,
