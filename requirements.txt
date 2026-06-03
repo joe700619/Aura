@@ -142,11 +142,11 @@ yarl==1.23.0
 zopfli==0.4.0
 
 # === Production server (Aura 上線前加入) ===
-gunicorn
-whitenoise
-django-environ
-sentry-sdk
+gunicorn==26.0.0
+whitenoise==6.12.0
+django-environ==0.13.0
+sentry-sdk==2.61.1
 
 # Object storage（Cloudflare R2 / S3）
-django-storages[s3]
-boto3
+django-storages[s3]==1.14.6
+boto3==1.43.21

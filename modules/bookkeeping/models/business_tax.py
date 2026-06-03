@@ -62,16 +62,6 @@ class TaxFilingSetting(BaseModel):
         FORM_403 = '403', '403表 (兼營營業人)'
         FORM_404 = '404', '404表 (特種稅額計算)'
 
-    class NotificationMethod(models.TextChoices):
-        LINE = 'line', 'Line'
-        EMAIL = 'email', 'Email'
-        BOTH = 'both', 'Line + Email'
-
-    class PaymentMethod(models.TextChoices):
-        SELF_PAY = 'self_pay', '自行繳納'
-        OFFICE_PAY = 'office_pay', '事務所代繳'
-        AUTO_DEBIT = 'auto_debit', '自動扣款'
-
     class FilingFrequency(models.TextChoices):
         BIMONTHLY = 'bimonthly', '單月申報 (每兩個月)'
         MONTHLY = 'monthly', '按月申報 (每一個月)'
@@ -89,21 +79,11 @@ class TaxFilingSetting(BaseModel):
         default=FilingFrequency.BIMONTHLY
     )
     is_audited = models.BooleanField(
-        _('查帳申報'), 
+        _('查帳申報'),
         default=False,
         help_text=_('打勾代表此客戶後續營所稅或相關申報為查帳申報')
     )
-    notification_method = models.CharField(
-        _('通知方式'), max_length=10,
-        choices=NotificationMethod.choices,
-        blank=True, null=True
-    )
-    payment_method = models.CharField(
-        _('預設繳稅方式'), max_length=20,
-        choices=PaymentMethod.choices,
-        blank=True, null=True
-    )
-    
+
     class Meta:
         verbose_name = _('營業稅申報設定')
         verbose_name_plural = _('營業稅申報設定')

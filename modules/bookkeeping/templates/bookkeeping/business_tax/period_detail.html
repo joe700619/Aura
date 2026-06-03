@@ -276,18 +276,16 @@
                     </div>
 
                     <!-- Client info check -->
-                    {% with setting=client.tax_setting %}
-                    {% if setting.notification_method %}
+                    {% if client.notification_method %}
                     <p class="text-xs text-slate-500">
                         通知管道：
-                        <span class="font-medium text-slate-700">{{ setting.get_notification_method_display }}</span>
+                        <span class="font-medium text-slate-700">{{ client.get_notification_method_display }}</span>
                     </p>
                     {% else %}
                     <p class="text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
-                        ⚠ 尚未設定通知方式，請先在申報設定中設定。
+                        ⚠ 尚未設定通知方式，請先在客戶基本資料設定。
                     </p>
                     {% endif %}
-                    {% endwith %}
 
                     <!-- Hidden Input for Outstanding Balance -->
                     <input type="hidden" name="outstanding_balance" id="outstanding_balance_input" value="0">

@@ -36,12 +36,6 @@ class PaymentMethod(models.TextChoices):
     NO_PAYMENT = 'no_payment', '不用繳稅'
 
 
-class NotificationMethod(models.TextChoices):
-    LINE = 'line', 'Line'
-    EMAIL = 'email', 'Email'
-    BOTH = 'both', 'Line + Email'
-
-
 class FilingMethod(models.TextChoices):
     BOOK_REVIEW = 'book_review', '書審'
     STANDARD = 'standard', '所標'
@@ -65,16 +59,6 @@ class IncomeTaxSetting(BaseModel):
         _('申報方式'), max_length=20,
         choices=FilingMethod.choices,
         default=FilingMethod.BOOK_REVIEW,
-    )
-    notification_method = models.CharField(
-        _('通知方式'), max_length=10,
-        choices=NotificationMethod.choices,
-        blank=True, null=True,
-    )
-    payment_method = models.CharField(
-        _('預設繳稅方式'), max_length=20,
-        choices=PaymentMethod.choices,
-        blank=True, null=True,
     )
 
     class Meta:

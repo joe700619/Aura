@@ -134,7 +134,7 @@ class AddBusinessTaxYearView(BusinessRequiredMixin, View):
 
 
 class SaveTaxSettingsView(BusinessRequiredMixin, View):
-    """儲存申報設定卡片的設定值 (notification_method, payment_method, filing_frequency)"""
+    """儲存申報設定卡片的設定值 (filing_frequency)"""
 
     def post(self, request, pk):
         client = get_object_or_404(BookkeepingClient, pk=pk, tax_setting__isnull=False)

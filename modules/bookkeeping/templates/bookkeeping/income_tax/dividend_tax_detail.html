@@ -97,16 +97,14 @@
                 <label class="text-xs text-slate-400 block mb-0.5">Email</label>
                 <input type="text" value="{{ client.email|default:'' }}" readonly class="{{ ro }}">
             </div>
-            {% if setting %}
             <div>
                 <label class="text-xs text-slate-400 block mb-0.5">預設繳稅方式</label>
-                <input type="text" value="{{ setting.get_payment_method_display|default:'-' }}" readonly class="{{ ro }}">
+                <input type="text" value="{{ client.get_payment_method_display|default:'-' }}" readonly class="{{ ro }}">
             </div>
             <div>
                 <label class="text-xs text-slate-400 block mb-0.5">通知方式</label>
-                <input type="text" value="{{ setting.get_notification_method_display|default:'-' }}" readonly class="{{ ro }}">
+                <input type="text" value="{{ client.get_notification_method_display|default:'-' }}" readonly class="{{ ro }}">
             </div>
-            {% endif %}
             {% endwith %}
         </div>
 

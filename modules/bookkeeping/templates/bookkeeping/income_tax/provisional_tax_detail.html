@@ -101,16 +101,14 @@
                 <label class="text-xs text-slate-400 block mb-0.5">Email</label>
                 <input type="text" value="{{ client.email|default:'' }}" readonly class="{{ ro }}">
             </div>
-            {% if setting %}
             <div>
                 <label class="text-xs text-slate-400 block mb-0.5">預設繳稅方式</label>
-                <input type="text" value="{{ setting.get_payment_method_display|default:'-' }}" readonly class="{{ ro }}">
+                <input type="text" value="{{ client.get_payment_method_display|default:'-' }}" readonly class="{{ ro }}">
             </div>
             <div>
                 <label class="text-xs text-slate-400 block mb-0.5">通知方式</label>
-                <input type="text" value="{{ setting.get_notification_method_display|default:'-' }}" readonly class="{{ ro }}">
+                <input type="text" value="{{ client.get_notification_method_display|default:'-' }}" readonly class="{{ ro }}">
             </div>
-            {% endif %}
             {% endwith %}
         </div>
 
@@ -245,14 +243,14 @@
                     </span>
                 </div>
 
-                {% if setting and setting.notification_method %}
+                {% if client.notification_method %}
                 <p class="text-xs text-slate-500">
                     通知管道：
-                    <span class="font-medium text-slate-700">{{ setting.get_notification_method_display }}</span>
+                    <span class="font-medium text-slate-700">{{ client.get_notification_method_display }}</span>
                 </p>
                 {% else %}
                 <p class="text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200">
-                    ⚠ 尚未設定通知方式，請先在申報設定中設定。
+                    ⚠ 尚未設定通知方式，請先在客戶基本資料設定。
                 </p>
                 {% endif %}
 
