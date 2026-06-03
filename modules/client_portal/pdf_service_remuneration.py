@@ -21,22 +21,24 @@ from reportlab.platypus import (
 _FONT_NAME = 'CJK'
 _FONT_REGISTERED = False
 
-# 字型搜尋順序：本機開發（Windows）→ production（Linux fonts-noto-cjk）
+# 字型搜尋順序：本機開發（Windows）→ production（Linux）。
+# 注意：reportlab 無法嵌入 OpenType/CFF 字型（Noto CJK 屬此類，會 raise），
+# 因此 Linux 端改用 TrueType 的 AR PL UMing/UKai（fonts-arphic-*）繁中字型。
 _CJK_FONT_CANDIDATES = [
     'C:/Windows/Fonts/kaiu.ttf',
     'C:/Windows/Fonts/msjh.ttc',
     'C:/Windows/Fonts/mingliu.ttc',
-    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-    '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc',
-    '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/arphic/uming.ttc',
+    '/usr/share/fonts/truetype/arphic/ukai.ttc',
 ]
 
 
 def _tc_subfont_index(ttc_path: str) -> int:
     """在 .ttc 字型集合中找出繁體中文（TC）字面的 index；找不到回傳 0。
 
-    Noto CJK 的 .ttc 內含 JP/KR/SC/TC 等多個字面，index 0 通常是日文，
-    直接用會讓少數共用漢字呈現日式字形。這裡挑出 TC 字面以符合台灣用字。
+    .ttc 內常含多個地區字面（AR PL UMing 的 TW/CN/HK、Noto 的 TC/SC/JP…），
+    index 0 不一定是繁中，直接用會讓共用漢字呈現簡體或日式字形。
+    這裡挑出台灣繁體字面（AR PL 用 "TW"、Noto 用 "TC"）以符合台灣用字。
     """
     try:
         from fontTools.ttLib import TTCollection
@@ -47,7 +49,7 @@ def _tc_subfont_index(ttc_path: str) -> int:
                     name = rec.toUnicode()
                 except Exception:
                     continue
-                if "TC" in name:
+                if "TW" in name or "TC" in name or "Traditional" in name:
                     return i
     except Exception:
         pass

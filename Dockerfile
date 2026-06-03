@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxslt1-dev \
         shared-mime-info \
         fonts-noto-cjk \
+        fonts-arphic-uming \
+        fonts-arphic-ukai \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
