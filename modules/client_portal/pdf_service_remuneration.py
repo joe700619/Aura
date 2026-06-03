@@ -21,17 +21,51 @@ from reportlab.platypus import (
 _FONT_NAME = 'CJK'
 _FONT_REGISTERED = False
 
+# 字型搜尋順序：本機開發（Windows）→ production（Linux fonts-noto-cjk）
+_CJK_FONT_CANDIDATES = [
+    'C:/Windows/Fonts/kaiu.ttf',
+    'C:/Windows/Fonts/msjh.ttc',
+    'C:/Windows/Fonts/mingliu.ttc',
+    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+]
+
+
+def _tc_subfont_index(ttc_path: str) -> int:
+    """在 .ttc 字型集合中找出繁體中文（TC）字面的 index；找不到回傳 0。
+
+    Noto CJK 的 .ttc 內含 JP/KR/SC/TC 等多個字面，index 0 通常是日文，
+    直接用會讓少數共用漢字呈現日式字形。這裡挑出 TC 字面以符合台灣用字。
+    """
+    try:
+        from fontTools.ttLib import TTCollection
+        coll = TTCollection(ttc_path, lazy=True)
+        for i, font in enumerate(coll.fonts):
+            for rec in font["name"].names:
+                try:
+                    name = rec.toUnicode()
+                except Exception:
+                    continue
+                if "TC" in name:
+                    return i
+    except Exception:
+        pass
+    return 0
+
 
 def _ensure_font():
     global _FONT_REGISTERED
     if _FONT_REGISTERED:
         return _FONT_NAME
-    for path in ['C:/Windows/Fonts/kaiu.ttf',
-                 'C:/Windows/Fonts/msjh.ttc',
-                 'C:/Windows/Fonts/mingliu.ttc']:
+    for path in _CJK_FONT_CANDIDATES:
         if os.path.exists(path):
             try:
-                pdfmetrics.registerFont(TTFont(_FONT_NAME, path))
+                if path.lower().endswith('.ttc'):
+                    pdfmetrics.registerFont(
+                        TTFont(_FONT_NAME, path, subfontIndex=_tc_subfont_index(path)))
+                else:
+                    pdfmetrics.registerFont(TTFont(_FONT_NAME, path))
                 _FONT_REGISTERED = True
                 return _FONT_NAME
             except Exception:
