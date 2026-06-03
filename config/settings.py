@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     'import_export',
     'django.contrib.humanize',
     'simple_history',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -321,6 +322,13 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Aura ERP <noreply@aura-erp.com>')
+
+# Resend（HTTPS API 寄信）— Railway 封鎖對外 SMTP，故正式環境走 API。
+# 啟用方式：env 設 EMAIL_BACKEND=anymail.backends.resend.EmailBackend + RESEND_API_KEY，
+# 並確保 SystemParameter 的 EMAIL_HOST 為空（有值會讓寄信改走被封鎖的 SMTP）。
+ANYMAIL = {
+    'RESEND_API_KEY': env('RESEND_API_KEY', default=''),
+}
 
 
 # -----------------------------------------------------------------------------
