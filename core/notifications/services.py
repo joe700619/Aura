@@ -51,6 +51,7 @@ class EmailService:
         # 非同步寄送（不卡 request thread）
         # 附件 bytes 不能直接 JSON 序列化，先 base64 編碼
         import base64
+        from django.db import transaction
         from core.tasks import send_email_log_async
 
         attachments_b64 = None
@@ -63,7 +64,12 @@ class EmailService:
                 }
                 for (filename, content, mimetype) in attachments
             ]
-        send_email_log_async.delay(log.id, attachments_b64=attachments_b64)
+        # 用 on_commit 等 request 交易 commit 後才入列，否則 worker 可能搶在
+        # commit 前查 EmailLog 而找不到（ATOMIC_REQUESTS 賽跑 → log 卡 pending）
+        log_id = log.id
+        transaction.on_commit(
+            lambda: send_email_log_async.delay(log_id, attachments_b64=attachments_b64)
+        )
         return True
 
     @staticmethod
