@@ -116,7 +116,6 @@ class IncomeTaxFilingDetailView(BusinessRequiredMixin, UpdateView):
                 setattr(filing, field_name, 0)
 
         # Filing status fields
-        filing.payment_method = self.request.POST.get('payment_method', filing.payment_method)
         filing.filing_status = self.request.POST.get('filing_status', filing.filing_status)
         filing.is_filed = self.request.POST.get('is_filed') == 'on'
         filing.notes = self.request.POST.get('notes', '')

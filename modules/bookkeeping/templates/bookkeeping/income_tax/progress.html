@@ -190,11 +190,12 @@
             {% else %}<span class="text-slate-300">-</span>{% endif %}
         </td>
         <td class="px-4 py-3 text-center">
-            {% if item.payment_method == 'auto_debit' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">自動扣款</span>
-            {% elif item.payment_method == 'office_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">事務所代繳</span>
-            {% elif item.payment_method == 'self_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">自行繳納</span>
-            {% elif item.payment_method == 'no_payment' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-400">不需繳納</span>
+            {% with pm=item.year_record.client.payment_method %}
+            {% if pm == 'auto_debit' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">自動扣款</span>
+            {% elif pm == 'office_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">事務所代繳</span>
+            {% elif pm == 'self_pay' %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">自行繳納</span>
             {% else %}<span class="text-slate-300 text-xs">-</span>{% endif %}
+            {% endwith %}
         </td>
 
         {% elif active_tab == 'withholding' %}

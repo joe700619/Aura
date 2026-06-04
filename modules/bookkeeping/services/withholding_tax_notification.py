@@ -21,7 +21,7 @@ def build_withholding_tax_context(withholding, request=None):
         'year': withholding.year_record.year,
         'payable_tax': int(withholding.payable_tax or 0),
         'tax_deadline': withholding.tax_deadline.strftime('%Y/%m/%d') if withholding.tax_deadline else '（未設定）',
-        'payment_method': withholding.get_payment_method_display() if withholding.payment_method else '（未設定）',
+        'payment_method': client.get_payment_method_display() if client.payment_method else '（未設定）',
     }
 
 

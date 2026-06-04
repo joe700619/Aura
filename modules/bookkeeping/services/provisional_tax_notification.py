@@ -21,7 +21,7 @@ def build_provisional_tax_context(provisional, request=None):
         'year': provisional.year_record.year,
         'provisional_amount': int(provisional.provisional_amount or 0),
         'tax_deadline': provisional.tax_deadline.strftime('%Y/%m/%d') if provisional.tax_deadline else '（未設定）',
-        'payment_method': provisional.get_payment_method_display() or '（未設定）',
+        'payment_method': client.get_payment_method_display() if client.payment_method else '（未設定）',
     }
 
 

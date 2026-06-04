@@ -109,7 +109,6 @@ class WithholdingTaxDetailView(BusinessRequiredMixin, UpdateView):
             wt.interest_income = 0
 
         # Filing status fields
-        wt.payment_method = self.request.POST.get('payment_method', wt.payment_method)
         wt.filing_status = self.request.POST.get('filing_status', wt.filing_status)
         deadline_str = self.request.POST.get('tax_deadline', '')
         wt.tax_deadline = deadline_str if deadline_str else None

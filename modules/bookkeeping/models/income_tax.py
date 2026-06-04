@@ -29,13 +29,6 @@ class FilingStatus(models.TextChoices):
     NO_PAYMENT_NEEDED = 'no_payment_needed', '無須繳納'
 
 
-class PaymentMethod(models.TextChoices):
-    SELF_PAY = 'self_pay', '自行繳納'
-    OFFICE_PAY = 'office_pay', '事務所代繳'
-    AUTO_DEBIT = 'auto_debit', '自動扣款'
-    NO_PAYMENT = 'no_payment', '不用繳稅'
-
-
 class FilingMethod(models.TextChoices):
     BOOK_REVIEW = 'book_review', '書審'
     STANDARD = 'standard', '所標'
@@ -110,11 +103,6 @@ class IncomeTaxItemBase(BaseModel):
     tax_deadline = models.DateField(_('繳稅截止日'), null=True, blank=True)
     payable_tax = models.DecimalField(
         _('應納稅額'), max_digits=15, decimal_places=0, default=0,
-    )
-    payment_method = models.CharField(
-        _('繳稅方式'), max_length=20,
-        choices=PaymentMethod.choices,
-        blank=True, null=True,
     )
     is_filed = models.BooleanField(_('是否已申報'), default=False, db_index=True)
     filing_document = models.FileField(

@@ -23,7 +23,7 @@ class ProvisionalTaxDetailView(BusinessRequiredMixin, UpdateView):
         'last_year_tax', 'provisional_amount', 'provisional_deadline',
         'filing_document',
         'is_filed', 'filing_date',
-        'tax_deadline', 'payment_method',
+        'tax_deadline',
         'filing_status',
         'notes',
     ]
@@ -86,9 +86,8 @@ class ProvisionalTaxDetailView(BusinessRequiredMixin, UpdateView):
         if submitted_amount == 0 and last_year_tax > 0:
             provisional.provisional_amount = calculated
 
-        # Auto-set payment_method and filing_status when amount is 0
+        # Auto-set filing_status when amount is 0
         if provisional.provisional_amount == 0:
-            provisional.payment_method = 'no_payment'
             provisional.filing_status = 'no_payment_needed'
 
         provisional.save()

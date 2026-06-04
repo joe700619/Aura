@@ -99,7 +99,6 @@ class DividendTaxDetailView(BusinessRequiredMixin, UpdateView):
                 setattr(dividend, field_name, 0)
 
         # Filing status fields from IncomeTaxItemBase
-        dividend.payment_method = self.request.POST.get('payment_method', dividend.payment_method)
         dividend.filing_status = self.request.POST.get('filing_status', dividend.filing_status)
         dividend.is_filed = self.request.POST.get('is_filed') == 'on'
         dividend.notes = self.request.POST.get('notes', '')
