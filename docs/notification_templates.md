@@ -15,6 +15,17 @@
 
 > 各範本的變數來源為對應 service 的 `build_*_context()`，路徑見每節標題。
 
+## 單筆送 vs 批次送
+
+通知有兩條送出路徑，請留意：
+
+- **單筆送**（各明細頁的「發送繳稅通知」按鈕）：走該功能的 `build_*_context()`，變數最完整。
+- **批次送**（進度頁的「批次 Line／Email 通知」）：走 core 通用的 `DocumentService._build_context()`。
+
+兩條路徑的變數**已對齊**（見 [core/services/document.py](../core/services/document.py) 內 `TaxFilingPeriod` 分支），同一份範本兩邊都可用。唯一差異：
+
+- **營業稅批次送的 `final_total` 不含「前期未收餘額」**（`outstanding_balance` 以 0 計，故 `final_total` ＝本期應納稅額）。前期未收只有在單筆送頁面手動「取得未收餘額」後才會帶入。批次大量發送時若需逐筆未收，請改用單筆送。
+
 ---
 
 ## ① 營業稅繳稅通知 `vat_payment_request`

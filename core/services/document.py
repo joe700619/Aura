@@ -211,6 +211,35 @@ class DocumentService:
             except Exception:
                 context['collections'] = []
 
+        # TaxFilingPeriod: 營業稅期別繳稅通知變數
+        # 批次通知走通用 _build_context，需在此補上單筆送 build_vat_context 才有的
+        # 計算型變數（final_total / payment_method / confirm_url 等），兩條路徑才一致。
+        if obj.__class__.__name__ == 'TaxFilingPeriod':
+            try:
+                from django.urls import reverse
+                from django.conf import settings
+                from modules.system_config.helpers import get_system_param
+
+                client = obj.year_record.client
+                payable_tax = int(obj.payable_tax or 0)
+                # 批次送沒有逐筆輸入前期未收，以 0 計，合計＝本期應納
+                outstanding_balance = 0
+
+                confirm_path = reverse('bookkeeping:vat_confirm', kwargs={'token': str(obj.confirm_token)})
+                base = (get_system_param('SITE_BASE_URL', '') or getattr(settings, 'SITE_BASE_URL', '')).rstrip('/')
+
+                context['client_name'] = client.name
+                context['year'] = obj.year_record.year
+                context['period_label'] = obj.period_label
+                context['payable_tax'] = payable_tax
+                context['outstanding_balance'] = outstanding_balance
+                context['final_total'] = payable_tax + outstanding_balance
+                context['tax_deadline'] = obj.tax_deadline.strftime('%Y/%m/%d') if obj.tax_deadline else '（未設定）'
+                context['payment_method'] = obj.get_period_payment_method_display() or '（未設定）'
+                context['confirm_url'] = f"{base}{confirm_path}"
+            except Exception:
+                pass
+
         # We can also add helpers or specific related data
         # For Customer, add contacts
         if hasattr(obj, 'contacts'):
