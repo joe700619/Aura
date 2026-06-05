@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from core.models import BaseModel
@@ -56,8 +57,12 @@ class AttendanceRecord(BaseModel):
         verbose_name = _('出勤紀錄')
         verbose_name_plural = _('出勤紀錄')
         constraints = [
+            # 只在「未被軟刪除」時要求 (員工, 日期) 唯一。
+            # 否則被軟刪除的舊列仍佔用 unique 名額 → 重新打卡 create() 會撞
+            # IntegrityError（且被 webhook 的 except 吞掉，使用者端完全沒反應）。
             models.UniqueConstraint(
                 fields=['employee', 'date'],
+                condition=Q(is_deleted=False),
                 name='unique_employee_date_attendance',
             )
         ]
