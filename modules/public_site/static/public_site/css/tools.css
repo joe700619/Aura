@@ -2155,3 +2155,23 @@ select.tf-input {
   .t-two-col { grid-template-columns: 1fr; }
   .t-result-col { position: static; }
 }
+
+/* ── 手機:工具頁內部雙欄收單欄、縮小報表/預覽內距 ── */
+@media (max-width: 560px) {
+  .tools-main { padding: 28px 16px 56px; }
+
+  /* 結果 / 表單內部雙欄在窄螢幕收成單欄 */
+  .t-grid-2,
+  .t-grid-3,
+  .trp-row {
+    grid-template-columns: 1fr;
+  }
+
+  .t-section { padding: 22px 18px; }
+
+  /* A4 收據預覽:取消黏著定位、縮小內距 */
+  .a4-doc {
+    position: static;
+    padding: 28px 22px 24px;
+  }
+}

@@ -1975,3 +1975,47 @@
   font-size: 13px;
 }
 .pricing-card.featured .pc-tag-value { color: var(--accent); }
+
+/* ============================================================
+   手機:子頁 hero 收成單欄 + 縮小標題
+   （sub-hero 系列原本沒有任何 media query，雙欄 + 56-64px
+   標題在手機上會橫向爆版）
+   ============================================================ */
+@media (max-width: 768px) {
+  .sub-hero {
+    padding-top: 96px;
+    padding-bottom: 48px;
+  }
+  .sub-hero::after { display: none; }
+
+  .sub-hero-grid,
+  .sub-hero-reverse .sub-hero-grid,
+  .sub-hero-stack-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  /* 反向版面在手機統一文字在上、圖在下 */
+  .sub-hero-reverse .sub-hero-text { order: 1; }
+  .sub-hero-reverse .sub-hero-visual { order: 2; }
+
+  .sub-hero-title,
+  .sub-hero-center .sub-hero-title.center {
+    font-size: 38px;
+  }
+  .sub-hero-center .sub-hero-visual.wide {
+    margin-top: 40px;
+    margin-bottom: -48px;
+  }
+  .sub-hero-meta { gap: 24px; }
+}
+
+@media (max-width: 480px) {
+  .sub-hero-title,
+  .sub-hero-center .sub-hero-title.center {
+    font-size: 30px;
+  }
+  .sub-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

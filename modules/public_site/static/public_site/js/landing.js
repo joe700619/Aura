@@ -22,6 +22,29 @@
     if (e.key === 'Escape') close();
   });
 
+  // ── 手機漢堡選單 ─────────────────────────────────────────
+  const navToggle = document.querySelector('[data-nav-toggle]');
+  const mobileMenu = document.querySelector('[data-mobile-menu]');
+  if (navToggle && mobileMenu) {
+    const closeNav = () => {
+      navToggle.classList.remove('open');
+      mobileMenu.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    };
+    navToggle.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      navToggle.classList.toggle('open', isOpen);
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+    // 點任一連結 / 按鈕後收起面板
+    mobileMenu.querySelectorAll('a, button').forEach((el) => {
+      el.addEventListener('click', closeNav);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeNav();
+    });
+  }
+
   // ── FAQ accordion ────────────────────────────────────────
   document.querySelectorAll('[data-faq-list] .faq-item').forEach((item) => {
     const btn = item.querySelector('.faq-q');

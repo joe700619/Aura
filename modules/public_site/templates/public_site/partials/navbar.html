@@ -53,6 +53,41 @@
     <div class="nav-actions">
       <a href="{% url 'client_portal:login' %}" class="btn-login">登入</a>
       <button type="button" class="btn-cta" data-open-modal>預約諮詢</button>
+      <button type="button" class="nav-toggle" data-nav-toggle aria-label="開啟選單" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
+  </div>
+
+  {# ── 手機全螢幕下拉選單 ── #}
+  <div class="mobile-menu" data-mobile-menu>
+    <nav class="mobile-menu-inner">
+      <a class="mobile-link" href="{% url 'public_site:landing' %}#about">關於我們</a>
+
+      <div class="mobile-group">
+        <span class="mobile-group-label">提供服務</span>
+        <a class="mobile-sublink" href="{% url 'public_site:bookkeeping' %}">記帳服務</a>
+        <a class="mobile-sublink" href="{% url 'public_site:attestation' %}">簽證服務</a>
+        <a class="mobile-sublink" href="{% url 'public_site:registration' %}">商工登記</a>
+        <a class="mobile-sublink" href="{% url 'public_site:advisory' %}">經營顧問</a>
+      </div>
+
+      <a class="mobile-link" href="{% url 'public_site:family_office' %}">家族辦公室</a>
+      <a class="mobile-link" href="/blog/">部落格</a>
+
+      <div class="mobile-group">
+        <span class="mobile-group-label">實用工具</span>
+        <a class="mobile-sublink" href="{% url 'public_site:labor_insurance' %}">勞健保試算</a>
+        <a class="mobile-sublink" href="{% url 'public_site:payment_receipt' %}">勞務報酬單</a>
+        <a class="mobile-sublink" href="{% url 'public_site:startup_analysis' %}">創業分析表</a>
+        <a class="mobile-sublink" href="{% url 'public_site:withholding_tax' %}">扣繳計算機</a>
+        <a class="mobile-sublink" href="{% url 'public_site:process_flow' %}">設立流程</a>
+      </div>
+
+      <div class="mobile-actions">
+        <a href="{% url 'client_portal:login' %}" class="btn-login">登入</a>
+        <button type="button" class="btn-cta" data-open-modal>預約諮詢</button>
+      </div>
+    </nav>
   </div>
 </header>
