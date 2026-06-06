@@ -446,7 +446,12 @@ class LineWebhookView(View):
                     if reply_token:
                         self._reply(reply_token, [reply_msg])
                 except Exception as e:
-                    logger.error(f"Line clock error: {e}")
+                    logger.exception(f"Line clock error: {e}")
+                    if reply_token:
+                        self._reply(reply_token, [{
+                            'type': 'text',
+                            'text': '⚠️ 打卡失敗，系統發生錯誤，請稍後再試或聯絡管理員。',
+                        }])
 
         return HttpResponse(status=200)
 
