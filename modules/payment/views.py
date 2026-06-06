@@ -140,7 +140,12 @@ class BillPublicPaymentView(View):
     def get(self, request, merchant_trade_no):
         transaction = get_object_or_404(PaymentTransaction, merchant_trade_no=merchant_trade_no)
         service = ECPayService()
-        base_url = f"{request.scheme}://{request.get_host()}"
+        # 正式站在 Cloudflare/Railway 後面，request.scheme 會是 http；
+        # 但 ECPay 的 ReturnURL 必須是 https（http 會被 Cloudflare 301，
+        # server-to-server callback 的 POST body 會在轉址時掉失 → 收不到付款結果）。
+        # 改尊重反向代理帶的 X-Forwarded-Proto。
+        scheme = 'https' if request.headers.get('X-Forwarded-Proto') == 'https' else request.scheme
+        base_url = f"{scheme}://{request.get_host()}"
         return_url = f"{base_url}/payment/callback/"
         client_back_url = base_url
         ecpay_data = service.generate_form_data(transaction, return_url, client_back_url)
