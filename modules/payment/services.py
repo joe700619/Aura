@@ -26,81 +26,40 @@ class ECPayService:
             return default
 
     def generate_check_max_value(self, params):
-        # 1. Sort by key
-        sorted_keys = sorted(params.keys())
-        
-        # 2. Concatenate "HashKey=...&key=value...&HashIV=..."
-        raw_str = f"HashKey={self.hash_key}&"
-        for key in sorted_keys:
-            raw_str += f"{key}={params[key]}&"
-        raw_str += f"HashIV={self.hash_iv}"
-        
-        # 3. URL Encode
-        # ECPay requires specific encoding: lowercase, restricted characters replacement
-        # .NET HttpUtility.UrlEncode behavior:
-        # - Spaces become '+' (but usually handled by quote_plus or quote)
-        # - ECPay doc says: standard URL Encode, then convert to lowercase.
-        # - Specific replacements: %2d -> -, %5f -> _, %2e -> ., %21 -> !, %2a -> *, %28 -> (, %29 -> )
-        
-        # Using quote_plus to handle spaces as '+' which is standard for form data, 
-        # but ECPay might expect %20. Let's stick to quote with safe='()!*'.
-        # Actually, Python's quote encodes spaces as %20. 
-        # Let's align with the official SDK logic:
-        # https://github.com/ECPay/ECPayAIO_Python/blob/master/ecpay_payment_sdk/ecpay_payment_sdk.py
-        
-        encoded_str = urllib.parse.quote(raw_str, safe='()!*').lower()
-        
-        # Manual replacements to match .NET/ECPay quirks if standard quote differs
-        # Python quote (safe='()!*') keeps ( ) ! * unencoded.
-        # It encodes - _ . as unencoded (standard).
-        # It encodes space as %20.
-        # It encodes ~ as %7e (which is correct for ECPay as they want lower case).
-        
-        # ECPay specific replacements AFTER encoding and lowercasing:
-        # The logic is: encode everything, then replace these specific sequences back to characters?
-        # No, the docs say: If the encoded buffer contains %2d, replace with -, etc.
-        # This implies we should encode comprehensively and then revert specific chars.
-        
-        encoded_str = encoded_str.replace('%2d', '-') \
-                                 .replace('%5f', '_') \
-                                 .replace('%2e', '.') \
-                                 .replace('%21', '!') \
-                                 .replace('%2a', '*') \
-                                 .replace('%28', '(') \
-                                 .replace('%29', ')') \
-                                 .replace('%20', '+') # ECPay might want + for spaces? SDK uses quote_plus?
-                                 
-        # Let's verify against SDK.
-        # SDK uses `quote` then replacements.
-        # SDK: ret_url = quote(s, safe='()!*')
-        # SDK: ret_url = ret_url.replace('%2D', '-').replace('%5F', '_').replace('%2E', '.').replace('%21', '!').replace('%2A', '*').replace('%28', '(').replace('%29', ')')
-        # SDK: ret_url = ret_url.lower()
-        # My implementation `quote(..., safe='()!*').lower()` effectively does the replacements for ()!* because safe keeps them raw.
-        # Determining if quote encodes -_.? No, it keeps them raw.
-        # So `safe='()!*'` covers most.
-        # Space? Python quote -> %20. SDK doesn't replace %20.
-        # Lowercase %20 -> %20.
-        
-        # What about `141` error?
-        # It might be `ItemName` or `TradeDesc` encoding?
-        # They should be passed as raw to this function, and encoded here.
-        # Wait, if ItemName contains spaces/Chinese, `raw_str` will look like `ItemName=中文...`.
-        # `quote` will encode Chinese.
-        
-        # Verify hash calculation manually or trust this.
-        # The most common cause for 10200141 is actually incorrect MerchantID/HashKey/HashIV combo.
-        
-        # Reseting to strictly match SDK logic for safety:
-        # Quote with safe='()!*'
-        # Lowercase
-        # (The replacements in SDK are for when usage of quote_plus or other variants might have encoded them, but quote(safe='()!*') is usually close enough)
-        
-        # Let's ensure standard behavior.
-        
-        # 4. SHA256
-        m = hashlib.sha256()
-        m.update(encoded_str.encode('utf-8'))
-        return m.hexdigest().upper()
+        """
+        依綠界 CheckMacValue 規格產生檢查碼（EncryptType=1 → SHA256）。
+        邏輯對齊官方 ECPay Python SDK，步驟：
+          1. 排除 CheckMacValue 本身，key 依「忽略大小寫」排序
+          2. 串成 HashKey=...&k=v&...&HashIV=...
+          3. quote_plus（空白 → +）後轉小寫
+          4. 還原 .NET HttpUtility.UrlEncode 不會編碼的字元
+          5. SHA256 後轉大寫
+        """
+        # 1. 排序（忽略大小寫，且不納入 CheckMacValue）
+        items = sorted(
+            ((k, v) for k, v in params.items() if k != 'CheckMacValue'),
+            key=lambda x: x[0].lower(),
+        )
+
+        # 2. 串接
+        raw_str = f"HashKey={self.hash_key}"
+        for key, value in items:
+            raw_str += f"&{key}={value}"
+        raw_str += f"&HashIV={self.hash_iv}"
+
+        # 3. URL encode（quote_plus：空白 → '+'）後轉小寫
+        encoded_str = urllib.parse.quote_plus(raw_str).lower()
+
+        # 4. 還原 .NET HttpUtility.UrlEncode 與 Python 編碼差異的字元
+        replacements = {
+            '%2d': '-', '%5f': '_', '%2e': '.', '%21': '!',
+            '%2a': '*', '%28': '(', '%29': ')', '%20': '+',
+        }
+        for src, dst in replacements.items():
+            encoded_str = encoded_str.replace(src, dst)
+
+        # 5. SHA256 → 大寫
+        return hashlib.sha256(encoded_str.encode('utf-8')).hexdigest().upper()
 
     def generate_form_data(self, transaction, return_url, client_back_url):
         """
