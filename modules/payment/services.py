@@ -2,6 +2,7 @@ import hashlib
 import urllib.parse
 from datetime import datetime
 from django.conf import settings
+from django.utils import timezone
 from modules.system_config.models import SystemParameter
 
 class ECPayService:
@@ -65,7 +66,8 @@ class ECPayService:
         """
         Generates the form data required to post to ECPay.
         """
-        trade_date_str = transaction.trade_date.strftime('%Y/%m/%d %H:%M:%S')
+        # trade_date 存的是 UTC（USE_TZ=True），轉成台北時間再送給綠界
+        trade_date_str = timezone.localtime(transaction.trade_date).strftime('%Y/%m/%d %H:%M:%S')
         
         params = {
             'MerchantID': self.merchant_id,
