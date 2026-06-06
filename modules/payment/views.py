@@ -24,6 +24,22 @@ class ECPayCallbackView(View):
         if not merchant_trade_no:
             return HttpResponse('0|No MerchantTradeNo')
 
+        # 1.5 驗證綠界回傳的 CheckMacValue（防偽造付款通知）
+        # 沒有這道驗證，任何人都能對本網址 POST RtnCode=1 把交易標成已付款，
+        # 甚至觸發自動建立收款單/預收款並過帳。用同一組金鑰反算比對。
+        received_mac = (data.get('CheckMacValue') or '').upper()
+        try:
+            expected_mac = ECPayService().generate_check_max_value(data)
+        except Exception as e:
+            logger.error(f"ECPay callback CheckMacValue 計算失敗: {e}")
+            return HttpResponse('0|Error')
+        if received_mac != expected_mac:
+            logger.warning(
+                f"ECPay callback CheckMacValue 不符，拒絕處理 "
+                f"trade_no={merchant_trade_no} received={received_mac} expected={expected_mac}"
+            )
+            return HttpResponse('0|CheckMacValue Error')
+
         # 2. Update Transaction
         try:
             transaction = PaymentTransaction.objects.get(merchant_trade_no=merchant_trade_no)
