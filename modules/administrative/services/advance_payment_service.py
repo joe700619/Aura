@@ -14,6 +14,19 @@ FALLBACK_DEBIT_CODE = '6132'
 CREDIT_ACCOUNT_CODE = '111401'  # 國泰世華
 
 
+def get_advance_payment_account_aux_types():
+    """
+    回傳代墊款拋轉會用到的借方科目 → auxiliary_type 對照表。
+    供預覽畫面（前端）判斷某科目是否為「對象 (PARTNER)」，
+    以便和後端 generate_voucher_for_advance_payment 的「統編帶入往來對象」規則一致。
+    """
+    from modules.internal_accounting.models import Account
+
+    codes = {code for code, _name in PAYMENT_TYPE_ACCOUNT_MAP.values()}
+    codes.add(FALLBACK_DEBIT_CODE)
+    return dict(Account.objects.filter(code__in=codes).values_list('code', 'auxiliary_type'))
+
+
 def generate_voucher_for_advance_payment(advance_payment, user):
     """
     為「代墊款」產生傳票。
@@ -59,11 +72,17 @@ def generate_voucher_for_advance_payment(advance_payment, user):
             except Account.DoesNotExist:
                 raise ValueError(f"找不到借方科目 {code}（及備援科目 {FALLBACK_DEBIT_CODE}），請先建立該會計科目")
 
+        # 科目設了「多視角＝對象 (PARTNER)」才把統編帶進往來對象，與其他拋轉服務一致
+        company_id = ''
+        if debit_account.auxiliary_type == 'PARTNER':
+            company_id = detail.unified_business_no or ''
+
         VoucherDetail.objects.create(
             voucher=voucher,
             account=debit_account,
             debit=detail.amount,
             credit=0,
+            company_id=company_id,
             remark=f"{detail.reason or ''}{' (' + detail.unified_business_no + ')' if detail.unified_business_no else ''}"
         )
 

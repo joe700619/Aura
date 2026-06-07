@@ -581,6 +581,7 @@
 </div>
 
 <script id="voucher_generation_mode" type="application/json">"advance_payment"</script>
+<script id="account-aux-types" type="application/json">{{ account_aux_types|default:"{}"|safe }}</script>
 <script>
 function validateAndOpenVoucherModal() {
     window.dispatchEvent(new CustomEvent('open-voucher-modal'));
@@ -656,5 +657,20 @@ function validateAndOpenVoucherModal() {
 -->
 
 {% include "components/voucher_preview_modal.html" %}
+{% endif %}
+
+{% if open_voucher_url %}
+{# 拋轉完成後：提醒核對，並自動開啟剛產生的傳票分頁（重用按下「確定並過帳」時預開的分頁，較不會被瀏覽器擋） #}
+<div class="mb-4 rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 flex items-center gap-2">
+    <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+    <span>傳票已產生，請務必核對拋轉結果是否正確。若傳票分頁未自動開啟，</span>
+    <a href="{{ open_voucher_url }}" target="aura_voucher_tab" class="font-bold underline hover:text-amber-900">點此開啟傳票</a>
+</div>
+<script>
+    (function () {
+        var url = "{{ open_voucher_url|escapejs }}";
+        if (url) window.open(url, 'aura_voucher_tab');
+    })();
+</script>
 {% endif %}
 {% endblock %}

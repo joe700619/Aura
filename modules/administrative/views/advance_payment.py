@@ -1,5 +1,7 @@
+import json
+
 from django.shortcuts import redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -171,7 +173,18 @@ class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView)
             context['can_approve'] = self.object.can_user_approve(self.request.user)
         else:
             context['can_approve'] = False
-            
+
+        # 預覽分錄要和後端規則一致：傳借方科目的多視角設定給前端判斷是否帶統編
+        from ..services.advance_payment_service import get_advance_payment_account_aux_types
+        context['account_aux_types'] = json.dumps(get_advance_payment_account_aux_types())
+
+        # 剛拋轉完成（redirect 帶 ?posted_voucher=pk）→ 提供傳票網址供前端開新分頁核對
+        posted_voucher_pk = self.request.GET.get('posted_voucher')
+        if posted_voucher_pk:
+            context['open_voucher_url'] = reverse(
+                'internal_accounting:voucher_edit', kwargs={'pk': posted_voucher_pk}
+            )
+
         return context
 
     def form_valid(self, form):
@@ -205,13 +218,16 @@ class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView)
                     messages.info(self.request, f"已上傳 {len(images)} 張新圖片。")
             
             # Auto Posting Logic
+            posted_voucher_pk = None
             if is_newly_posted:
                 try:
                     from ..services.advance_payment_service import generate_voucher_for_advance_payment
                     with transaction.atomic():
                         voucher = generate_voucher_for_advance_payment(self.object, self.request.user)
                         if voucher:
+                            posted_voucher_pk = voucher.pk
                             messages.success(self.request, f"狀態已更新，並成功產生傳票：{voucher.voucher_no}")
+                            messages.warning(self.request, "傳票已自動產生，請務必開啟傳票核對拋轉結果是否正確。")
                         else:
                             messages.warning(self.request, "已過帳，但無金額可產生傳票分錄。")
                 except ValueError as e:
@@ -228,7 +244,10 @@ class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView)
                 else:
                     messages.success(self.request, "資料已成功更新 (未過帳)")
 
-            return redirect('administrative:advance_payment_update', pk=self.object.pk)
+            redirect_url = reverse('administrative:advance_payment_update', kwargs={'pk': self.object.pk})
+            if posted_voucher_pk:
+                redirect_url = f"{redirect_url}?posted_voucher={posted_voucher_pk}"
+            return redirect(redirect_url)
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
