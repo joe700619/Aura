@@ -7,9 +7,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         accounts = [
             ('1110', '現金', Account.Category.ASSET),
-            ('111401', '國泰世華', Account.Category.ASSET),
+            ('111401', '銀行存款_國泰世華', Account.Category.ASSET),
             ('111402', '上海商銀', Account.Category.ASSET),
-            ('111403', '綠界', Account.Category.ASSET),
+            ('111403', '銀行存款_綠界', Account.Category.ASSET),
             ('1123', '應收帳款', Account.Category.ASSET),
             ('1124', '應收票據', Account.Category.ASSET),
             ('1140', '預付款項', Account.Category.ASSET),
