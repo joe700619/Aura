@@ -114,7 +114,8 @@
         }, 0);
     },
     calculateUncollected() {
-        return this.calculateServiceFee() + this.calculateAdvancePayment() + this.calculatePreCollection();
+        // 預收款（8 開頭）是已先收的錢，要從未收款扣除，與傳票「借 1123 = 服務費 + 代墊 − 預收款」一致
+        return this.calculateServiceFee() + this.calculateAdvancePayment() - this.calculatePreCollection();
     },
     // Function to handle selection from modal (to be integrated)
     updateRow(index, data) {
