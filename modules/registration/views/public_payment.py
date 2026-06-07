@@ -57,7 +57,12 @@ class PublicPaymentView(TemplateView):
 
         # 4. Generate ECPay Params
         service = ECPayService()
-        base_url = f"{request.scheme}://{request.get_host()}"
+        # 正式站在 Cloudflare/Railway 後面，request.scheme 會是 http；
+        # 但 ECPay 的 ReturnURL 必須是 https（http 會被 Cloudflare 301，
+        # server-to-server callback 的 POST body 會在轉址時掉失 → 收不到付款結果）。
+        # 改尊重反向代理帶的 X-Forwarded-Proto。
+        scheme = 'https' if request.headers.get('X-Forwarded-Proto') == 'https' else request.scheme
+        base_url = f"{scheme}://{request.get_host()}"
         return_url = f"{base_url}/payment/callback/"
         client_back_url = f"{base_url}/registration/payment/{token}/"
 
