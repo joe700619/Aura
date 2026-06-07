@@ -1,5 +1,6 @@
+import json
 from datetime import date, datetime, timedelta
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
 from django.db import models as db_models
@@ -13,7 +14,11 @@ from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, Sea
 from ..models import BookkeepingClient, ClientBill
 from ..models.billing import ServiceFee
 from modules.administrative.models import AdvancePaymentDetail
-from modules.internal_accounting.services import ReceivableTransferService
+from modules.internal_accounting.services import (
+    ReceivableTransferService,
+    get_account_aux_types,
+    BILLING_VOUCHER_ACCOUNT_CODES,
+)
 
 # ── 批次產帳輔助常數 ──────────────────────────────────────────────
 # 各收費週期對應的發單月份
@@ -410,6 +415,16 @@ class ClientBillUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
                     .first()
                 )
             context['client_service_fee'] = active_fee
+
+        # 預覽分錄要和後端規則一致：傳科目多視角設定給前端判斷是否帶統編
+        context['account_aux_types'] = json.dumps(get_account_aux_types(BILLING_VOUCHER_ACCOUNT_CODES))
+
+        # 剛拋轉完成（redirect 帶 ?posted_voucher=pk）→ 提供傳票網址供前端開新分頁核對
+        posted_voucher_pk = self.request.GET.get('posted_voucher')
+        if posted_voucher_pk:
+            context['open_voucher_url'] = reverse(
+                'internal_accounting:voucher_edit', kwargs={'pk': posted_voucher_pk}
+            )
         return context
 
     def get_success_url(self):
@@ -428,10 +443,11 @@ class ClientBillUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
         except Exception:
             pass
 
+        posted_voucher_pk = None
         with transaction.atomic():
             self.object = form.save()
             self.object.recalculate_total()
-            
+
             try:
                 new_data = self.object.advance_payment_data or []
                 if isinstance(new_data, str):
@@ -476,7 +492,9 @@ class ClientBillUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
                     # 3. Voucher Generation
                     voucher = ReceivableTransferService.generate_voucher_for_bill(self.object, self.request.user)
                     if voucher:
+                        posted_voucher_pk = voucher.pk
                         messages.success(self.request, f"成功拋轉應收帳款並產生傳票 ({voucher.voucher_no})！")
+                        messages.warning(self.request, "傳票已自動產生，請務必開啟傳票核對拋轉結果是否正確。")
                     else:
                         messages.success(self.request, "成功拋轉應收帳款，但無收費項目可產生傳票。")
 
@@ -516,7 +534,9 @@ class ClientBillUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
 
         if 'is_posted' not in form.changed_data or not form.cleaned_data['is_posted']:
             messages.success(self.request, f'帳單 {self.object.bill_no} 更新成功！')
-            
+
+        if posted_voucher_pk:
+            return redirect(f"{self.get_success_url()}?posted_voucher={posted_voucher_pk}")
         return redirect(self.get_success_url())
 
 

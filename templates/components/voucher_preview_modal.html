@@ -7,8 +7,8 @@
     errorMessage: '',
 
     get isReadonly() {
-        // 代墊款的預覽純展示：分錄一律以後端重算為準，前端編輯不會送出，故鎖定避免誤導
-        return this.mode === 'advance_payment';
+        // 代墊款／帳單的預覽純展示：分錄一律以後端重算為準（已對齊），前端編輯不會送出，故鎖定避免誤導
+        return this.mode === 'advance_payment' || this.mode === 'billing';
     },
 
     openModal() {
@@ -178,19 +178,27 @@
                 return;
             }
 
+            /* 科目多視角設定（PARTNER 才把統編帶進對象欄），與後端 generate_voucher_for_bill 一致 */
+            let auxTypes = {};
+            const auxScript = document.getElementById('account-aux-types');
+            if (auxScript) {
+                try { auxTypes = JSON.parse(auxScript.textContent); } catch (e) {}
+            }
+            const vatFor = (code) => (auxTypes[code] === 'PARTNER' ? companyVat : '');
+
             /* Generate Entries */
             if (serviceFeeTotal > 0) {
-                this.addGeneratedEntry('credit', '400002', '記帳收入', serviceFeeTotal, '服務費用合計', companyVat);
+                this.addGeneratedEntry('credit', '400002', '記帳收入', serviceFeeTotal, '服務費用合計', vatFor('400002'));
             }
 
             /* One credit entry per advance payment account code (grouped & summed) */
             Object.entries(advanceByCode).forEach(([code, info]) => {
-                this.addGeneratedEntry('credit', code, info.name, info.total, '代墊款合計', companyVat);
+                this.addGeneratedEntry('credit', code, info.name, info.total, '代墊款合計', vatFor(code));
             });
 
             const uncollectedTotal = serviceFeeTotal + advancePaymentTotal;
             if (uncollectedTotal > 0) {
-                this.addGeneratedEntry('debit', '1123', '應收帳款', uncollectedTotal, '未收款合計', companyVat);
+                this.addGeneratedEntry('debit', '1123', '應收帳款', uncollectedTotal, '未收款合計', vatFor('1123'));
             }
             
             if (this.entries.length === 0) {
@@ -398,8 +406,8 @@
             return;
         }
 
-        // 代墊款：趁這個使用者點擊手勢先開好一個具名分頁，拋轉完成後的頁面會把它導向新傳票（重用既有分頁較不會被攔截）
-        if (this.mode === 'advance_payment') {
+        // 代墊款／帳單：趁這個使用者點擊手勢先開好一個具名分頁，拋轉完成後的頁面會把它導向新傳票（重用既有分頁較不會被攔截）
+        if (this.mode === 'advance_payment' || this.mode === 'billing') {
             window.open('about:blank', 'aura_voucher_tab');
         }
 

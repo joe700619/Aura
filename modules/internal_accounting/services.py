@@ -6,6 +6,15 @@ from modules.internal_accounting.models.voucher import Voucher
 from modules.internal_accounting.models.voucher_detail import VoucherDetail
 from modules.internal_accounting.models.account import Account
 
+# 帳單拋轉傳票會用到的科目（服務費、各代墊款科目、應收帳款），供前端預覽取多視角設定
+BILLING_VOUCHER_ACCOUNT_CODES = ['400002', '613202', '613203', '1141', '1142', '613204', '6132', '1123']
+
+
+def get_account_aux_types(codes):
+    """回傳指定科目代碼 → auxiliary_type 對照，供前端預覽判斷是否帶統編到往來對象。"""
+    return dict(Account.objects.filter(code__in=codes).values_list('code', 'auxiliary_type'))
+
+
 class ReceivableTransferService:
     @staticmethod
     @transaction.atomic
@@ -200,59 +209,88 @@ class ReceivableTransferService:
     @transaction.atomic
     def generate_voucher_for_bill(bill, user):
         """
-        Generates a Voucher and associated VoucherDetails from a ClientBill.
-        Mapping rules for billing:
-        - Total Service Fees (items not starting with 8 or 9) -> Cr 400002 記帳收入
-        - Total Advance Payments (items starting with 9) -> Cr 613202 發票及郵資
-        - Uncollected Total (Balance) -> Dr 1123 應收帳款
+        依帳單產生傳票，分錄規則與前端預覽 (generateBillingEntries) 完全一致：
+        - 服務費（報價單中非 8、非 9 開頭項目）合計 → 貸 400002 記帳收入
+        - 代墊款（帳單附的代墊明細 advance_payment_data）依代墊類型分到各科目 → 貸
+        - 未收款合計（服務費 + 代墊款）→ 借 1123 應收帳款
+        - 統編只有「科目多視角＝PARTNER」才帶入往來對象 (company_id)
         """
-        if not bill.quotation_data:
+        import json
+
+        quotation = bill.quotation_data or []
+        if isinstance(quotation, str):
+            quotation = json.loads(quotation or '[]')
+        advance_data = bill.advance_payment_data or []
+        if isinstance(advance_data, str):
+            advance_data = json.loads(advance_data or '[]')
+
+        if not quotation and not advance_data:
             raise ValueError("無帳單明細資料，無法產生傳票")
 
         company_vat = bill.client.tax_id or ''
 
-        # Required accounts
-        account_mapping = {
-            '400002': '記帳收入',
-            '613202': '發票及郵資',
-            '1123': '應收帳款',
+        # 代墊類型（顯示字串）→ 科目，與前端 advanceTypeMap 一致
+        advance_type_map = {
+            '郵資及快遞': ('613202', '郵資及快遞'),
+            '統購發票':   ('613203', '發票費用'),
+            '零買發票':   ('613203', '發票費用'),
+            '稅款':       ('1141',   '代墊稅款及保費'),
+            '補充保費':   ('1141',   '代墊稅款及保費'),
+            '政府規費':   ('1142',   '代墊政府規費'),
+            '印章':       ('613204', '印章費用'),
         }
-        
-        accounts = {code: Account.objects.filter(code=code).first() for code in account_mapping.keys()}
-        missing_accounts = [code for code, acc in accounts.items() if not acc]
-        if missing_accounts:
-            raise ValueError(f"系統缺少必要的會計科目代碼：{', '.join(missing_accounts)}，請先至會計科目管理新增。")
+        default_advance = ('6132', '代墊費用')
 
+        # 1) 服務費合計（排除 8、9 開頭，與前端一致）
         service_fee_total = 0
-        advance_payment_total = 0
-        
-        # Calculate totals
-        for item in bill.quotation_data:
+        for item in quotation:
             if not isinstance(item, dict):
                 continue
-                
             service_name = str(item.get('service_name', '')).strip()
-            amount = float(item.get('amount', 0))
-
-            if not service_name or amount <= 0:
+            amount = float(item.get('amount', 0) or 0)
+            if amount <= 0 or service_name.startswith('8') or service_name.startswith('9'):
                 continue
+            service_fee_total += amount
 
-            if service_name.startswith('9'):
-                advance_payment_total += amount
-            elif not service_name.startswith('8'):
-                service_fee_total += amount
+        # 2) 代墊款依類型分組加總（來源為 advance_payment_data，與前端一致）
+        advance_by_code = {}  # code -> {'name', 'total'}
+        advance_total = 0
+        for item in advance_data:
+            if not isinstance(item, dict):
+                continue
+            amount = float(item.get('amount', 0) or 0)
+            if amount <= 0:
+                continue
+            pay_type = str(item.get('payment_type', '')).strip()
+            code, name = advance_type_map.get(pay_type, default_advance)
+            bucket = advance_by_code.setdefault(code, {'name': name, 'total': 0})
+            bucket['total'] += amount
+            advance_total += amount
 
-        entries = []
-        
+        uncollected_total = service_fee_total + advance_total
+
+        # 收集需要的科目並一次檢查是否存在
+        needed_codes = set(advance_by_code.keys())
         if service_fee_total > 0:
-            entries.append({'type': 'credit', 'account': accounts['400002'], 'amount': service_fee_total, 'remark': '服務費用合計'})
-            
-        if advance_payment_total > 0:
-            entries.append({'type': 'credit', 'account': accounts['613202'], 'amount': advance_payment_total, 'remark': '代墊款合計'})
-            
-        uncollected_total = service_fee_total + advance_payment_total
+            needed_codes.add('400002')
         if uncollected_total > 0:
-            entries.append({'type': 'debit', 'account': accounts['1123'], 'amount': uncollected_total, 'remark': '未收款合計'})
+            needed_codes.add('1123')
+        if not needed_codes:
+            return None
+
+        accounts = {code: Account.objects.filter(code=code).first() for code in needed_codes}
+        missing_accounts = [code for code, acc in accounts.items() if not acc]
+        if missing_accounts:
+            raise ValueError(f"系統缺少必要的會計科目代碼：{', '.join(sorted(missing_accounts))}，請先至會計科目管理新增。")
+
+        # 組分錄（順序與前端一致：服務費 → 各代墊款 → 應收帳款）
+        entries = []
+        if service_fee_total > 0:
+            entries.append({'type': 'credit', 'account': accounts['400002'], 'amount': int(service_fee_total), 'remark': '服務費用合計'})
+        for code, info in advance_by_code.items():
+            entries.append({'type': 'credit', 'account': accounts[code], 'amount': int(info['total']), 'remark': '代墊款合計'})
+        if uncollected_total > 0:
+            entries.append({'type': 'debit', 'account': accounts['1123'], 'amount': int(uncollected_total), 'remark': '未收款合計'})
 
         if not entries:
             return None
@@ -273,10 +311,7 @@ class ReceivableTransferService:
         )
 
         for entry in entries:
-            company_id = ''
-            if entry['account'].auxiliary_type == 'PARTNER':
-                company_id = company_vat
-
+            company_id = company_vat if entry['account'].auxiliary_type == 'PARTNER' else ''
             VoucherDetail.objects.create(
                 voucher=voucher,
                 account=entry['account'],
@@ -285,10 +320,10 @@ class ReceivableTransferService:
                 company_id=company_id,
                 remark=entry['remark']
             )
-        
+
         bill.is_posted = True
         bill.save(update_fields=['is_posted'])
-        
+
         return voucher
 
 
