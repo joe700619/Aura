@@ -87,7 +87,25 @@ class Migration(migrations.Migration):
 ```
 
 3. 執行：`docker-compose exec web python manage.py migrate system_config`
-4. Commit migration 檔案
+4. **清快取版本**（見下方「⚠️ migrate 後必清快取」）
+5. Commit migration 檔案
+
+---
+
+## ⚠️ migrate 後必清快取（強制，否則卡 5 分鐘舊選單）
+
+navbar 選單有 per-user 5 分鐘快取（`menu_tags.py`），靠 `MenuItem.save()` 的
+post_save signal bump `sidebar_menu_version` 來失效。**但 migration 用的是
+`apps.get_model` 的 historical model，不會觸發那個 signal** → migrate 完選單
+DB 已更新，但所有人的 sidebar 仍吃舊快取，重整也看不到變化。
+
+每次用 migration 改選單後，務必手動 bump 版本：
+
+```powershell
+docker-compose exec web python manage.py shell -c "from django.core.cache import cache; v=cache.get('sidebar_menu_version') or 1; cache.set('sidebar_menu_version', v+1, None); print('bumped ->', v+1)"
+```
+
+（在 admin 拖拉式調整則不用，因為走真正的 model.save() 會自動失效。）
 
 ---
 
