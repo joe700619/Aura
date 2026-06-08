@@ -178,12 +178,12 @@
                 <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0" {% if bag_form.DELETE.value %}style="display:none"{% endif %}>
                     <td class="px-4 py-3">
                         {{ bag_form.id }}
-                        <input type="date" name="{{ bag_form.date.name }}" id="{{ bag_form.date.auto_id }}"
+                        <input type="date" name="{{ bag_form.date.html_name }}" id="{{ bag_form.date.auto_id }}"
                             value="{{ bag_form.date.value|date:'Y-m-d'|default:'' }}"
                             class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm">
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <input type="number" name="{{ bag_form.quantity.name }}" id="{{ bag_form.quantity.auto_id }}"
+                        <input type="number" name="{{ bag_form.quantity.html_name }}" id="{{ bag_form.quantity.auto_id }}"
                             value="{{ bag_form.quantity.value|default:'' }}"
                             class="w-full max-w-[120px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-teal-500 focus:border-teal-500 text-sm text-center" min="0">
                     </td>
@@ -290,24 +290,24 @@
                 <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0" {% if book_form.DELETE.value %}style="display:none"{% endif %}>
                     <td class="px-4 py-3 min-w-[140px]">
                         {{ book_form.id }}
-                        <input type="date" name="{{ book_form.date.name }}" id="{{ book_form.date.auto_id }}"
+                        <input type="date" name="{{ book_form.date.html_name }}" id="{{ book_form.date.auto_id }}"
                             value="{{ book_form.date.value|date:'Y-m-d'|default:'' }}"
                             class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm">
                     </td>
                     <td class="px-4 py-3 min-w-[100px]">
-                        <input type="text" name="{{ book_form.year.name }}" id="{{ book_form.year.auto_id }}"
+                        <input type="text" name="{{ book_form.year.html_name }}" id="{{ book_form.year.auto_id }}"
                             value="{{ book_form.year.value|default:'' }}"
                             class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
                             placeholder="如: 112">
                     </td>
                     <td class="px-4 py-3 min-w-[120px]">
-                        <input type="text" name="{{ book_form.cd_rom.name }}" id="{{ book_form.cd_rom.auto_id }}"
+                        <input type="text" name="{{ book_form.cd_rom.html_name }}" id="{{ book_form.cd_rom.auto_id }}"
                             value="{{ book_form.cd_rom.value|default:'' }}"
                             class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm placeholder-slate-400"
                             placeholder="光碟備註">
                     </td>
                     <td class="px-4 py-3 text-center min-w-[100px]">
-                        <input type="number" name="{{ book_form.sales_invoice_qty.name }}" id="{{ book_form.sales_invoice_qty.auto_id }}"
+                        <input type="number" name="{{ book_form.sales_invoice_qty.html_name }}" id="{{ book_form.sales_invoice_qty.auto_id }}"
                             value="{{ book_form.sales_invoice_qty.value|default:'0' }}"
                             class="w-full max-w-[80px] mx-auto px-3 py-1.5 border border-slate-300 rounded-md focus:ring-sky-500 focus:border-sky-500 text-sm text-center" min="0">
                     </td>
@@ -329,7 +329,7 @@
                                     </svg>
                                     <span class="max-w-[120px] truncate" x-text="fileName ? fileName : '上傳簽收單'"></span>
                                 </label>
-                                <input type="file" name="{{ book_form.receipt_form.name }}" id="{{ book_form.receipt_form.auto_id }}"
+                                <input type="file" name="{{ book_form.receipt_form.html_name }}" id="{{ book_form.receipt_form.auto_id }}"
                                     class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     @change="fileName = $event.target.files[0] ? $event.target.files[0].name.split('\\').pop() : ''">
                             </div>
