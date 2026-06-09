@@ -159,6 +159,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 _DATABASE_URL = env('DATABASE_URL', default='')
 if _DATABASE_URL:
     DATABASES = {'default': env.db_url('DATABASE_URL')}
+elif not DEBUG:
+    # 正式環境沒拿到 DATABASE_URL → 大聲報錯，而不是默默 fallback 到 localhost
+    # （後者會讓 migrate 連到不存在的 DB、healthcheck 失敗，且難以從 log 看出真因）。
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        'DEBUG=False 但未設定 DATABASE_URL。請在 Railway 把 PostgreSQL 服務的 '
+        'DATABASE_URL 以 reference variable 連到本服務。'
+    )
 else:
     DATABASES = {
         'default': {
@@ -384,5 +392,17 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': env('LOG_LEVEL', default='INFO'),
+    },
+    'loggers': {
+        # 掃描機器人狂打 /.env、/wp-admin、/.git 等路徑會被記成 WARNING(404)。
+        # 只拉 level（不設 handler、保留 propagate）：WARNING(404/400) 在產生當下
+        # 就被丟掉，ERROR(500) 照樣往上送到 root（dev→console、prod→console+file）。
+        'django.request': {
+            'level': 'ERROR',
+        },
+        # 偽造 Host header 的探測（DisallowedHost）同屬背景雜訊，靜音。
+        'django.security.DisallowedHost': {
+            'level': 'CRITICAL',
+        },
     },
 }

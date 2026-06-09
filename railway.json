@@ -4,7 +4,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'echo \"PORT=$PORT\" && python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 3 --timeout 60 --max-requests 1000 --max-requests-jitter 100'",
+    "startCommand": "sh -c 'echo \"PORT=$PORT\" && python manage.py wait_for_db --timeout 90 && python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 3 --timeout 60 --max-requests 1000 --max-requests-jitter 100'",
     "healthcheckPath": "/login/",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
