@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-noto-cjk \
         fonts-arphic-uming \
         fonts-arphic-ukai \
+        libreoffice-writer \
         curl \
     && rm -rf /var/lib/apt/lists/*
 

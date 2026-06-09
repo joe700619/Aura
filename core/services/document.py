@@ -8,7 +8,7 @@ class DocumentService:
     def render_template(template: DocumentTemplate, context_object: Model, output_format='docx') -> BytesIO:
         """
         Renders a Word document using the given template and context object.
-        If output_format is 'pdf', calculates the pdf using docx2pdf.
+        If output_format is 'pdf', converts via LibreOffice headless (soffice).
         """
         doc = DocxTemplate(template.file)
         
@@ -21,31 +21,37 @@ class DocumentService:
         
         if output_format == 'pdf':
             import os
+            import subprocess
             import tempfile
-            from docx2pdf import convert
-            
-            # Create temporary files
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_docx:
-                tmp_docx_path = tmp_docx.name
-                doc.save(tmp_docx_path)
-            
-            tmp_pdf_path = tmp_docx_path.replace('.docx', '.pdf')
-            
-            try:
-                # Convert to PDF
-                # pythoncom is needed for some windows com interactions in threads, 
-                # but docx2pdf handles some of it. 
-                # If running in a server thread, might need pythoncom.CoInitialize()
-                convert(tmp_docx_path, tmp_pdf_path)
-                
-                with open(tmp_pdf_path, 'rb') as f:
+
+            # 用 LibreOffice headless 轉 PDF（純 Linux 可跑，不需 MS Word）。
+            # 每次指定獨立的 UserInstallation profile，避免多個 gunicorn worker
+            # 同時轉檔時搶同一個 profile lock 而失敗。
+            with tempfile.TemporaryDirectory() as tmpdir:
+                docx_path = os.path.join(tmpdir, 'source.docx')
+                doc.save(docx_path)
+
+                profile_dir = os.path.join(tmpdir, 'lo_profile')
+                result = subprocess.run(
+                    [
+                        'soffice', '--headless',
+                        f'-env:UserInstallation=file://{profile_dir}',
+                        '--convert-to', 'pdf',
+                        '--outdir', tmpdir,
+                        docx_path,
+                    ],
+                    capture_output=True, timeout=120,
+                )
+
+                pdf_path = os.path.join(tmpdir, 'source.pdf')
+                if result.returncode != 0 or not os.path.exists(pdf_path):
+                    raise RuntimeError(
+                        'LibreOffice 轉 PDF 失敗：'
+                        + (result.stderr.decode(errors='ignore')[:500] or '未知錯誤')
+                    )
+
+                with open(pdf_path, 'rb') as f:
                     output.write(f.read())
-            finally:
-                # Cleanup
-                if os.path.exists(tmp_docx_path):
-                    os.remove(tmp_docx_path)
-                if os.path.exists(tmp_pdf_path):
-                    os.remove(tmp_pdf_path)
         else:
             doc.save(output)
             
