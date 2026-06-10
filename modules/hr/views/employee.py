@@ -27,7 +27,15 @@ class EmployeeCreateView(CopyMixin, HRRequiredMixin, CreateView):
     form_class = EmployeeForm
     template_name = 'employee/form.html'
     success_url = reverse_lazy('hr:employee_list')
-    copy_exclude_fields = []  # 複製時不排除任何欄位
+
+    def get_copy_exclude_fields(self):
+        # 身分證字號是 unique（複製必撞驗證），且不可在複製時揭露給無權限者
+        return super().get_copy_exclude_fields() + ['id_number']
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 
 class EmployeeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
@@ -39,6 +47,11 @@ class EmployeeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
 
     # PrevNextMixin 設定
     prev_next_order_field = 'employee_number'  # 按員工編號排序
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_nav_queryset(self):
         return self.model.objects.filter(is_active=True)

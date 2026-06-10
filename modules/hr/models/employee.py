@@ -103,6 +103,13 @@ class Employee(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('hr:employee_update', kwargs={'pk': self.pk})
+
+    @property
+    def id_number_masked(self):
+        """遮罩後的身分證字號（例：A12****789），供無完整檢視權限者顯示"""
+        if not self.id_number:
+            return ''
+        return f"{self.id_number[:3]}****{self.id_number[-3:]}"
     
     # Approval Workflow Helper Methods
     

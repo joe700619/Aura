@@ -77,16 +77,30 @@
         {% endif %}
     </div>
 
-    {# ID Number #}
-    <div>
+    {# ID Number - 敏感資料：僅人資組/Admin 可見完整欄位（編輯模式下其他人已由 form 移除此欄位） #}
+    {% if form.id_number %}
+    <div x-data="{ show: false }">
         <label for="{{ form.id_number.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
             {{ form.id_number.label }} <span class="text-red-500">*</span>
         </label>
-        {{ form.id_number }}
+        <div class="relative">
+            {{ form.id_number }}
+            <button type="button" @click="show = !show"
+                class="absolute inset-y-0 right-0 px-3 text-xs text-slate-400 hover:text-slate-600"
+                x-text="show ? '隱藏' : '顯示'"></button>
+        </div>
         {% if form.id_number.errors %}
         <p class="mt-1 text-sm text-red-600">{{ form.id_number.errors.0 }}</p>
         {% endif %}
     </div>
+    {% else %}
+    <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">身分證字號</label>
+        <input type="text" value="{{ object.id_number_masked }}" readonly
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-600 cursor-not-allowed text-sm" />
+        <p class="mt-1 text-xs text-slate-500">您沒有檢視完整身分證字號的權限</p>
+    </div>
+    {% endif %}
 
     {# Line ID #}
     <div>
