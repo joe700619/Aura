@@ -46,9 +46,20 @@ class Receivable(BaseModel):
 
     @property
     def total_amount(self):
-        """Sum of all quotation items."""
+        """應收總額 = 服務費 + 代墊（9 開頭）− 預收款（8 開頭），
+        與報價單「未收款合計」及傳票「借 1123」的算法一致。"""
+        total = 0
         try:
-            return sum(int(item.get('amount', 0)) for item in self.quotation_data)
+            for item in self.quotation_data:
+                if not isinstance(item, dict):
+                    continue
+                amount = int(item.get('amount') or 0)
+                service_name = str(item.get('service_name', '')).strip()
+                if service_name.startswith('8'):
+                    total -= abs(amount)
+                else:
+                    total += amount
+            return total
         except (TypeError, ValueError):
             return 0
 
