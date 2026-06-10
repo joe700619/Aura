@@ -379,6 +379,71 @@ class HRRequiredMixin(GroupRequiredMixin):
     allowed_app_labels = ['hr']
 
 
+class ModelPermissionMixin:
+    """
+    依 view 類型檢查 Django model 權限（admin Group 勾選的 view/add/change/delete）。
+
+    檢查規則（superuser 與 _MANAGEMENT_GROUPS 直接放行）：
+    - CreateView          → add_<model>
+    - DeleteView          → delete_<model>
+    - UpdateView GET      → view_<model> 或 change_<model>（僅有 view 時表單唯讀）
+    - UpdateView POST     → change_<model>
+    - 其他（List/Detail） → view_<model>
+
+    並提供 context 給母版控制按鈕顯示：
+    - can_add / can_change / can_delete
+    - can_save：新增模式看 add、編輯模式看 change（儲存鈕與表單唯讀化用）
+
+    母版以 `|default_if_none:True` 讀取這些變數，未掛此 mixin 的 view 不受影響。
+    需與 GroupRequiredMixin 系列並用（先過模組入口，再查 model 權限），例如：
+        class VoucherUpdateView(BusinessRequiredMixin, ModelPermissionMixin, UpdateView)
+    """
+
+    def _is_perm_exempt(self, user):
+        return user.is_superuser or user.groups.filter(name__in=_MANAGEMENT_GROUPS).exists()
+
+    def _model_perm(self, action):
+        opts = self.model._meta
+        return f'{opts.app_label}.{action}_{opts.model_name}'
+
+    def _required_perm_actions(self, request):
+        from django.views.generic import CreateView, UpdateView, DeleteView
+        if isinstance(self, CreateView):
+            return ['add']
+        if isinstance(self, DeleteView):
+            return ['delete']
+        if isinstance(self, UpdateView):
+            if request.method in ('GET', 'HEAD'):
+                # 編輯頁兼作檢視頁：只有 view 權限者可開啟核對（表單唯讀）
+                return ['view', 'change']
+            return ['change']
+        return ['view']
+
+    def dispatch(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        if not self._is_perm_exempt(user):
+            actions = self._required_perm_actions(request)
+            if not any(user.has_perm(self._model_perm(a)) for a in actions):
+                raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        exempt = self._is_perm_exempt(user)
+        can_add = exempt or user.has_perm(self._model_perm('add'))
+        can_change = exempt or user.has_perm(self._model_perm('change'))
+        context['can_add'] = can_add
+        context['can_change'] = can_change
+        context['can_delete'] = exempt or user.has_perm(self._model_perm('delete'))
+        is_update = getattr(self, 'object', None) is not None and self.object.pk
+        context['can_save'] = can_change if is_update else can_add
+        return context
+
+
 class ManagerRequiredMixin(UserPassesTestMixin):
     """
     需要管理層以上權限（CPA、management、Admin 或 superuser）。

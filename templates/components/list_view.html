@@ -135,6 +135,8 @@
             </div>
 
             <!-- Standard Create Button -->
+            {# can_add 由 ModelPermissionMixin 提供；未掛 mixin 的 view 視為 True（行為不變） #}
+            {% if can_add|default_if_none:True %}
             {% if custom_create_url %}
             <a href="{{ custom_create_url }}"
                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition duration-200 inline-flex items-center shadow-md">
@@ -155,6 +157,7 @@
                 </svg>
                 {% if create_button_label %}{{ create_button_label }}{% else %}新增資料{% endif %}
             </a>
+            {% endif %}
             {% endif %}
             {% endif %}
 

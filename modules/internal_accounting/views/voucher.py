@@ -6,11 +6,11 @@ from django.contrib import messages
 from django.utils import timezone
 
 import json
-from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
+from core.mixins import BusinessRequiredMixin, ModelPermissionMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
 from ..models import Voucher, Account, VoucherImage
 from ..forms import VoucherForm, VoucherDetailFormSet
 
-class VoucherListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
+class VoucherListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ModelPermissionMixin, ListView):
     model = Voucher
     template_name = 'voucher/list.html'
     context_object_name = 'vouchers'
@@ -32,7 +32,7 @@ class VoucherListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequire
         context['count_posted'] = context['filter_counts']['POSTED']
         return context
 
-class VoucherCreateView(BusinessRequiredMixin, CreateView):
+class VoucherCreateView(BusinessRequiredMixin, ModelPermissionMixin, CreateView):
     model = Voucher
     form_class = VoucherForm
     template_name = 'voucher/form.html'
@@ -88,7 +88,7 @@ class VoucherCreateView(BusinessRequiredMixin, CreateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class VoucherUpdateView(BusinessRequiredMixin, UpdateView):
+class VoucherUpdateView(BusinessRequiredMixin, ModelPermissionMixin, UpdateView):
     model = Voucher
     form_class = VoucherForm
     template_name = 'voucher/form.html'
@@ -169,7 +169,7 @@ class VoucherUpdateView(BusinessRequiredMixin, UpdateView):
         else:
             return self.render_to_response(self.get_context_data(form=form))
 
-class VoucherDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
+class VoucherDeleteView(SoftDeleteMixin, BusinessRequiredMixin, ModelPermissionMixin, DeleteView):
     model = Voucher
     template_name = 'voucher/confirm_delete.html'
     success_url = reverse_lazy('internal_accounting:voucher_list')

@@ -15,7 +15,8 @@
             </svg>
         </a>
         {% endif %}
-        {% if delete_url %}
+        {# can_delete 由 ModelPermissionMixin 提供；未掛 mixin 的 view 視為 True（行為不變）。編輯連結不做權限判斷：唯讀使用者也要靠它開啟檢視頁 #}
+        {% if delete_url and can_delete|default_if_none:True %}
         {% if pk %}
         <a href="{% url delete_url pk %}"
             class="text-red-400 hover:text-red-600 transition duration-200" title="刪除">
