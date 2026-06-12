@@ -51,13 +51,18 @@ def render_dynamic_sidebar(context):
     current_path = request.path
     item_map = {item.id: item for item in visible_items}
 
+    # 同一個 path 只解析一次，不在迴圈內重複 resolve
+    try:
+        current_url_name = resolve(current_path).url_name
+    except Exception:
+        current_url_name = None
+
     for item in visible_items:
         item.children_list = []
         item.is_active_path = False
         if item.url_name:
             try:
-                resolver_match = resolve(current_path)
-                if resolver_match.url_name == item.url_name:
+                if current_url_name and current_url_name == item.url_name:
                     item.is_active_path = True
                 item_url = reverse(item.url_name)
                 if item_url != '/' and current_path.startswith(item_url):
