@@ -59,6 +59,11 @@ from modules.bookkeeping.views.service_remuneration_tax_rate import (
     ServiceRemunerationTaxRateDeleteView,
     NHIConfigUpdateView,
 )
+from modules.bookkeeping.views.service_remuneration_admin import (
+    ServiceRemunerationListView,
+    ServiceRemunerationStaffUploadSlipView,
+    ServiceRemunerationMarkPaidView,
+)
 
 app_name = 'bookkeeping'
 
@@ -123,6 +128,11 @@ urlpatterns = [
     path('business-registration/<int:pk>/edit/', BusinessRegistrationUpdateView.as_view(), name='business_registration_update'),
 
     # 勞務報酬稅率設定
+    # 勞務報酬單管理（後台）
+    path('service-remunerations/', ServiceRemunerationListView.as_view(), name='service_remuneration_list'),
+    path('service-remunerations/<int:pk>/upload-slip/', ServiceRemunerationStaffUploadSlipView.as_view(), name='service_remuneration_staff_upload_slip'),
+    path('service-remunerations/<int:pk>/mark-paid/', ServiceRemunerationMarkPaidView.as_view(), name='service_remuneration_mark_paid'),
+
     path('service-remuneration-tax-rates/', ServiceRemunerationTaxRateListView.as_view(), name='service_remuneration_tax_rate_list'),
     path('service-remuneration-tax-rates/add/', ServiceRemunerationTaxRateCreateView.as_view(), name='service_remuneration_tax_rate_create'),
     path('service-remuneration-tax-rates/<int:pk>/edit/', ServiceRemunerationTaxRateUpdateView.as_view(), name='service_remuneration_tax_rate_update'),

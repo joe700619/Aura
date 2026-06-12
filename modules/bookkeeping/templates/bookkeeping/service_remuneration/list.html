@@ -1,0 +1,90 @@
+{% extends 'components/list_view.html' %}
+{% load humanize %}
+
+{% block page_title %}勞務報酬單管理{% endblock %}
+{% block header_title %}勞務報酬單管理{% endblock %}
+{% block header_description %}跨客戶檢視勞務報酬單繳納狀態，可代客戶上傳繳款憑證或人工標記已繳納。{% endblock %}
+
+{% block filters %}
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+<a href="?filter=WH_PENDING{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'WH_PENDING' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    扣繳待繳 ({{ filter_counts.WH_PENDING }})
+</a>
+<a href="?filter=PREM_PENDING{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'PREM_PENDING' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    保費待繳 ({{ filter_counts.PREM_PENDING }})
+</a>
+<a href="?filter=UNCONFIRMED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'UNCONFIRMED' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    所得人未確認 ({{ filter_counts.UNCONFIRMED }})
+</a>
+{% endblock %}
+
+{% block table_headers %}
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg">客戶</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">支付日期</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">所得人</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left">類別</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right">金額</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right">扣繳稅額</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-right">補充保費</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center">確認狀態</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center">扣繳繳納</th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg">保費繳納</th>
+{% endblock %}
+
+{% block table_rows %}
+    {% for r in records %}
+    <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 align-top">
+        {% include "components/row_checkbox.html" with value=r.pk %}
+        <td class="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{{ r.client.name }}</td>
+        <td class="px-4 py-3 text-slate-600 whitespace-nowrap tabular-nums">{{ r.filing_date|date:'Y/m/d'|default:'—' }}</td>
+        <td class="px-4 py-3 whitespace-nowrap">{{ r.recipient_name }}</td>
+        <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ r.get_income_category_display }}</td>
+        <td class="px-4 py-3 text-right tabular-nums whitespace-nowrap">${{ r.amount|intcomma }}</td>
+        <td class="px-4 py-3 text-right tabular-nums whitespace-nowrap text-rose-600">${{ r.withholding_tax|intcomma }}</td>
+        <td class="px-4 py-3 text-right tabular-nums whitespace-nowrap text-amber-600">${{ r.supplementary_premium|intcomma }}</td>
+        <td class="px-4 py-3 text-center whitespace-nowrap">
+            {% if r.confirmation_status == 'confirmed' %}
+                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">已確認</span>
+            {% else %}
+                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">待確認</span>
+            {% endif %}
+        </td>
+        <td class="px-4 py-3 text-center whitespace-nowrap">
+            {% include "bookkeeping/service_remuneration/_slip_status_cell.html" with record=r status=r.withholding_payment_status slip=r.withholding_payment_slip slip_type='withholding' %}
+        </td>
+        <td class="px-4 py-3 text-center whitespace-nowrap">
+            {% include "bookkeeping/service_remuneration/_slip_status_cell.html" with record=r status=r.premium_payment_status slip=r.supplementary_payment_slip slip_type='supplementary' %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="11" class="px-4 py-12 text-center text-slate-500 bg-white">
+            目前沒有勞務報酬單資料。
+        </td>
+    </tr>
+    {% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for r in records %}
+    {
+        "id": {{ r.pk }},
+        "category": "ALL",
+        "content": "{{ r.client.name|escapejs }} {{ r.recipient_name|escapejs }} {{ r.id_number|default:''|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% include "components/email_sidebar.html" %}
+{% include "components/line_sidebar.html" %}
+{% endblock %}

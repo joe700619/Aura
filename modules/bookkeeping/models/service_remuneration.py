@@ -136,6 +136,7 @@ class ServiceRemuneration(BaseModel):
         NOT_REQUIRED = 'not_required', _('無須繳納')
         PENDING = 'pending', _('待繳納')
         UPLOADED = 'uploaded', _('已上傳')
+        MANUAL_PAID = 'manual_paid', _('已繳納（人工確認）')
 
     # ── 關聯 ──
     client = models.ForeignKey(
@@ -292,20 +293,26 @@ class ServiceRemuneration(BaseModel):
         self.actual_payment = amount - wh_tax - supp
 
     @staticmethod
-    def _slip_status(payable, slip):
+    def _slip_status(payable, slip, current):
         if not payable:
             return ServiceRemuneration.PaymentSlipStatus.NOT_REQUIRED
         if slip:
             return ServiceRemuneration.PaymentSlipStatus.UPLOADED
+        if current == ServiceRemuneration.PaymentSlipStatus.MANUAL_PAID:
+            return current  # 同仁人工標記的已繳納要保留，不被重算洗掉
         return ServiceRemuneration.PaymentSlipStatus.PENDING
 
     def sync_payment_statuses(self):
-        """依「應繳金額是否為 0 ＋ 憑證是否已上傳」同步兩個繳納狀態。"""
+        """依「應繳金額是否為 0 ＋ 憑證是否已上傳」同步兩個繳納狀態。
+
+        人工確認的 MANUAL_PAID 會保留，除非金額變 0（→ 無須繳納）
+        或憑證已上傳（→ 已上傳）。
+        """
         self.withholding_payment_status = self._slip_status(
-            self.withholding_tax, self.withholding_payment_slip,
+            self.withholding_tax, self.withholding_payment_slip, self.withholding_payment_status,
         )
         self.premium_payment_status = self._slip_status(
-            self.supplementary_premium, self.supplementary_payment_slip,
+            self.supplementary_premium, self.supplementary_payment_slip, self.premium_payment_status,
         )
 
     def save(self, *args, **kwargs):

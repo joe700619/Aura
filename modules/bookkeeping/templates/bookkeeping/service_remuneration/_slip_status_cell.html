@@ -1,0 +1,47 @@
+{# 繳納狀態儲存格：pill + 情境式操作（代傳憑證 / 標記已繳 / 檢視 / 取消標記） #}
+{# 參數：record, status, slip, slip_type ('withholding' | 'supplementary') #}
+<div class="flex flex-col items-center gap-1.5">
+    {% if status == 'uploaded' %}
+        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">已上傳</span>
+    {% elif status == 'manual_paid' %}
+        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-teal-100 text-teal-700">已繳納(人工)</span>
+    {% elif status == 'pending' %}
+        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">待繳納</span>
+    {% else %}
+        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-500">無須繳納</span>
+    {% endif %}
+
+    {% if status != 'not_required' %}
+    <div class="flex items-center gap-1.5 text-xs">
+        {% if status == 'uploaded' %}
+            <a href="{{ slip.url }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">檢視</a>
+        {% endif %}
+        {% if can_change|default_if_none:True %}
+            <form method="post" action="{% url 'bookkeeping:service_remuneration_staff_upload_slip' record.pk %}"
+                  enctype="multipart/form-data" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="slip_type" value="{{ slip_type }}">
+                <label class="text-slate-500 hover:text-slate-800 hover:underline cursor-pointer">
+                    <input type="file" name="slip" class="hidden" onchange="this.form.submit()">
+                    {% if status == 'uploaded' %}重傳{% else %}代傳憑證{% endif %}
+                </label>
+            </form>
+            {% if status == 'pending' %}
+            <form method="post" action="{% url 'bookkeeping:service_remuneration_mark_paid' record.pk %}" class="inline"
+                  onsubmit="return confirm('確定人工標記為已繳納？（不上傳憑證）');">
+                {% csrf_token %}
+                <input type="hidden" name="slip_type" value="{{ slip_type }}">
+                <button type="submit" class="text-teal-600 hover:text-teal-800 hover:underline">標記已繳</button>
+            </form>
+            {% elif status == 'manual_paid' %}
+            <form method="post" action="{% url 'bookkeeping:service_remuneration_mark_paid' record.pk %}" class="inline"
+                  onsubmit="return confirm('確定取消人工繳納標記？狀態將回到待繳納。');">
+                {% csrf_token %}
+                <input type="hidden" name="slip_type" value="{{ slip_type }}">
+                <button type="submit" class="text-rose-600 hover:text-rose-800 hover:underline">取消標記</button>
+            </form>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

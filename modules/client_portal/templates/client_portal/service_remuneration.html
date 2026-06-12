@@ -745,6 +745,8 @@
                             <td style="white-space:nowrap; text-align:center;">
                                 {% if r.withholding_payment_status == 'uploaded' %}
                                     <span class="portal-pill portal-pill-success">已上傳</span>
+                                {% elif r.withholding_payment_status == 'manual_paid' %}
+                                    <span class="portal-pill portal-pill-success">已繳納</span>
                                 {% elif r.withholding_payment_status == 'pending' %}
                                     <span class="portal-pill portal-pill-warning">待繳納</span>
                                 {% else %}
@@ -754,6 +756,8 @@
                             <td style="white-space:nowrap; text-align:center;">
                                 {% if r.premium_payment_status == 'uploaded' %}
                                     <span class="portal-pill portal-pill-success">已上傳</span>
+                                {% elif r.premium_payment_status == 'manual_paid' %}
+                                    <span class="portal-pill portal-pill-success">已繳納</span>
                                 {% elif r.premium_payment_status == 'pending' %}
                                     <span class="portal-pill portal-pill-warning">待繳納</span>
                                 {% else %}
