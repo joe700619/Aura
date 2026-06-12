@@ -13,6 +13,10 @@ from .views.pre_collection import (
     PreCollectionListView, PreCollectionUpdateView, PreCollectionDeleteView,
     match_pre_collection_view, match_billing_pre_collection_view,
 )
+from .views.bank_transfer_report import (
+    BankTransferReportListView,
+    confirm_transfer_report_view, reject_transfer_report_view,
+)
 from .views.fixed_asset_views import create_fixed_asset_api, FixedAssetListView, FixedAssetCreateView, FixedAssetUpdateView, FixedAssetDeleteView
 from .views.fixed_asset_report import FixedAssetReportView
 from .views.report import JournalListView, GeneralLedgerListView, IncomeStatementView, BalanceSheetView, SubsidiaryLedgerView
@@ -56,6 +60,11 @@ urlpatterns = [
     path('pre-collections/<int:pk>/match/', match_pre_collection_view, name='pre_collection_match'),
     path('pre-collections/<int:pk>/match-billing/', match_billing_pre_collection_view, name='pre_collection_match_billing'),
     
+    # BankTransferReport (銀行匯款回報核對)
+    path('bank-transfer-reports/', BankTransferReportListView.as_view(), name='bank_transfer_report_list'),
+    path('bank-transfer-reports/<int:pk>/confirm/', confirm_transfer_report_view, name='bank_transfer_report_confirm'),
+    path('bank-transfer-reports/<int:pk>/reject/', reject_transfer_report_view, name='bank_transfer_report_reject'),
+
     # APIs
     path('api/receivables/search/', search_receivables, name='api_receivable_search'),
     path('api/receivables/search-json/', search_receivables_json, name='api_receivable_search_json'),

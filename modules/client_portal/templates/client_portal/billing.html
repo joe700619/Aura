@@ -108,8 +108,9 @@
                                 </svg>
                             </a>
                         </th>
-                        <th class="center">帳單</th>
-                        <th class="center">付款</th>
+                        <th class="center">下載帳單</th>
+                        <th class="center">銀行匯款</th>
+                        <th class="center">第三方支付</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -157,6 +158,20 @@
                                 </svg>
                                 下載 PDF
                             </a>
+                        </td>
+                        <!-- 直接匯款 -->
+                        <td style="padding:14px 20px;text-align:center;white-space:nowrap;">
+                            {% if bill.outstanding_balance > 0 %}
+                            <a href="{% url 'client_portal:billing_transfer' bill.pk %}"
+                               style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:12px;font-weight:500;border:1px solid var(--border-default);border-radius:var(--radius-md);background:#fff;color:var(--fg2);text-decoration:none;">
+                                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 10l2-5h14l2 5M3 10v9a1 1 0 001 1h16a1 1 0 001-1v-9M8 14h.01M12 14h.01"/>
+                                </svg>
+                                銀行匯款
+                            </a>
+                            {% else %}
+                            <span style="font-size:12px;color:var(--fg4);">—</span>
+                            {% endif %}
                         </td>
 
                         <!-- 付款 -->

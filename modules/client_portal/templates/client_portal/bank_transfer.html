@@ -1,0 +1,132 @@
+{% extends 'client_portal/portal_base.html' %}
+{% load humanize %}
+
+{% block page_title %}銀行匯款{% endblock %}
+
+{% block content %}
+<div style="display:flex; flex-direction:column; max-width:620px; margin:0 auto;"
+     x-data="{ copied: '' }">
+
+    <!-- 返回 -->
+    <a href="{% url 'client_portal:billing' %}"
+       style="display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--fg3); text-decoration:none; margin-bottom:20px;">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        返回帳單列表
+    </a>
+
+    <!-- Page header -->
+    <div style="margin-bottom:24px;">
+        <p class="portal-eyebrow">應收帳款 · 銀行匯款</p>
+        <h1 class="portal-page-title" style="margin:6px 0 0;">匯款回報</h1>
+        <p class="portal-page-subtitle" style="margin-top:8px;">
+            帳單編號
+            <strong style="color:var(--fg1); font-family:var(--font-mono, monospace);">{{ receivable.receivable_no|default:receivable.pk }}</strong>
+            · 未收餘額
+            <strong style="color:var(--fg1);">${{ receivable.outstanding_balance|intcomma }}</strong>
+        </p>
+    </div>
+
+    {% if submitted %}
+    <!-- 成功狀態 -->
+    <div class="portal-card" style="padding:40px 32px; text-align:center;">
+        <div style="width:52px; height:52px; border-radius:50%; background:var(--success-soft); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+            <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="var(--success)" stroke-width="2.25"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <p style="font-size:16px; font-weight:600; color:var(--fg1); margin:0;">已收到您的匯款回報</p>
+        <p style="font-size:13.5px; color:var(--fg3); margin-top:8px; line-height:1.7;">
+            我們會在核對銀行入帳後更新此筆帳款狀態，<br>感謝您的配合。
+        </p>
+        <a href="{% url 'client_portal:billing' %}" class="portal-btn portal-btn-secondary"
+           style="margin-top:24px; text-decoration:none;">返回帳單列表</a>
+    </div>
+    {% else %}
+
+    <!-- ① 事務所收款帳號 -->
+    <div class="portal-card" style="padding:24px; margin-bottom:20px;">
+        <div style="font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1); margin-bottom:16px;">匯款至以下帳戶</div>
+
+        {% if bank_account_no %}
+        <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <span style="font-size:13px; color:var(--fg3);">銀行</span>
+                <span style="font-size:14px; font-weight:500; color:var(--fg1); text-align:right;">{{ bank_name|default:'—' }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <span style="font-size:13px; color:var(--fg3);">戶名</span>
+                <span style="font-size:14px; font-weight:500; color:var(--fg1); text-align:right;">{{ bank_account_name|default:'—' }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <span style="font-size:13px; color:var(--fg3);">帳號</span>
+                <span style="display:inline-flex; align-items:center; gap:8px;">
+                    <span style="font-size:15px; font-weight:700; color:var(--fg1); font-family:var(--font-mono, monospace); letter-spacing:0.04em;">{{ bank_account_no }}</span>
+                    <button type="button"
+                            @click="navigator.clipboard.writeText('{{ bank_account_no }}'); copied='acct'; setTimeout(() => copied='', 1500)"
+                            style="border:1px solid var(--border-default); background:#fff; border-radius:var(--radius-sm); padding:4px 8px; font-size:11px; color:var(--fg3); cursor:pointer; white-space:nowrap;">
+                        <span x-text="copied==='acct' ? '已複製' : '複製'">複製</span>
+                    </button>
+                </span>
+            </div>
+        </div>
+        {% else %}
+        <div class="portal-toast" style="background:var(--warning-soft); border:1px solid var(--warning-border); color:var(--warning);">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 20h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 13.25A2 2 0 004.26 20z"/></svg>
+            尚未設定收款帳號，請聯絡事務所。
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ② 匯款回報表單 -->
+    <form method="post" action="{% url 'client_portal:billing_transfer' receivable.pk %}">
+        {% csrf_token %}
+        <div class="portal-card" style="padding:24px;">
+            <div style="font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1); margin-bottom:6px;">完成匯款後請填寫</div>
+            <p style="font-size:12.5px; color:var(--fg3); margin:0 0 20px; line-height:1.6;">
+                填寫匯款資訊方便會計核對入帳，加快帳款結清。
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:18px;">
+
+                <!-- 後五碼 -->
+                <div>
+                    <label style="display:block; margin-bottom:8px;">匯款帳號後 5 碼</label>
+                    <input type="text" name="last_five_digits" inputmode="numeric" maxlength="5"
+                           placeholder="例如 12345"
+                           value="{{ form_data.last_five_digits|default:'' }}"
+                           class="portal-input" autocomplete="off" required>
+                    {% if errors.last_five_digits %}<div class="portal-hint portal-hint-danger">{{ errors.last_five_digits }}</div>
+                    {% else %}<div class="portal-hint">您匯款使用的銀行帳號末 5 碼，供核對之用</div>{% endif %}
+                </div>
+
+                <!-- 匯款日期 -->
+                <div>
+                    <label style="display:block; margin-bottom:8px;">匯款日期</label>
+                    <input type="date" name="transfer_date"
+                           value="{{ form_data.transfer_date|default:'' }}"
+                           class="portal-input" required>
+                    {% if errors.transfer_date %}<div class="portal-hint portal-hint-danger">{{ errors.transfer_date }}</div>{% endif %}
+                </div>
+
+                <!-- 匯款金額 -->
+                <div>
+                    <label style="display:block; margin-bottom:8px;">匯款金額</label>
+                    <input type="number" name="amount" min="1" step="1"
+                           value="{{ form_data.amount|default:receivable.outstanding_balance }}"
+                           class="portal-input" required>
+                    {% if errors.amount %}<div class="portal-hint portal-hint-danger">{{ errors.amount }}</div>
+                    {% else %}<div class="portal-hint">預設帶入未收餘額，如有出入請自行修改</div>{% endif %}
+                </div>
+
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+                <button type="submit" class="portal-btn portal-btn-primary">
+                    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    送出匯款回報
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+</div>
+{% endblock %}

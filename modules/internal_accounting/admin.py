@@ -12,6 +12,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 from .models import Account, Voucher, VoucherDetail, Receivable, FixedAsset, Collection, ReceivableNotification
 from .models.pre_collection import PreCollection
+from .models.bank_transfer_report import BankTransferReport
 
 @admin.register(Account)
 class AccountAdmin(ImportExportModelAdmin):
@@ -406,3 +407,19 @@ class PreCollectionAdmin(admin.ModelAdmin):
 
     def delete_queryset(self, _request, queryset):
         queryset.update(is_deleted=True)
+
+
+@admin.register(BankTransferReport)
+class BankTransferReportAdmin(admin.ModelAdmin):
+    list_display = (
+        'receivable', 'last_five_digits', 'transfer_date', 'amount',
+        'status', 'collection', 'created_at',
+    )
+    list_filter = ('status', 'transfer_date')
+    search_fields = (
+        'receivable__receivable_no', 'receivable__company_name',
+        'last_five_digits',
+    )
+    readonly_fields = ('receivable', 'collection', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
+    list_per_page = 25

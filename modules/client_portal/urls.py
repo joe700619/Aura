@@ -11,6 +11,7 @@ urlpatterns = [
     path('billing/', views.BillingView.as_view(), name='billing'),
     path('billing/<int:pk>/pay/', views.GeneratePaymentLinkView.as_view(), name='billing_pay'),
     path('billing/<int:pk>/pdf/', views.DownloadBillPdfView.as_view(), name='billing_pdf'),
+    path('billing/<int:pk>/transfer/', views.BankTransferView.as_view(), name='billing_transfer'),
     path('vat/', views.DocumentCenterView.as_view(), name='vat_documents'),
     path('shareholders/', views.ShareholderManagementView.as_view(), name='shareholders'),
     path('financial-analysis/', views.FinancialAnalysisView.as_view(), name='financial_analysis'),

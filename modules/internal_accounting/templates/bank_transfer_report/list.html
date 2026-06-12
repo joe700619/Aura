@@ -1,0 +1,111 @@
+{% extends 'components/list_view.html' %}
+{% load humanize %}
+
+{% block page_title %}銀行匯款回報{% endblock %}
+{% block header_title %}銀行匯款回報{% endblock %}
+{% block header_description %}客戶端回報的銀行匯款，核對銀行對帳單後確認入帳或標記不符。{% endblock %}
+
+{% block search_placeholder %}搜尋後五碼 / 帳款編號 / 公司名稱...{% endblock %}
+
+{% block filters %}
+<a href="?filter=PENDING{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'PENDING' %}bg-amber-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   待核對 ({{ count_pending }})</a>
+<a href="?filter=CONFIRMED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'CONFIRMED' %}bg-green-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   已確認 ({{ count_confirmed }})</a>
+<a href="?filter=REJECTED{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'REJECTED' %}bg-rose-500 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   不符 ({{ count_rejected }})</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {% if current_filter == 'ALL' %}bg-blue-600 text-white{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+   全部 ({{ count_all }})</a>
+{% endblock %}
+
+{% block table_headers %}
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">回報時間</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">帳款編號</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">公司名稱</th>
+    <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">後五碼</th>
+    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">匯款日期</th>
+    <th scope="col" class="px-4 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">匯款金額</th>
+    <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">狀態</th>
+    <th scope="col" class="px-4 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">操作</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for item in reports %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    :class="selectedRows.includes({{ item.pk }}) ? 'bg-blue-50/50' : ''">
+    {% include "components/row_checkbox.html" with value=item.pk %}
+    <td class="px-4 py-4 text-slate-600 whitespace-nowrap">{{ item.created_at|date:"Y/m/d H:i" }}</td>
+    <td class="px-4 py-4 text-slate-600 font-mono text-sm">{{ item.receivable.receivable_no|default:'—' }}</td>
+    <td class="px-4 py-4">
+        <div class="font-medium text-slate-900">{{ item.receivable.company_name }}</div>
+        <div class="text-xs text-slate-400">未收餘額 ${{ item.receivable.outstanding_balance|intcomma }}</div>
+    </td>
+    <td class="px-4 py-4 text-center font-mono font-bold tracking-widest text-slate-700">{{ item.last_five_digits }}</td>
+    <td class="px-4 py-4 text-slate-600">{{ item.transfer_date|date:"Y/m/d" }}</td>
+    <td class="px-4 py-4 text-right font-mono font-bold text-slate-700">${{ item.amount|intcomma }}</td>
+    <td class="px-4 py-4 text-center">
+        {% if item.status == 'pending' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">待核對</span>
+        {% elif item.status == 'confirmed' %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">已確認</span>
+        {% if item.collection %}<div class="text-xs text-slate-400 mt-1 font-mono">{{ item.collection.collection_no }}</div>{% endif %}
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-700">不符</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-4 text-center whitespace-nowrap">
+        {% if item.status == 'pending' %}
+        <div class="inline-flex items-center gap-2">
+            <form method="post" action="{% url 'internal_accounting:bank_transfer_report_confirm' item.pk %}"
+                  onsubmit="return confirm('確認後將自動建立一筆銀行收款（{{ item.amount|intcomma }} 元），是否繼續？');">
+                {% csrf_token %}
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-bold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-sm">
+                    確認入帳
+                </button>
+            </form>
+            <form method="post" action="{% url 'internal_accounting:bank_transfer_report_reject' item.pk %}"
+                  onsubmit="return confirm('確定將此筆回報標記為「不符」？');">
+                {% csrf_token %}
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors">
+                    不符
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <span class="text-slate-300 text-sm">—</span>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="9" class="px-6 py-12 text-center text-slate-500">目前沒有匯款回報紀錄</td>
+</tr>
+{% endfor %}
+{% endblock %}
+
+{% block metadata_json %}
+[
+    {% for item in reports %}
+    {
+        "id": {{ item.pk }},
+        "category": "{{ item.status|upper|escapejs }}",
+        "content": "{{ item.last_five_digits|escapejs }} {{ item.receivable.receivable_no|escapejs }} {{ item.receivable.company_name|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+{% endblock %}
+
+{% block extra_init %}
+this.model_app_label = 'internal_accounting';
+this.model_name = 'bank_transfer_report';
+{% endblock %}
+
+{% block overlays %}
+{% include "components/export_modal.html" %}
+{% endblock %}

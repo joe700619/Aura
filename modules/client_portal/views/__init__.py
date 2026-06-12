@@ -21,7 +21,7 @@ from .service_remuneration import (
     ServiceRemunerationConfirmView,
 )
 from .settings import SettingsView
-from .billing import BillingView, GeneratePaymentLinkView, DownloadBillPdfView
+from .billing import BillingView, GeneratePaymentLinkView, DownloadBillPdfView, BankTransferView
 from .tax152 import Tax152View
 
 __all__ = [
@@ -48,5 +48,6 @@ __all__ = [
     'BillingView',
     'GeneratePaymentLinkView',
     'DownloadBillPdfView',
+    'BankTransferView',
     'Tax152View',
 ]

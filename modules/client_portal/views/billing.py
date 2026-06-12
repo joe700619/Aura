@@ -1,16 +1,18 @@
 import random
 import urllib.parse
-from datetime import date as _date
+from datetime import date as _date, datetime
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import TemplateView
 
 from modules.client_portal.mixins import ClientRequiredMixin
 from modules.internal_accounting.models.receivable import Receivable
+from modules.internal_accounting.models.bank_transfer_report import BankTransferReport
 
 _SORT_FIELDS = {
     'no':      lambda r: (r.receivable_no or ''),
@@ -117,6 +119,86 @@ class GeneratePaymentLinkView(ClientRequiredMixin, View):
         base_url = f"{request.scheme}://{request.get_host()}"
         pay_url = f"{base_url}/payment/bill/{merchant_trade_no}/"
         return JsonResponse({'url': pay_url})
+
+
+class BankTransferView(ClientRequiredMixin, View):
+    """客戶端「銀行匯款」頁：顯示事務所收款帳號，並讓客戶回報匯款後五碼 + 日期。
+
+    回報只建立待核對的 BankTransferReport，不直接入帳。
+    """
+    template_name = 'client_portal/bank_transfer.html'
+
+    def _get_receivable(self, request, pk):
+        client = request.user.bookkeeping_client_profile
+        receivable = get_object_or_404(Receivable, pk=pk, is_deleted=False)
+        if not client.tax_id or receivable.unified_business_no != client.tax_id:
+            return None
+        return receivable
+
+    def _base_context(self, receivable):
+        from modules.system_config.helpers import get_system_param
+        return {
+            'receivable': receivable,
+            'bank_name': get_system_param('FIRM_BANK_NAME', ''),
+            'bank_account_name': get_system_param('FIRM_BANK_ACCOUNT_NAME', ''),
+            'bank_account_no': get_system_param('FIRM_BANK_ACCOUNT_NO', ''),
+        }
+
+    def get(self, request, pk):
+        receivable = self._get_receivable(request, pk)
+        if receivable is None:
+            return HttpResponse('無權限存取此帳單', status=403)
+        return render(request, self.template_name, self._base_context(receivable))
+
+    def post(self, request, pk):
+        receivable = self._get_receivable(request, pk)
+        if receivable is None:
+            return HttpResponse('無權限存取此帳單', status=403)
+
+        last_five = (request.POST.get('last_five_digits') or '').strip()
+        transfer_date_raw = (request.POST.get('transfer_date') or '').strip()
+        amount_raw = (request.POST.get('amount') or '').strip()
+
+        errors = {}
+
+        if not (last_five.isdigit() and len(last_five) == 5):
+            errors['last_five_digits'] = '請輸入匯款帳號的後 5 碼數字'
+
+        transfer_date = None
+        try:
+            transfer_date = datetime.strptime(transfer_date_raw, '%Y-%m-%d').date()
+            if transfer_date > _date.today():
+                errors['transfer_date'] = '匯款日期不可晚於今天'
+        except ValueError:
+            errors['transfer_date'] = '請選擇匯款日期'
+
+        try:
+            amount = int(Decimal(amount_raw))
+        except (InvalidOperation, ValueError):
+            amount = 0
+        if amount <= 0:
+            errors['amount'] = '請輸入正確的匯款金額'
+
+        if errors:
+            context = self._base_context(receivable)
+            context['errors'] = errors
+            context['form_data'] = {
+                'last_five_digits': last_five,
+                'transfer_date': transfer_date_raw,
+                'amount': amount_raw,
+            }
+            return render(request, self.template_name, context, status=400)
+
+        BankTransferReport.objects.create(
+            receivable=receivable,
+            last_five_digits=last_five,
+            transfer_date=transfer_date,
+            amount=amount,
+        )
+
+        context = self._base_context(receivable)
+        context['submitted'] = True
+        return render(request, self.template_name, context)
 
 
 class DownloadBillPdfView(ClientRequiredMixin, View):

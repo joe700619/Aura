@@ -8,3 +8,4 @@ from .pre_collection import PreCollection
 from .period import AccountingPeriod
 from .fixed_asset import FixedAsset
 from .receivable_notification import ReceivableNotification
+from .bank_transfer_report import BankTransferReport
