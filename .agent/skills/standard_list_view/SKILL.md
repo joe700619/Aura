@@ -513,6 +513,14 @@ counts = {row['status']: row['c'] for row in all_inq}  # 1 條 SQL
 - 改用 annotate（規則 4）
 - 改用 Subquery（複雜情境）
 
+### 規則 6：限制欄位用 `.only()` 或 `.defer()`
+
+當清單頁只用 model 的少數欄位時：
+```python
+.only('id', 'name', 'tax_id', 'status')  # 只查這些欄位
+```
+能大幅減少 DB 傳輸與 ORM hydrate 成本。但**會 trigger 額外查詢若取了未列入的欄位**，要小心。
+
 ### 規則 7：model property 內含 `.filter()` 是隱形 N+1，prefetch 救不了
 
 ❌ **真實案例**（2026-06：記帳客戶列表，view 明明有 prefetch 仍每列一條 SQL）
@@ -541,14 +549,6 @@ def active_service_fee(self):
 ```
 
 檢查法：模板裡用到的每個 model property，點進去看有沒有 `.filter()` / `.first()` / `.count()`。
-
-### 規則 6：限制欄位用 `.only()` 或 `.defer()`
-
-當清單頁只用 model 的少數欄位時：
-```python
-.only('id', 'name', 'tax_id', 'status')  # 只查這些欄位
-```
-能大幅減少 DB 傳輸與 ORM hydrate 成本。但**會 trigger 額外查詢若取了未列入的欄位**，要小心。
 
 ---
 
