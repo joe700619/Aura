@@ -513,6 +513,35 @@ counts = {row['status']: row['c'] for row in all_inq}  # 1 條 SQL
 - 改用 annotate（規則 4）
 - 改用 Subquery（複雜情境）
 
+### 規則 7：model property 內含 `.filter()` 是隱形 N+1，prefetch 救不了
+
+❌ **真實案例**（2026-06：記帳客戶列表，view 明明有 prefetch 仍每列一條 SQL）
+```python
+# model
+@property
+def active_service_fee(self):
+    return self.service_fees.filter(...).first()   # .filter() 繞過 prefetch 快取！
+
+# view
+.prefetch_related('service_fees')   # 白查一條，property 根本不會用它
+```
+
+✅ **解法：property 做成 prefetch-aware**（其他呼叫處不受影響）
+```python
+# model：有預載就用預載，否則即時查
+@property
+def active_service_fee(self):
+    cached = getattr(self, '_active_fees', None)
+    if cached is not None:
+        return cached[0] if cached else None
+    return self.service_fees.filter(...).first()
+
+# 列表 view：Prefetch + to_attr（to_attr 名稱要和 property 讀的一致）
+.prefetch_related(Prefetch('service_fees', queryset=active_fee_qs, to_attr='_active_fees'))
+```
+
+檢查法：模板裡用到的每個 model property，點進去看有沒有 `.filter()` / `.first()` / `.count()`。
+
 ### 規則 6：限制欄位用 `.only()` 或 `.defer()`
 
 當清單頁只用 model 的少數欄位時：
