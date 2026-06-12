@@ -143,6 +143,30 @@
   .id-image img { width:100%; height:100%; object-fit:cover; }
 
   .paper-hint { text-align:center; font-family:var(--font-sans); font-size:11.5px; color:var(--fg3); margin-bottom:10px; }
+
+  /* ── 歷史紀錄：下載/上傳/動作欄 ── */
+  .sr-dd-btn {
+    display:inline-flex; align-items:center; gap:4px; padding:4px 10px; font-size:12px; color:var(--fg2);
+    background:#fff; border:1px solid var(--border-default); border-radius:var(--radius-md);
+    cursor:pointer; font-family:var(--font-sans); white-space:nowrap;
+  }
+  .sr-dd-btn:hover { background:var(--bg-hover); color:var(--fg1); }
+  /* position:fixed 不受表格 overflow-x:auto 剪裁，座標由開啟時計算 */
+  .sr-menu {
+    position:fixed; width:210px; background:#fff; border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:50; text-align:left; overflow:hidden;
+  }
+  .sr-menu-item {
+    display:block; width:100%; padding:9px 14px; font-size:13px; color:var(--fg1); text-decoration:none;
+    background:none; border:none; cursor:pointer; text-align:left; font-family:var(--font-sans);
+  }
+  .sr-menu-item:hover { background:var(--bg-hover); }
+  .sr-icon-btn {
+    display:inline-flex; align-items:center; justify-content:center; padding:4px 6px; color:var(--fg3);
+    background:none; border:none; cursor:pointer; border-radius:var(--radius-md);
+  }
+  .sr-icon-btn:hover { color:var(--fg1); background:var(--bg-hover); }
+  .sr-icon-btn-danger:hover { color:var(--accent); background:var(--accent-soft, #fbf1ef); }
 </style>
 
 <div class="space-y-6" x-data="{ activeTab: '{{ active_tab|default:'form' }}' }">
@@ -689,7 +713,10 @@
                             <th class="right">扣繳稅額</th>
                             <th class="right">補充保費</th>
                             <th class="center">確認狀態</th>
-                            <th class="center">繳納狀態</th>
+                            <th class="center">扣繳繳納</th>
+                            <th class="center">保費繳納</th>
+                            <th class="center">下載</th>
+                            <th class="center">上傳</th>
                             <th class="center">動作</th>
                         </tr>
                     </thead>
@@ -716,77 +743,100 @@
                                 {% endif %}
                             </td>
                             <td style="white-space:nowrap; text-align:center;">
-                                {% if r.payment_status == 'paid' %}
-                                    <span class="portal-pill portal-pill-success">已繳納</span>
-                                {% else %}
+                                {% if r.withholding_payment_status == 'uploaded' %}
+                                    <span class="portal-pill portal-pill-success">已上傳</span>
+                                {% elif r.withholding_payment_status == 'pending' %}
                                     <span class="portal-pill portal-pill-warning">待繳納</span>
+                                {% else %}
+                                    <span class="portal-pill portal-pill-default">無須繳納</span>
                                 {% endif %}
                             </td>
                             <td style="white-space:nowrap; text-align:center;">
-                                <div style="display:flex; align-items:center; justify-content:center; gap:4px;" x-data="{ openMenu: false }">
-                                    <a href="{% url 'client_portal:service_remuneration_download_slip' r.pk %}"
-                                       style="color:var(--fg2); padding:4px 8px;" title="下載扣繳繳款書">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline; vertical-align:middle;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    </a>
-                                    <button type="button" @click="openMenu = !openMenu" @click.away="openMenu = false"
-                                        style="color:var(--fg2); padding:4px 8px; background:none; border:none; cursor:pointer; position:relative;">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline; vertical-align:middle;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/></svg>
-                                        <div x-show="openMenu" x-cloak
-                                            style="position:absolute; right:0; top:100%; margin-top:4px; width:220px; background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:30; text-align:left; overflow:hidden;">
-                                            <a href="{% url 'client_portal:service_remuneration_pdf' r.pk %}" target="_blank"
-                                               style="display:block; padding:9px 14px; font-size:13px; color:var(--fg1); text-decoration:none;"
-                                               onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">下載勞務報酬單 PDF</a>
-                                            {% if r.income_category != '50' %}
-                                            <a href="{% url 'client_portal:service_remuneration_tax152_pdf' r.pk %}"
-                                               style="display:block; padding:9px 14px; font-size:13px; color:var(--fg1); text-decoration:none;"
-                                               onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">下載扣繳稅額繳款書 PDF</a>
-                                            {% endif %}
-                                            <label style="display:block; padding:9px 14px; font-size:13px; color:var(--fg2); cursor:pointer;"
-                                                onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">
-                                                <input type="file" style="display:none;"
-                                                    @change="if($event.target.files.length){
-                                                        const fd = new FormData();
-                                                        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-                                                        fd.append('slip_type', 'withholding');
-                                                        fd.append('slip', $event.target.files[0]);
-                                                        fetch('{% url 'client_portal:service_remuneration_upload_slip' r.pk %}', {method:'POST', body:fd})
-                                                            .then(()=>window.location.reload());
-                                                    }">
-                                                上傳扣繳繳款單
-                                            </label>
-                                            <label style="display:block; padding:9px 14px; font-size:13px; color:var(--fg2); cursor:pointer;"
-                                                onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">
-                                                <input type="file" style="display:none;"
-                                                    @change="if($event.target.files.length){
-                                                        const fd = new FormData();
-                                                        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-                                                        fd.append('slip_type', 'supplementary');
-                                                        fd.append('slip', $event.target.files[0]);
-                                                        fetch('{% url 'client_portal:service_remuneration_upload_slip' r.pk %}', {method:'POST', body:fd})
-                                                            .then(()=>window.location.reload());
-                                                    }">
-                                                上傳補充保費繳款單
-                                            </label>
-                                            <a href="?tab=form&source_id={{ r.pk }}"
-                                               style="display:block; padding:9px 14px; font-size:13px; color:var(--fg2); text-decoration:none;"
-                                               onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">複製一筆</a>
-                                            <a href="?tab=form&edit={{ r.pk }}"
-                                               style="display:block; padding:9px 14px; font-size:13px; color:var(--fg2); text-decoration:none;"
-                                               onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='#fff'">編輯</a>
-                                            <form method="post" action="{% url 'client_portal:service_remuneration_delete' r.pk %}"
-                                                onsubmit="return confirm('確定刪除這筆勞務報酬單？');">
-                                                {% csrf_token %}
-                                                <button type="submit" style="width:100%; text-align:left; padding:9px 14px; font-size:13px; color:var(--accent); background:none; border:none; cursor:pointer;"
-                                                    onmouseover="this.style.background='var(--accent-soft, #fbf1ef)'" onmouseout="this.style.background='none'">刪除</button>
-                                            </form>
-                                        </div>
+                                {% if r.premium_payment_status == 'uploaded' %}
+                                    <span class="portal-pill portal-pill-success">已上傳</span>
+                                {% elif r.premium_payment_status == 'pending' %}
+                                    <span class="portal-pill portal-pill-warning">待繳納</span>
+                                {% else %}
+                                    <span class="portal-pill portal-pill-default">無須繳納</span>
+                                {% endif %}
+                            </td>
+                            <td style="white-space:nowrap; text-align:center;">
+                                <div style="display:inline-block;" x-data="{ open: false, mx: 0, my: 0 }"
+                                     @click.away="open = false" @scroll.window="open = false">
+                                    <button type="button" class="sr-dd-btn"
+                                        @click="const rect = $el.getBoundingClientRect(); mx = rect.right; my = rect.bottom; open = !open">
+                                        下載
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                     </button>
+                                    <div x-show="open" x-cloak class="sr-menu" :style="`left:${mx - 210}px; top:${my + 4}px;`">
+                                        <a class="sr-menu-item" href="{% url 'client_portal:service_remuneration_pdf' r.pk %}" target="_blank">勞務報酬單 PDF</a>
+                                        {% if r.income_category != '50' %}
+                                        <a class="sr-menu-item" href="{% url 'client_portal:service_remuneration_tax152_pdf' r.pk %}">扣繳稅額繳款書 PDF</a>
+                                        {% endif %}
+                                        <a class="sr-menu-item" href="{% url 'client_portal:service_remuneration_download_slip' r.pk %}">扣繳繳款書（Word）</a>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="white-space:nowrap; text-align:center;">
+                                {% if r.withholding_payment_status == 'not_required' and r.premium_payment_status == 'not_required' %}
+                                <span style="color:var(--fg4);">—</span>
+                                {% else %}
+                                <div style="display:inline-block;" x-data="{ open: false, mx: 0, my: 0 }"
+                                     @click.away="open = false" @scroll.window="open = false">
+                                    <button type="button" class="sr-dd-btn"
+                                        @click="const rect = $el.getBoundingClientRect(); mx = rect.right; my = rect.bottom; open = !open">
+                                        上傳
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <div x-show="open" x-cloak class="sr-menu" :style="`left:${mx - 210}px; top:${my + 4}px;`">
+                                        {% if r.withholding_payment_status != 'not_required' %}
+                                        {% if r.withholding_payment_status == 'uploaded' %}
+                                        <a class="sr-menu-item" href="{{ r.withholding_payment_slip.url }}" target="_blank">檢視扣繳繳款單</a>
+                                        {% endif %}
+                                        <form method="post" action="{% url 'client_portal:service_remuneration_upload_slip' r.pk %}" enctype="multipart/form-data">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="slip_type" value="withholding">
+                                            <label class="sr-menu-item">
+                                                <input type="file" name="slip" style="display:none;" onchange="this.form.submit()">
+                                                {% if r.withholding_payment_status == 'uploaded' %}重新上傳扣繳繳款單{% else %}上傳扣繳繳款單{% endif %}
+                                            </label>
+                                        </form>
+                                        {% endif %}
+                                        {% if r.premium_payment_status != 'not_required' %}
+                                        {% if r.premium_payment_status == 'uploaded' %}
+                                        <a class="sr-menu-item" href="{{ r.supplementary_payment_slip.url }}" target="_blank">檢視補充保費繳款單</a>
+                                        {% endif %}
+                                        <form method="post" action="{% url 'client_portal:service_remuneration_upload_slip' r.pk %}" enctype="multipart/form-data">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="slip_type" value="supplementary">
+                                            <label class="sr-menu-item">
+                                                <input type="file" name="slip" style="display:none;" onchange="this.form.submit()">
+                                                {% if r.premium_payment_status == 'uploaded' %}重新上傳補充保費繳款單{% else %}上傳補充保費繳款單{% endif %}
+                                            </label>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td style="white-space:nowrap; text-align:center;">
+                                <div style="display:inline-flex; align-items:center; justify-content:center; gap:2px;">
+                                    <a href="?tab=form&source_id={{ r.pk }}" class="sr-icon-btn" title="複製一筆">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    </a>
+                                    <form method="post" action="{% url 'client_portal:service_remuneration_delete' r.pk %}"
+                                        style="display:inline;" onsubmit="return confirm('確定刪除這筆勞務報酬單？');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="sr-icon-btn sr-icon-btn-danger" title="刪除">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="10" style="padding:48px 24px; text-align:center; color:var(--fg4);">
+                            <td colspan="13" style="padding:48px 24px; text-align:center; color:var(--fg4);">
                                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
                                     <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--border-default); margin-bottom:10px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     <span style="font-size:13px;">尚未建立任何勞務報酬單。</span>
@@ -796,7 +846,7 @@
                         {% endfor %}
                         {% if history_records %}
                         <tr x-show="filteredCount() === 0" x-cloak>
-                            <td colspan="10" style="padding:36px 24px; text-align:center; color:var(--fg4); font-size:13px;">
+                            <td colspan="13" style="padding:36px 24px; text-align:center; color:var(--fg4); font-size:13px;">
                                 沒有符合條件的紀錄。
                             </td>
                         </tr>
@@ -861,6 +911,10 @@ function serviceRemunerationForm() {
                 this.taxRates = JSON.parse(document.getElementById('tax-rates-data').textContent);
                 this.nhiConfig = JSON.parse(document.getElementById('nhi-config-data').textContent);
             } catch (e) { console.error(e); }
+            if ('{{ start_at_step2 }}' === 'True') {
+                this.formType = this.data.income_category === '51' ? 'rental' : 'labor';
+                this.step = 2;
+            }
         },
 
         handleFile: function(e, side) {

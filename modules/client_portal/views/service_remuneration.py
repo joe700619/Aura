@@ -36,7 +36,8 @@ class ServiceRemunerationView(ClientRequiredMixin, TemplateView):
                 src.pk = None
                 src.confirm_token = None
                 src.confirmation_status = ServiceRemuneration.ConfirmationStatus.PENDING
-                src.payment_status = ServiceRemuneration.PaymentStatus.UNPAID
+                src.withholding_payment_status = ServiceRemuneration.PaymentSlipStatus.PENDING
+                src.premium_payment_status = ServiceRemuneration.PaymentSlipStatus.PENDING
                 src.confirmed_at = None
                 src.email_sent_at = None
                 src.skip_email_confirm = False
@@ -49,6 +50,8 @@ class ServiceRemunerationView(ClientRequiredMixin, TemplateView):
 
         context['form'] = ServiceRemunerationForm(instance=instance)
         context['editing_pk'] = instance.pk if instance and instance.pk else None
+        # 複製/編輯模式：前端直接跳到 Step 2，避免停在選類型畫面把預填類別蓋掉
+        context['start_at_step2'] = instance is not None
         context['active_tab'] = self.request.GET.get('tab', 'form')
 
         # 預覽用：稅率與 NHI 設定（JS 端即時試算）
@@ -92,6 +95,7 @@ class ServiceRemunerationSaveView(ClientRequiredMixin, View):
                 'client': client,
                 'form': form,
                 'editing_pk': edit_pk,
+                'start_at_step2': True,
                 'active_tab': 'form',
                 'history_records': ServiceRemuneration.objects.filter(
                     client=client, is_deleted=False,
@@ -141,7 +145,7 @@ class ServiceRemunerationDeleteView(ClientRequiredMixin, View):
 
 class ServiceRemunerationUploadSlipView(ClientRequiredMixin, View):
     """上傳扣繳繳款單或補充保費繳款單。
-    上傳扣繳繳款單即將 payment_status 設為已繳納。
+    繳納狀態由 model 的 sync_payment_statuses() 在存檔時自動更新為「已上傳」。
     """
 
     def post(self, request, pk, *args, **kwargs):
@@ -154,13 +158,10 @@ class ServiceRemunerationUploadSlipView(ClientRequiredMixin, View):
 
         if slip_type == 'supplementary':
             obj.supplementary_payment_slip = f
-            update_fields = ['supplementary_payment_slip']
         else:
             obj.withholding_payment_slip = f
-            obj.payment_status = ServiceRemuneration.PaymentStatus.PAID
-            update_fields = ['withholding_payment_slip', 'payment_status']
 
-        obj.save(update_fields=update_fields)
+        obj.save()
         messages.success(request, '繳款單已上傳')
         return redirect(reverse('client_portal:service_remuneration') + '?tab=history')
 

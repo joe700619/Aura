@@ -318,9 +318,9 @@ class ServiceRemunerationAdmin(admin.ModelAdmin):
     list_display = (
         'recipient_name', 'client', 'income_category', 'amount',
         'withholding_tax', 'supplementary_premium',
-        'confirmation_status', 'payment_status', 'filing_date',
+        'confirmation_status', 'withholding_payment_status', 'premium_payment_status', 'filing_date',
     )
-    list_filter = ('income_category', 'confirmation_status', 'payment_status', 'nationality')
+    list_filter = ('income_category', 'confirmation_status', 'withholding_payment_status', 'premium_payment_status', 'nationality')
     search_fields = ('recipient_name', 'id_number', 'client__name')
     readonly_fields = ('confirm_token', 'withholding_tax', 'supplementary_premium', 'actual_payment')
 

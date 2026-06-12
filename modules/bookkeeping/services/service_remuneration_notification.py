@@ -8,6 +8,7 @@ import logging
 import datetime
 from decimal import Decimal
 
+from django.db import models
 from django.utils import timezone
 
 from core.notifications.services import EmailService, LineService
@@ -21,18 +22,18 @@ LINE_TEMPLATE_CODE = 'service_remuneration_payment_reminder'
 
 def find_pending_records_for_client(client, target_month: datetime.date):
     """
-    找出該客戶在 target_month 月份支付、仍未繳納、且有需繳款項的勞報單。
-    繳款條件：扣繳稅款 > 0 OR 補充保費 > 0
+    找出該客戶在 target_month 月份支付、且扣繳或保費任一仍「待繳納」的勞報單。
+    （無須繳納 / 已上傳憑證的不列入）
     """
+    pending = ServiceRemuneration.PaymentSlipStatus.PENDING
     return ServiceRemuneration.objects.filter(
         client=client,
         is_deleted=False,
         filing_date__year=target_month.year,
         filing_date__month=target_month.month,
-        payment_status=ServiceRemuneration.PaymentStatus.UNPAID,
-    ).exclude(
-        withholding_tax=Decimal('0'),
-        supplementary_premium=Decimal('0'),
+    ).filter(
+        models.Q(withholding_payment_status=pending) |
+        models.Q(premium_payment_status=pending)
     ).order_by('filing_date', 'recipient_name')
 
 
@@ -42,20 +43,24 @@ def build_context(client, records, target_month: datetime.date):
     deadline_month = target_month.month + 1 if target_month.month < 12 else 1
     deadline = datetime.date(deadline_year, deadline_month, 10)
 
+    pending = ServiceRemuneration.PaymentSlipStatus.PENDING
     items = []
     total_wh = Decimal('0')
     total_supp = Decimal('0')
     for r in records:
+        # 只計入仍待繳納的部分（已上傳憑證或無須繳納的不催）
+        wh = r.withholding_tax or 0 if r.withholding_payment_status == pending else 0
+        supp = r.supplementary_premium or 0 if r.premium_payment_status == pending else 0
         items.append({
             'recipient_name': r.recipient_name,
             'amount': int(r.amount or 0),
-            'withholding_tax': int(r.withholding_tax or 0),
-            'supplementary_premium': int(r.supplementary_premium or 0),
+            'withholding_tax': int(wh),
+            'supplementary_premium': int(supp),
             'category': r.get_income_category_display(),
             'filing_date': r.filing_date.strftime('%Y/%m/%d') if r.filing_date else '',
         })
-        total_wh += r.withholding_tax or 0
-        total_supp += r.supplementary_premium or 0
+        total_wh += wh
+        total_supp += supp
 
     return {
         'client_name': client.name,

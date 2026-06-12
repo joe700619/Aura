@@ -83,3 +83,20 @@ def generate_bills_batch(year: int, month: int,
     msg = f'批次產帳完成：新建 {created_count} 筆，跳過 {skipped_count} 筆（已存在）'
     logger.info(msg)
     return {'created': created_count, 'skipped': skipped_count, 'message': msg}
+
+
+@shared_task(name='bookkeeping.send_remuneration_reminders')
+def send_remuneration_reminders() -> dict:
+    """
+    每月勞報繳費提醒（Celery Beat 每月 1 號觸發）。
+
+    掃描上個月支付、扣繳或保費仍待繳納的勞報單，
+    依客戶通知偏好（Email/LINE）匯總提醒。
+    走 management command 同一條路，admin 的 ScheduledJob 狀態會一併更新；
+    手動測試：docker-compose exec web python manage.py send_remuneration_reminders
+    """
+    from django.core.management import call_command
+
+    call_command('send_remuneration_reminders')
+    logger.info('勞報繳費提醒 task 執行完成')
+    return {'ok': True}

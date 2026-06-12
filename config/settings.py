@@ -219,6 +219,11 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=0, day_of_month=1),
         'kwargs': {'days': 365},
     },
+    # 每月 1 號早上 9 點寄送上月勞報繳費提醒（截止日為當月 10 號）
+    'send-remuneration-reminders-monthly': {
+        'task': 'bookkeeping.send_remuneration_reminders',
+        'schedule': crontab(hour=9, minute=0, day_of_month=1),
+    },
 }
 
 

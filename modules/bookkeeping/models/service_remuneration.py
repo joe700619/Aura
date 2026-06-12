@@ -132,9 +132,10 @@ class ServiceRemuneration(BaseModel):
         PENDING = 'pending', _('待確認')
         CONFIRMED = 'confirmed', _('已確認')
 
-    class PaymentStatus(models.TextChoices):
-        UNPAID = 'unpaid', _('待繳納')
-        PAID = 'paid', _('已繳納')
+    class PaymentSlipStatus(models.TextChoices):
+        NOT_REQUIRED = 'not_required', _('無須繳納')
+        PENDING = 'pending', _('待繳納')
+        UPLOADED = 'uploaded', _('已上傳')
 
     # ── 關聯 ──
     client = models.ForeignKey(
@@ -216,10 +217,17 @@ class ServiceRemuneration(BaseModel):
     skip_email_confirm = models.BooleanField(_('跳過Email確認'), default=False)
     email_sent_at = models.DateTimeField(_('Email寄送時間'), null=True, blank=True)
 
-    payment_status = models.CharField(
-        _('繳納狀態'), max_length=20,
-        choices=PaymentStatus.choices,
-        default=PaymentStatus.UNPAID,
+    withholding_payment_status = models.CharField(
+        _('扣繳繳納狀態'), max_length=20,
+        choices=PaymentSlipStatus.choices,
+        default=PaymentSlipStatus.PENDING,
+        db_index=True,
+    )
+    premium_payment_status = models.CharField(
+        _('保費繳納狀態'), max_length=20,
+        choices=PaymentSlipStatus.choices,
+        default=PaymentSlipStatus.PENDING,
+        db_index=True,
     )
 
     # ── 繳款憑證 ──
@@ -283,6 +291,24 @@ class ServiceRemuneration(BaseModel):
         self.supplementary_premium = supp
         self.actual_payment = amount - wh_tax - supp
 
+    @staticmethod
+    def _slip_status(payable, slip):
+        if not payable:
+            return ServiceRemuneration.PaymentSlipStatus.NOT_REQUIRED
+        if slip:
+            return ServiceRemuneration.PaymentSlipStatus.UPLOADED
+        return ServiceRemuneration.PaymentSlipStatus.PENDING
+
+    def sync_payment_statuses(self):
+        """依「應繳金額是否為 0 ＋ 憑證是否已上傳」同步兩個繳納狀態。"""
+        self.withholding_payment_status = self._slip_status(
+            self.withholding_tax, self.withholding_payment_slip,
+        )
+        self.premium_payment_status = self._slip_status(
+            self.supplementary_premium, self.supplementary_payment_slip,
+        )
+
     def save(self, *args, **kwargs):
         self.calculate()
+        self.sync_payment_statuses()
         super().save(*args, **kwargs)
