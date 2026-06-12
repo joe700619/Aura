@@ -18,13 +18,14 @@ class DashboardView(ClientRequiredMixin, TemplateView):
         context['client'] = client
 
         today = datetime.date.today()
-        context['pending_vat_periods'] = TaxFilingPeriod.objects.filter(
+        # 轉 list：template 會同時迭代與取件數，避免 queryset 重複查詢
+        context['pending_vat_periods'] = list(TaxFilingPeriod.objects.filter(
             year_record__client=client,
             filing_status__in=['waiting', 'not_notified'],
             tax_deadline__isnull=False,
             tax_deadline__gte=today - datetime.timedelta(days=15),
             tax_deadline__lte=today + datetime.timedelta(days=30),
-        ).order_by('tax_deadline')
+        ).select_related('year_record').order_by('tax_deadline'))
 
         available_years = list(
             TaxFilingPeriod.objects.filter(year_record__client=client)
@@ -50,16 +51,16 @@ class DashboardView(ClientRequiredMixin, TemplateView):
         context['total_sales_this_year'] = sum(p.sales_amount for p in periods_this_year)
         context['total_payable_this_year'] = sum(p.payable_tax for p in periods_this_year)
 
-        unpaid_bills = ClientBill.objects.filter(
+        unpaid_bills = list(ClientBill.objects.filter(
             client=client, status__in=['issued', 'overdue']
-        )
-        context['unpaid_bills_count'] = unpaid_bills.count()
+        ))
+        context['unpaid_bills_count'] = len(unpaid_bills)
         context['unpaid_bills_amount'] = sum(b.total_amount for b in unpaid_bills)
 
-        context['active_bookkeeping_periods'] = BookkeepingPeriod.objects.filter(
+        context['active_bookkeeping_periods'] = list(BookkeepingPeriod.objects.filter(
             year_record__client=client,
             account_status='in_progress'
-        ).select_related('year_record').order_by('-year_record__year', '-period_start_month')
+        ).select_related('year_record').order_by('-year_record__year', '-period_start_month'))
 
         all_tax_periods = list(reversed(list(
             TaxFilingPeriod.objects.filter(year_record__client=client)
@@ -109,9 +110,15 @@ class DashboardView(ClientRequiredMixin, TemplateView):
             context['portal_other_open_cases'] = list(
                 other_cases.order_by('-last_activity_at')[:5]
             )
-            context['portal_open_cases_count'] = user_cases.count()
-            context['portal_pending_cases_count'] = user_cases.filter(status=Case.Status.WAITING_CLIENT).count()
-            context['portal_other_open_cases_count'] = other_cases.count()
+            # 三個件數用一條 aggregate 拿齊，不分三次 count()
+            from django.db.models import Count, Q
+            counts = user_cases.aggregate(
+                total=Count('id'),
+                pending=Count('id', filter=Q(status=Case.Status.WAITING_CLIENT)),
+            )
+            context['portal_open_cases_count'] = counts['total']
+            context['portal_pending_cases_count'] = counts['pending']
+            context['portal_other_open_cases_count'] = counts['total'] - counts['pending']
         except Exception:
             context['portal_pending_cases'] = []
             context['portal_other_open_cases'] = []

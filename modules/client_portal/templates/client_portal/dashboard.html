@@ -63,7 +63,7 @@
                 </div>
                 <p class="portal-eyebrow">待處理事項</p>
             </div>
-            {% with vat_count=pending_vat_periods.count|default:0 case_count=portal_pending_cases_count|default:0 %}
+            {% with vat_count=pending_vat_periods|length case_count=portal_pending_cases_count|default:0 %}
             <p style="font-family:var(--font-serif);font-size:26px;font-weight:700;color:var(--fg1);line-height:1.2;">
                 {{ vat_count|add:case_count }}
             </p>
@@ -146,7 +146,7 @@
                         <p class="portal-section-title">待辦事項與通知</p>
                     </div>
                 </div>
-                {% with vat_count=pending_vat_periods.count|default:0 case_count=portal_pending_cases_count|default:0 total_count=0 %}
+                {% with vat_count=pending_vat_periods|length case_count=portal_pending_cases_count|default:0 total_count=0 %}
                 {% if vat_count or case_count %}
                 <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);">{{ vat_count|add:case_count }} 件</span>
                 {% endif %}
@@ -339,7 +339,7 @@
                     </div>
                 </div>
                 {% if active_bookkeeping_periods %}
-                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--success-soft);color:var(--success);">{{ active_bookkeeping_periods.count }} 件</span>
+                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--success-soft);color:var(--success);">{{ active_bookkeeping_periods|length }} 件</span>
                 {% endif %}
             </div>
             <div style="padding:16px;">
