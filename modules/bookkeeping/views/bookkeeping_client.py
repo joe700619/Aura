@@ -52,9 +52,9 @@ class BookkeepingClientListView(FilterMixin, EmployeeDataIsolationMixin, ListAct
     }
 
     def get_base_queryset(self):
-        from django.db.models import OuterRef, Subquery
+        from django.db.models import OuterRef, Prefetch, Subquery
         from django.utils import timezone
-        
+
         today = timezone.now().date()
         active_sf_cycle = ServiceFee.objects.filter(
             client=OuterRef('pk'),
@@ -62,10 +62,20 @@ class BookkeepingClientListView(FilterMixin, EmployeeDataIsolationMixin, ListAct
         ).filter(
             models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
         ).order_by('-effective_date').values('billing_cycle')[:1]
-        
+
+        # 預載「目前生效」的服務費到 _active_fees，
+        # 供 active_service_fee property 直接取用（避免每列一條 SQL）
+        active_fee_qs = ServiceFee.objects.filter(
+            effective_date__lte=today,
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)
+        ).order_by('-effective_date')
+
         return super().get_base_queryset().select_related(
             'group_assistant', 'bookkeeping_assistant'
-        ).prefetch_related('service_fees').annotate(
+        ).prefetch_related(
+            Prefetch('service_fees', queryset=active_fee_qs, to_attr='_active_fees')
+        ).annotate(
             annotated_billing_cycle=Subquery(active_sf_cycle)
         )
 

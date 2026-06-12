@@ -214,7 +214,14 @@ class BookkeepingClient(BaseModel):
 
     @property
     def active_service_fee(self):
-        """返回目前生效中的服務費用記錄"""
+        """返回目前生效中的服務費用記錄。
+
+        列表頁以 Prefetch(to_attr='_active_fees') 預載時直接取用（零查詢），
+        其他情境維持即時查詢。
+        """
+        cached = getattr(self, '_active_fees', None)
+        if cached is not None:
+            return cached[0] if cached else None
         today = timezone.now().date()
         return self.service_fees.filter(
             effective_date__lte=today,
