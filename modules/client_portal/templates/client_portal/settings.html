@@ -199,6 +199,8 @@
                                                 name="group_invoice_qty_{{ inv.pk }}"
                                                 value="{{ inv.quantity }}"
                                                 min="0"
+                                                :disabled="!checked"
+                                                :style="!checked ? 'opacity:0.5; cursor:not-allowed;' : ''"
                                                 style="width:80px; padding:6px 8px; border:1px solid var(--border-default); border-radius:var(--radius-sm); text-align:center; font-size:13px; font-family:var(--font-sans); outline:none; color:var(--fg1);"
                                                 onfocus="this.style.borderColor='var(--ink-700)'; this.style.boxShadow='0 0 0 3px var(--primary-ring)';"
                                                 onblur="this.style.borderColor='var(--border-default)'; this.style.boxShadow='none';">

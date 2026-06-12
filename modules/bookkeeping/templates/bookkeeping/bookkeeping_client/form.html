@@ -430,10 +430,11 @@
         請先至左側「基本資料」區塊勾選「是否統購發票」以啟用此頁籤。
     </div>
 
-    <!-- Management form must be outside disabled fieldset -->
     {{ invoice_formset.management_form }}
 
-    <fieldset :disabled="!enabled" :class="!enabled ? 'opacity-60 cursor-not-allowed' : ''" class="transition-opacity">
+    <!-- 用 inert 鎖互動而非 disabled：disabled 會讓欄位（含隱藏 id/DELETE）不被提交，
+         造成取消勾選後 formset 驗證失敗而無法存檔 -->
+    <fieldset :inert="!enabled" :class="!enabled ? 'opacity-60 pointer-events-none' : ''" class="transition-opacity">
         <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
             <div class="w-1 h-4 bg-orange-500 rounded-full"></div>
             <h4 class="font-bold text-slate-800 text-sm">統購發票明細</h4>
@@ -526,7 +527,7 @@
         請先至左側「基本資料」區塊勾選「是否統購發票」以啟用此頁籤。
     </div>
 
-    <fieldset :disabled="!enabled" :class="!enabled ? 'opacity-60 cursor-not-allowed' : ''" class="transition-opacity">
+    <fieldset :inert="!enabled" :class="!enabled ? 'opacity-60 pointer-events-none' : ''" class="transition-opacity">
         <div class="space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
                 <div class="w-1 h-4 bg-blue-500 rounded-full"></div>

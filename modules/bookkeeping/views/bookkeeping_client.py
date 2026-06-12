@@ -220,12 +220,18 @@ class BookkeepingClientCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
         context = self.get_context_data()
         invoice_formset = context['invoice_formset']
         service_fee_formset = context['service_fee_formset']
-        
-        if invoice_formset.is_valid() and service_fee_formset.is_valid():
+
+        # 未勾選統購發票時，明細不驗證也不儲存（保留原狀），
+        # 避免前端欄位未提交時 formset 驗證失敗擋下整筆存檔
+        has_group_invoice = form.cleaned_data.get('has_group_invoice')
+        invoice_ok = invoice_formset.is_valid() if has_group_invoice else True
+
+        if invoice_ok and service_fee_formset.is_valid():
             with transaction.atomic():
                 self.object = form.save()
-                invoice_formset.instance = self.object
-                invoice_formset.save()
+                if has_group_invoice:
+                    invoice_formset.instance = self.object
+                    invoice_formset.save()
                 service_fee_formset.instance = self.object
                 service_fee_formset.save()
             from django.contrib import messages
@@ -259,10 +265,16 @@ class BookkeepingClientUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateVi
         invoice_formset = context['invoice_formset']
         service_fee_formset = context['service_fee_formset']
 
-        if invoice_formset.is_valid() and service_fee_formset.is_valid():
+        # 未勾選統購發票時，明細不驗證也不儲存（保留原狀），
+        # 避免前端欄位未提交時 formset 驗證失敗擋下整筆存檔
+        has_group_invoice = form.cleaned_data.get('has_group_invoice')
+        invoice_ok = invoice_formset.is_valid() if has_group_invoice else True
+
+        if invoice_ok and service_fee_formset.is_valid():
             with transaction.atomic():
                 self.object = form.save()
-                invoice_formset.save()
+                if has_group_invoice:
+                    invoice_formset.save()
                 service_fee_formset.save()
             from django.contrib import messages
             messages.success(self.request, '記帳客戶更新成功！')

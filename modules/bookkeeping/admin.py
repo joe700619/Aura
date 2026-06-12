@@ -87,7 +87,7 @@ class BookkeepingClientAdmin(ImportExportModelAdmin):
     def portal_account_status(self, obj):
         u = obj.user
         if not u:
-            return format_html('<span style="color:#999;">未建立</span>')
+            return mark_safe('<span style="color:#999;">未建立</span>')
         if not u.is_active:
             return format_html('<span style="color:#e53e3e;">已停用 ({})</span>', u.username)
         return format_html('<span style="color:#38a169;">✓ {} </span>', u.username)

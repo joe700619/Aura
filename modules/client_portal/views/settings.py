@@ -41,15 +41,16 @@ class SettingsView(ClientRequiredMixin, View):
         if form.is_valid():
             form.save()
 
-            # 統購發票數量
-            for key, value in request.POST.items():
-                if key.startswith('group_invoice_qty_'):
-                    try:
-                        invoice_id = int(key.replace('group_invoice_qty_', ''))
-                        qty = max(0, int(value))
-                        GroupInvoice.objects.filter(pk=invoice_id, client=client).update(quantity=qty)
-                    except (ValueError, TypeError):
-                        pass
+            # 統購發票數量（統購發票關閉時禁止修改）
+            if form.cleaned_data.get('has_group_invoice'):
+                for key, value in request.POST.items():
+                    if key.startswith('group_invoice_qty_'):
+                        try:
+                            invoice_id = int(key.replace('group_invoice_qty_', ''))
+                            qty = max(0, int(value))
+                            GroupInvoice.objects.filter(pk=invoice_id, client=client).update(quantity=qty)
+                        except (ValueError, TypeError):
+                            pass
 
             # 通知方式 / 繳稅方式（直接存到 BookkeepingClient）
             notification_method = request.POST.get('tax_notification_method', '')
