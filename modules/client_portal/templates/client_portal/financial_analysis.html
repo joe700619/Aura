@@ -88,7 +88,7 @@
     <div>
       <p class="portal-eyebrow">財務分析報表</p>
       <h1 style="font-family:var(--font-serif); font-size:22px; font-weight:700; color:var(--fg1); line-height:1.2; margin:0;">{{ client.name }}</h1>
-      <p style="font-size:13px; color:var(--fg4); margin-top:4px;">{{ selected_year }} 年度・累計至 {{ selected_period|stringformat:"02d" }}-{{ selected_period|add:1|stringformat:"02d" }} 月</p>
+      <p style="font-size:13px; color:var(--fg4); margin-top:4px;">{{ selected_year }} 年度・累計至 {{ selected_period_label }}</p>
     </div>
     <form method="get" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
       <div style="display:flex; align-items:center; gap:6px;">
@@ -106,8 +106,8 @@
         <select name="period" onchange="this.form.submit()"
           style="font-size:13px; border:1px solid var(--border-default); border-radius:var(--radius-md); padding:6px 12px; background:#fff; color:var(--fg2);">
           {% for pm in available_periods %}
-          <option value="{{ pm }}" {% if pm == selected_period %}selected{% endif %}>
-            {{ pm|stringformat:"02d" }}-{{ pm|add:1|stringformat:"02d" }}月
+          <option value="{{ pm.month }}" {% if pm.month == selected_period %}selected{% endif %}>
+            {{ pm.label }}
           </option>
           {% endfor %}
         </select>
@@ -124,7 +124,7 @@
       <div class="fa-card-accent" style="background:var(--primary);"></div>
       <p class="portal-eyebrow" style="margin-bottom:0;">{{ selected_year }}年 累積銷售額</p>
       <p class="fa-value">{{ total_sales|floatformat:0|intcomma }}</p>
-      <p class="fa-sub">截至 {{ selected_period|stringformat:"02d" }}-{{ selected_period|add:1|stringformat:"02d" }} 月</p>
+      <p class="fa-sub">截至 {{ selected_period_label }}</p>
     </div>
 
     <!-- 累計進項金額 -->
@@ -132,7 +132,7 @@
       <div class="fa-card-accent" style="background:var(--accent);"></div>
       <p class="portal-eyebrow" style="margin-bottom:0;">{{ selected_year }}年 累計進項金額</p>
       <p class="fa-value">{{ total_input|floatformat:0|intcomma }}</p>
-      <p class="fa-sub">截至 {{ selected_period|stringformat:"02d" }}-{{ selected_period|add:1|stringformat:"02d" }} 月</p>
+      <p class="fa-sub">截至 {{ selected_period_label }}</p>
     </div>
 
     <!-- 建議申報方式 -->

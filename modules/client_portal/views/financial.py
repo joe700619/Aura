@@ -43,15 +43,29 @@ class FinancialAnalysisView(ClientRequiredMixin, TemplateView):
         except TaxFilingYear.DoesNotExist:
             pass
 
-        available_periods = [p.period_start_month for p in vat_periods]
+        # 申報頻率（決定期別標籤：雙月報 → 01-02月、月報 → 01月，不會出現 12-13月）
         try:
-            selected_period = int(self.request.GET.get('period', available_periods[-1] if available_periods else 1))
+            freq = client.tax_setting.filing_frequency
+        except Exception:
+            freq = 'bimonthly'
+
+        def period_label(month):
+            if freq == 'bimonthly':
+                return f"{month:02d}-{month+1:02d}月"
+            return f"{month:02d}月"
+
+        period_months = [p.period_start_month for p in vat_periods]
+        try:
+            selected_period = int(self.request.GET.get('period', period_months[-1] if period_months else 1))
         except (ValueError, TypeError):
-            selected_period = available_periods[-1] if available_periods else 1
-        if available_periods and selected_period not in available_periods:
-            selected_period = available_periods[-1]
-        context['available_periods'] = available_periods
+            selected_period = period_months[-1] if period_months else 1
+        if period_months and selected_period not in period_months:
+            selected_period = period_months[-1]
+        context['available_periods'] = [
+            {'month': pm, 'label': period_label(pm)} for pm in period_months
+        ]
         context['selected_period'] = selected_period
+        context['selected_period_label'] = period_label(selected_period)
 
         # ── 累計 VAT KPI（截至選定期別）──
         ytd_periods = [p for p in vat_periods if p.period_start_month <= selected_period]
@@ -60,10 +74,6 @@ class FinancialAnalysisView(ClientRequiredMixin, TemplateView):
         context['total_payable'] = sum(p.payable_tax for p in ytd_periods)
 
         # ── 推估截至月份（由使用者選取的 VAT 期別推算）──
-        try:
-            freq = client.tax_setting.filing_frequency
-        except Exception:
-            freq = 'bimonthly'
         through_month = min(selected_period + 1 if freq == 'bimonthly' else selected_period, 12)
         is_full_year = (through_month >= 12)
         context['through_month'] = through_month
@@ -71,7 +81,7 @@ class FinancialAnalysisView(ClientRequiredMixin, TemplateView):
 
         # ── 趨勢圖資料（全年）──
         context['chart_labels'] = json.dumps(
-            [f"{p.period_start_month:02d}-{p.period_start_month+1:02d}月" for p in vat_periods]
+            [period_label(p.period_start_month) for p in vat_periods]
         )
         context['chart_sales'] = json.dumps([float(p.sales_amount) for p in vat_periods])
         context['chart_input'] = json.dumps([float(p.input_amount) for p in vat_periods])
