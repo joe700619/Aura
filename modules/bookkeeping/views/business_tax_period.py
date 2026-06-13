@@ -16,6 +16,7 @@ class TaxFilingPeriodDetailView(BusinessRequiredMixin, UpdateView):
     fields = [
         'invoice_received_date', 'sales_amount', 'tax_amount', 'input_amount', 'input_tax',
         'retained_tax', 'payable_tax',
+        'sales_return', 'sales_return_tax',
         'filing_document', 'tax_bill_document', 'media_file',
         'is_filed', 'filing_date',
         'tax_deadline', 'period_payment_method',

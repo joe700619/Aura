@@ -115,6 +115,16 @@
                     <label class="text-xs text-slate-500 block mb-0.5 font-medium">留抵稅額</label>
                     <input type="number" name="retained_tax" value="{{ form.retained_tax.value|default:'0' }}" step="1" class="{{ style }}">
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-0.5 font-medium">銷項退回折讓-銷售額</label>
+                        <input type="number" name="sales_return" value="{{ form.sales_return.value|default:'0' }}" step="1" class="{{ style }}">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 block mb-0.5 font-medium">銷項退回折讓-稅額</label>
+                        <input type="number" name="sales_return_tax" value="{{ form.sales_return_tax.value|default:'0' }}" step="1" class="{{ style }}">
+                    </div>
+                </div>
                 <div>
                     <label class="text-xs text-slate-500 block mb-0.5 font-medium font-bold">應納(退)稅額</label>
                     <input type="number" name="payable_tax" value="{{ form.payable_tax.value|default:'0' }}" step="1"
@@ -469,6 +479,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     // 累積留抵稅額：本期累積（第 95 欄）
                     updateInput('retained_tax', parseAmount(cols[94]));
+
+                    // 銷項退回及折讓-銷售額合計：應稅(第13欄) + 零稅率(第24欄) + 免稅(第30欄) + 特種(第43欄)
+                    const salesReturn = parseAmount(cols[12]) + parseAmount(cols[23]) + parseAmount(cols[29]) + parseAmount(cols[42]);
+                    updateInput('sales_return', salesReturn);
+
+                    // 銷項退回及折讓-稅額合計：應稅(第19欄) + 特種(第44欄)（零稅率、免稅無稅額欄）
+                    const salesReturnTax = parseAmount(cols[18]) + parseAmount(cols[43]);
+                    updateInput('sales_return_tax', salesReturnTax);
 
                     alert("🎉 已成功從「" + file.name + "」讀取營業稅額！\n請審閱下方數字，確認無誤後再點擊儲存。");
                     break;

@@ -156,6 +156,10 @@ class TaxFilingPeriod(BaseModel):
     retained_tax = models.DecimalField(_('留抵稅額'), max_digits=15, decimal_places=0, default=0)
     payable_tax = models.DecimalField(_('應納(退)稅額'), max_digits=15, decimal_places=0, default=0)
 
+    # ── 銷項退回及折讓（合計：應稅+零稅率+免稅+特種） ──
+    sales_return = models.DecimalField(_('銷項退回及折讓-銷售額'), max_digits=15, decimal_places=0, default=0)
+    sales_return_tax = models.DecimalField(_('銷項退回及折讓-稅額'), max_digits=15, decimal_places=0, default=0)
+
     # ── 文件上傳 ──
     filing_document = models.FileField(
         _('申報書'), upload_to=get_vat_document_path, blank=True, null=True
