@@ -75,9 +75,12 @@ def build_context(client, records, target_month: datetime.date):
     }
 
 
-def send_reminder_for_client(client, target_month: datetime.date):
+def send_reminder_for_client(client, target_month: datetime.date, dry_run: bool = False):
     """
     對單一客戶發送提醒。回傳 (sent: bool, channels: list[str], errors: list[str])
+
+    dry_run=True 時走完全相同的掃描與管道判斷，但不真的呼叫 Email/LINE，
+    channels 改記「會寄到哪裡」（供測試確認），不會發送任何通知。
     """
     if not getattr(client, 'service_remuneration_reminder_enabled', True):
         return False, [], ['客戶未啟用勞報提醒']
@@ -92,16 +95,22 @@ def send_reminder_for_client(client, target_month: datetime.date):
 
     if method in ('email', 'both'):
         if client.email:
-            ok = EmailService.send_email(EMAIL_TEMPLATE_CODE, [client.email], context)
-            (sent_channels if ok else errors).append('Email')
+            if dry_run:
+                sent_channels.append(f'Email→{client.email}')
+            else:
+                ok = EmailService.send_email(EMAIL_TEMPLATE_CODE, [client.email], context)
+                (sent_channels if ok else errors).append('Email')
         else:
             errors.append('Email（無 email 地址）')
 
     if method in ('line', 'both'):
         line_id = client.line_id or client.room_id
         if line_id:
-            ok = LineService.send_message(LINE_TEMPLATE_CODE, line_id, context)
-            (sent_channels if ok else errors).append('LINE')
+            if dry_run:
+                sent_channels.append(f'LINE→{line_id}')
+            else:
+                ok = LineService.send_message(LINE_TEMPLATE_CODE, line_id, context)
+                (sent_channels if ok else errors).append('LINE')
         else:
             errors.append('LINE（未綁定）')
 
@@ -111,10 +120,11 @@ def send_reminder_for_client(client, target_month: datetime.date):
     return bool(sent_channels), sent_channels, errors
 
 
-def run_monthly_reminders(target_month: datetime.date = None) -> dict:
+def run_monthly_reminders(target_month: datetime.date = None, dry_run: bool = False) -> dict:
     """
     執行每月勞報繳費提醒掃描。
     target_month: 指定要掃描的月份（預設為上個月）
+    dry_run: True 時只掃描、不寄送（用於測試確認名單與內容）
     回傳: {'total_clients': int, 'notified': int, 'errors': [(client_name, reason), ...]}
     """
     from modules.bookkeeping.models.bookkeeping_client import BookkeepingClient
@@ -132,12 +142,17 @@ def run_monthly_reminders(target_month: datetime.date = None) -> dict:
 
     notified = 0
     errors = []
+    details = []
     for client in clients:
         try:
-            sent, channels, client_errors = send_reminder_for_client(client, target_month)
+            sent, channels, client_errors = send_reminder_for_client(
+                client, target_month, dry_run=dry_run,
+            )
             if sent:
                 notified += 1
-                logger.info(f"勞報提醒已寄送給 {client.name}：{channels}")
+                verb = '會寄送給' if dry_run else '已寄送給'
+                logger.info(f"勞報提醒{verb} {client.name}：{channels}")
+                details.append((client.name, channels))
             for err in client_errors:
                 errors.append((client.name, err))
         except Exception as e:
@@ -148,5 +163,7 @@ def run_monthly_reminders(target_month: datetime.date = None) -> dict:
         'total_clients': clients.count(),
         'notified': notified,
         'errors': errors,
+        'details': details,
         'target_month': target_month.strftime('%Y-%m'),
+        'dry_run': dry_run,
     }

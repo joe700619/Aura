@@ -24,6 +24,11 @@ class Command(BaseCommand):
             type=str,
             help='YYYY-MM 指定掃描月份（預設為上個月）',
         )
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='只掃描並列出會通知的客戶與管道，不真的寄送 Email/LINE（測試用）',
+        )
 
     def _record_status(self, success: bool, message: str):
         from core.models import ScheduledJob
@@ -44,20 +49,30 @@ class Command(BaseCommand):
                 self._record_status(False, f"參數錯誤：{opts['month']}")
                 return
 
+        dry_run = opts.get('dry_run', False)
+
         try:
-            result = run_monthly_reminders(target_month=target_month)
+            result = run_monthly_reminders(target_month=target_month, dry_run=dry_run)
         except Exception as e:
             tb = traceback.format_exc()
             self.stderr.write(f'執行失敗：{e}')
-            self._record_status(False, tb)
+            if not dry_run:
+                self._record_status(False, tb)
             raise
 
+        prefix = '【試跑，未實際寄送】' if dry_run else ''
+        verb = '會通知' if dry_run else '成功通知'
         msg = (
-            f"掃描月份 {result['target_month']}：共 {result['total_clients']} 位客戶，"
-            f"成功通知 {result['notified']} 位。"
+            f"{prefix}掃描月份 {result['target_month']}：共 {result['total_clients']} 位客戶，"
+            f"{verb} {result['notified']} 位。"
         )
+        if result.get('details'):
+            msg += "\n通知名單：\n" + "\n".join(
+                f"  - {n}: {', '.join(ch)}" for n, ch in result['details']
+            )
         if result['errors']:
-            msg += f"\n錯誤：\n" + "\n".join(f"  - {n}: {r}" for n, r in result['errors'])
+            msg += "\n略過/錯誤：\n" + "\n".join(f"  - {n}: {r}" for n, r in result['errors'])
 
         self.stdout.write(self.style.SUCCESS(msg))
-        self._record_status(True, msg)
+        if not dry_run:
+            self._record_status(True, msg)
