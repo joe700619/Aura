@@ -326,62 +326,13 @@ _BUSINESS_GROUPS  = _MANAGEMENT_GROUPS + ['A組', 'B組', 'C組']
 _HR_GROUPS        = _MANAGEMENT_GROUPS + ['人資組']
 
 
-class GroupRequiredMixin:
-    """
-    Base mixin：限制只有特定 Groups 的使用者才能存取 view。
-    Superuser 永遠通過。未登入者導向登入頁，已登入但無權限者回 403。
-
-    通過條件（任一即可）：
-    1. 在 allowed_groups 列表的 Group 中
-    2. 透過任何 Group 擁有 allowed_app_labels 指定 app 的至少一個 Django permission
-    """
-    allowed_groups = []
-    allowed_app_labels = []   # 子類別可設定，例如 ['hr']
-
-    def _has_app_permission(self, user):
-        """Check if user has any Django permission for the specified apps via their groups."""
-        if not self.allowed_app_labels:
-            return False
-        return user.groups.filter(
-            permissions__content_type__app_label__in=self.allowed_app_labels
-        ).exists()
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            from django.contrib.auth.views import redirect_to_login
-            return redirect_to_login(request.get_full_path())
-        if request.user.is_superuser:
-            return super().dispatch(request, *args, **kwargs)
-        if request.user.groups.filter(name__in=self.allowed_groups).exists():
-            return super().dispatch(request, *args, **kwargs)
-        if self._has_app_permission(request.user):
-            return super().dispatch(request, *args, **kwargs)
-        raise PermissionDenied
-
-
-class BusinessRequiredMixin(GroupRequiredMixin):
-    """
-    記帳/行政業務模組入口。
-    允許：CPA、management、Admin、A組、B組、C組
-    或：透過 Group permissions 擁有 bookkeeping/administrative/basic_data/registration/internal_accounting 的存取權
-    """
-    allowed_groups = _BUSINESS_GROUPS
-    allowed_app_labels = ['bookkeeping', 'administrative', 'basic_data', 'registration', 'internal_accounting']
-
-
-class HRRequiredMixin(GroupRequiredMixin):
-    """
-    HR 模組入口（薪資、出勤、請假為敏感資料）。
-    允許：CPA、management、Admin、人資組
-    或：透過 Group permissions 擁有 hr app 的存取權
-    """
-    allowed_groups = _HR_GROUPS
-    allowed_app_labels = ['hr']
-
-
 class ModelPermissionMixin:
     """
     依 view 類型檢查 Django model 權限（admin Group 勾選的 view/add/change/delete）。
+
+    此 mixin 已併入 GroupRequiredMixin（base），因此所有走
+    BusinessRequiredMixin / HRRequiredMixin 的 view 都會自動套用，
+    不需在個別 view 額外列出。仍可單獨掛載（向下相容既有 view）。
 
     檢查規則（superuser 與 _MANAGEMENT_GROUPS 直接放行）：
     - CreateView          → add_<model>
@@ -390,13 +341,14 @@ class ModelPermissionMixin:
     - UpdateView POST     → change_<model>
     - 其他（List/Detail） → view_<model>
 
+    沒有 self.model 的 view（報表 TemplateView、純動作 View）會略過細項檢查，
+    僅靠模組入口（GroupRequiredMixin）把關，避免報錯。
+
     並提供 context 給母版控制按鈕顯示：
     - can_add / can_change / can_delete
     - can_save：新增模式看 add、編輯模式看 change（儲存鈕與表單唯讀化用）
 
-    母版以 `|default_if_none:True` 讀取這些變數，未掛此 mixin 的 view 不受影響。
-    需與 GroupRequiredMixin 系列並用（先過模組入口，再查 model 權限），例如：
-        class VoucherUpdateView(BusinessRequiredMixin, ModelPermissionMixin, UpdateView)
+    母版以 `|default_if_none:True` 讀取這些變數，沒有 model 的 view 不受影響。
     """
 
     def _is_perm_exempt(self, user):
@@ -424,7 +376,8 @@ class ModelPermissionMixin:
         if not user.is_authenticated:
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
-        if not self._is_perm_exempt(user):
+        # 沒有 model 的頁面（報表 / 純動作 View）沒有 view/add/change/delete 可查，略過細項檢查
+        if getattr(self, 'model', None) is not None and not self._is_perm_exempt(user):
             actions = self._required_perm_actions(request)
             if not any(user.has_perm(self._model_perm(a)) for a in actions):
                 raise PermissionDenied
@@ -432,6 +385,8 @@ class ModelPermissionMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        if getattr(self, 'model', None) is None:
+            return context
         user = self.request.user
         exempt = self._is_perm_exempt(user)
         can_add = exempt or user.has_perm(self._model_perm('add'))
@@ -442,6 +397,64 @@ class ModelPermissionMixin:
         is_update = getattr(self, 'object', None) is not None and self.object.pk
         context['can_save'] = can_change if is_update else can_add
         return context
+
+
+class GroupRequiredMixin(ModelPermissionMixin):
+    """
+    Base mixin：限制只有特定 Groups 的使用者才能存取 view。
+    Superuser 永遠通過。未登入者導向登入頁，已登入但無權限者回 403。
+
+    入口通過條件（任一即可）：
+    1. 在 allowed_groups 列表的 Group 中
+    2. 透過任何 Group 擁有 allowed_app_labels 指定 app 的至少一個 Django permission
+
+    入口通過後，繼續交給 ModelPermissionMixin（base）檢查細項 view/add/change/delete
+    （superuser 與 _MANAGEMENT_GROUPS 免檢；沒有 model 的頁面自動略過）。
+    """
+    allowed_groups = []
+    allowed_app_labels = []   # 子類別可設定，例如 ['hr']
+
+    def _has_app_permission(self, user):
+        """Check if user has any Django permission for the specified apps via their groups."""
+        if not self.allowed_app_labels:
+            return False
+        return user.groups.filter(
+            permissions__content_type__app_label__in=self.allowed_app_labels
+        ).exists()
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        # superuser 直接放行（仍會經 super().dispatch 進入 ModelPermissionMixin，但其 _is_perm_exempt 會免檢）
+        if request.user.is_superuser:
+            return super().dispatch(request, *args, **kwargs)
+        # 模組入口門禁：在允許的 Group，或透過 Group 擁有該 app 任一權限
+        if request.user.groups.filter(name__in=self.allowed_groups).exists() \
+                or self._has_app_permission(request.user):
+            # 入口通過 → 由 ModelPermissionMixin.dispatch（base）接手細項權限
+            return super().dispatch(request, *args, **kwargs)
+        raise PermissionDenied
+
+
+class BusinessRequiredMixin(GroupRequiredMixin):
+    """
+    記帳/行政業務模組入口。
+    允許：CPA、management、Admin、A組、B組、C組
+    或：透過 Group permissions 擁有 bookkeeping/administrative/basic_data/registration/internal_accounting 的存取權
+    """
+    allowed_groups = _BUSINESS_GROUPS
+    allowed_app_labels = ['bookkeeping', 'administrative', 'basic_data', 'registration', 'internal_accounting']
+
+
+class HRRequiredMixin(GroupRequiredMixin):
+    """
+    HR 模組入口（薪資、出勤、請假為敏感資料）。
+    允許：CPA、management、Admin、人資組
+    或：透過 Group permissions 擁有 hr app 的存取權
+    """
+    allowed_groups = _HR_GROUPS
+    allowed_app_labels = ['hr']
 
 
 class ManagerRequiredMixin(UserPassesTestMixin):
