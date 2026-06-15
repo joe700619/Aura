@@ -315,9 +315,16 @@ def get_effective_approver(user, approval_request, date=None):
                如果沒有代理人，返回 (user, None)
                如果有代理人，返回 (delegate, user)
     """
+    # 群組核准者沒有「個人代理人」的概念，且 ApproverDelegate.user 是 User FK，
+    # 拿 Group 去查會直接報 "Cannot query ...: Must be 'User' instance"。
+    # 群組核准 → 由群組成員本人直接核准，不走代理轉換。
+    from django.contrib.auth.models import Group
+    if isinstance(user, Group):
+        return user, None
+
     if date is None:
         date = timezone.now().date()
-    
+
     # 查找有效的代理設定
     delegation = ApproverDelegate.objects.filter(
         user=user,
