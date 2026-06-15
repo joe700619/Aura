@@ -345,7 +345,8 @@ def grant_leave_for_employee(employee, today: date = None):
     )
     
     # 取得員工目前時薪做為折算基準
-    from ..models.payroll import SalaryStructure, LeaveSettlementRecord
+    from ..models.payroll import SalaryStructure
+    from ..models.leave import LeaveSettlementRecord  # 此 model 在 leave.py，不在 payroll
     salary = SalaryStructure.objects.filter(employee=employee, is_current=True).first()
     hourly_rate = Decimal('0')
     if salary and salary.base_salary:
