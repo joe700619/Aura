@@ -75,6 +75,8 @@ class EmployeeUpdateView(PrevNextMixin, HRRequiredMixin, UpdateView):
 class EmployeeDeleteView(HRRequiredMixin, UpdateView):
     """員工刪除視圖（軟刪除）"""
     model = Employee
+    # 本質是刪除（雖用 UpdateView 做軟刪），明確要求 delete 權而非 change
+    required_perms = 'hr.delete_employee'
     fields = []
     template_name = 'employee/confirm_delete.html'
     success_url = reverse_lazy('hr:employee_list')

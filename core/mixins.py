@@ -341,8 +341,13 @@ class ModelPermissionMixin:
     - UpdateView POST     → change_<model>
     - 其他（List/Detail） → view_<model>
 
-    沒有 self.model 的 view（報表 TemplateView、純動作 View）會略過細項檢查，
+    沒有 self.model、也沒有 required_perms 的 view（報表 TemplateView、純展示頁）會略過細項檢查，
     僅靠模組入口（GroupRequiredMixin）把關，避免報錯。
+
+    動作型 / 需覆寫語意的 view 可顯式宣告 `required_perms`（str 或 list，符合任一即可）：
+        class PayrollBatchGenerateView(HRRequiredMixin, View):
+            required_perms = 'hr.add_payrollrecord'
+    顯式宣告優先於依 model 自動推斷，連沒有 model 的純動作 View 也能精準把關。
 
     並提供 context 給母版控制按鈕顯示：
     - can_add / can_change / can_delete
@@ -350,6 +355,8 @@ class ModelPermissionMixin:
 
     母版以 `|default_if_none:True` 讀取這些變數，沒有 model 的 view 不受影響。
     """
+
+    required_perms = None   # 顯式指定權限（str 或 list，any-of）；動作型 / 需覆寫語意的 view 用
 
     def _is_perm_exempt(self, user):
         return user.is_superuser or user.groups.filter(name__in=_MANAGEMENT_GROUPS).exists()
@@ -371,15 +378,23 @@ class ModelPermissionMixin:
             return ['change']
         return ['view']
 
+    def _resolve_required_perms(self, request):
+        """這次請求需要的權限清單（any-of）；回 None 表示無從判定、略過檢查。"""
+        if self.required_perms is not None:
+            return [self.required_perms] if isinstance(self.required_perms, str) else list(self.required_perms)
+        if getattr(self, 'model', None) is not None:
+            return [self._model_perm(a) for a in self._required_perm_actions(request)]
+        return None
+
     def dispatch(self, request, *args, **kwargs):
         user = request.user
         if not user.is_authenticated:
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
-        # 沒有 model 的頁面（報表 / 純動作 View）沒有 view/add/change/delete 可查，略過細項檢查
-        if getattr(self, 'model', None) is not None and not self._is_perm_exempt(user):
-            actions = self._required_perm_actions(request)
-            if not any(user.has_perm(self._model_perm(a)) for a in actions):
+        if not self._is_perm_exempt(user):
+            # 沒有 model 也沒有 required_perms 的頁面（報表 / 純展示）回 None → 略過，避免報錯
+            required = self._resolve_required_perms(request)
+            if required and not any(user.has_perm(p) for p in required):
                 raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 

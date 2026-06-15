@@ -352,6 +352,7 @@ class PayrollDeleteView(PayrollDataMixin, SoftDeleteMixin, HRRequiredMixin, Dele
 
 class PayrollBatchGenerateView(HRRequiredMixin, View):
     """批次產生薪資單"""
+    required_perms = 'hr.add_payrollrecord'   # 批次新增薪資單 → 需薪資單新增權
 
     def post(self, request):
         year_month = request.POST.get('year_month', '')

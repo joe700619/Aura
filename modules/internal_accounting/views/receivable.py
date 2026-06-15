@@ -129,6 +129,7 @@ class ReceivableDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteView):
 
 class GenerateReceivablePaymentLinkView(BusinessRequiredMixin, View):
     """產生應收帳款的綠界付款連結"""
+    required_perms = 'internal_accounting.change_receivable'   # 對應收帳款發動收款動作 → 需應收變更權
 
     def post(self, request, pk):
         from modules.payment.models import PaymentTransaction

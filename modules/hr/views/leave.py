@@ -167,6 +167,7 @@ class LeaveBalanceDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMi
 
 class RecalculateLeaveView(HRRequiredMixin, View):
     """重算所有在職員工的特休/病假餘額"""
+    required_perms = 'hr.change_leavebalance'   # 異動假別餘額 → 需餘額變更權
 
     def post(self, request):
         from ..services.leave_calculator import recalculate_leave_balances
