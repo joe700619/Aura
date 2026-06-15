@@ -55,25 +55,23 @@
 
 {% block form_top_block %}
 <div class="space-y-4" x-data="{
-    addRow() {
+    addCard() {
         const totalInput = document.getElementById('id_documents-TOTAL_FORMS');
         const idx = parseInt(totalInput.value);
-        const tbody = this.$refs.docBody;
-        const template = this.$refs.emptyRow.innerHTML.replace(/__prefix__/g, idx);
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 transition-colors';
-        tr.innerHTML = template;
-        tbody.appendChild(tr);
+        const wrap = this.$refs.docList;
+        const div = document.createElement('div');
+        div.innerHTML = this.$refs.emptyCard.innerHTML.replace(/__prefix__/g, idx);
+        wrap.appendChild(div.firstElementChild);
         totalInput.value = idx + 1;
     },
-    removeRow(el) {
-        const row = el.closest('tr');
-        const delCheckbox = row.querySelector('input[type=checkbox][id$=-DELETE]');
+    removeCard(el) {
+        const card = el.closest('[data-doc-card]');
+        const delCheckbox = card.querySelector('input[type=checkbox][id$=-DELETE]');
         if (delCheckbox) {
             delCheckbox.checked = true;
-            row.style.display = 'none';
+            card.style.display = 'none';
         } else {
-            row.remove();
+            card.remove();
         }
     }
 }">
@@ -84,89 +82,100 @@
 
     {{ document_formset.management_form }}
 
-    <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
-        <table class="w-full text-sm">
-            <thead class="bg-blue-50 border-b border-blue-100">
-                <tr>
-                    <th class="px-4 py-2 font-semibold text-blue-800 text-left w-44">日期</th>
-                    <th class="px-4 py-2 font-semibold text-blue-800 text-left">名稱</th>
-                    <th class="px-4 py-2 font-semibold text-blue-800 text-left">檔案</th>
-                    <th class="px-4 py-2 font-semibold text-blue-800 text-center w-16">刪除</th>
-                </tr>
-            </thead>
-            <tbody x-ref="docBody" class="divide-y divide-slate-100 bg-white">
-                {% for doc_form in document_formset %}
-                <tr class="hover:bg-slate-50 transition-colors" {% if doc_form.DELETE.value %}style="display:none"{% endif %}>
-                    <td class="px-4 py-2">
-                        {{ doc_form.id }}
-                        <input type="date" name="{{ doc_form.document_date.html_name }}" id="{{ doc_form.document_date.auto_id }}"
-                            value="{% if doc_form.is_bound %}{{ doc_form.document_date.value|default:'' }}{% else %}{{ doc_form.document_date.value|date:'Y-m-d'|default:'' }}{% endif %}"
-                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
-                    </td>
-                    <td class="px-4 py-2">
-                        <input type="text" name="{{ doc_form.name.html_name }}" id="{{ doc_form.name.auto_id }}"
-                            value="{{ doc_form.name.value|default:'' }}"
-                            class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                            placeholder="例：公司設立登記函">
-                    </td>
-                    <td class="px-4 py-2">
-                        <div class="flex items-center gap-2">
-                            {% if doc_form.instance.file %}
-                            <a href="{{ doc_form.instance.file.url }}" target="_blank"
-                               class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                下載
-                            </a>
-                            {% endif %}
-                            <input type="file" name="{{ doc_form.file.html_name }}" id="{{ doc_form.file.auto_id }}"
-                                class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                        </div>
-                    </td>
-                    <td class="px-4 py-2 text-center">
-                        <div style="display:none">{{ doc_form.DELETE }}</div>
-                        <button type="button" @click="removeRow($el)" class="text-red-400 hover:text-red-600">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
+    <div x-ref="docList" class="space-y-3">
+        {% for doc_form in document_formset %}
+        <div data-doc-card class="border border-slate-200 rounded-lg shadow-sm bg-white p-4"
+             {% if doc_form.DELETE.value %}style="display:none"{% endif %}>
+            {{ doc_form.id }}
+            <div style="display:none">{{ doc_form.DELETE }}</div>
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                <div class="sm:w-44">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">日期</label>
+                    <input type="date" name="{{ doc_form.document_date.html_name }}" id="{{ doc_form.document_date.auto_id }}"
+                        value="{% if doc_form.is_bound %}{{ doc_form.document_date.value|default:'' }}{% else %}{{ doc_form.document_date.value|date:'Y-m-d'|default:'' }}{% endif %}"
+                        class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">名稱</label>
+                    <input type="text" name="{{ doc_form.name.html_name }}" id="{{ doc_form.name.auto_id }}"
+                        value="{{ doc_form.name.value|default:'' }}"
+                        class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="例：公司設立登記">
+                </div>
+                <button type="button" @click="removeCard($el)"
+                    class="text-red-400 hover:text-red-600 self-end sm:self-auto pb-1.5" title="刪除此事件">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 既有檔案 -->
+            {% if doc_form.instance.pk %}
+            <div class="mt-3 pl-1 space-y-1.5">
+                {% for f in doc_form.instance.files.all %}
+                <div class="flex items-center gap-2 text-sm" x-data="{ del: false }" :class="{ 'opacity-50 line-through': del }">
+                    <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6"/></svg>
+                    <a href="{{ f.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate max-w-md">{{ f.original_filename|default:"檔案" }}</a>
+                    <label class="ml-auto inline-flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 cursor-pointer shrink-0">
+                        <input type="checkbox" name="delete_file" value="{{ f.pk }}" x-model="del" class="rounded border-slate-300">
+                        刪除
+                    </label>
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-400">尚無檔案</p>
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+            {% endif %}
+
+            <!-- 新增檔案（可一次選多份）-->
+            <div class="mt-3 pl-1">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">新增檔案（可多選）</label>
+                <input type="file" name="{{ doc_form.prefix }}-newfiles" multiple
+                    class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
-    <!-- Empty row template -->
-    <template x-ref="emptyRow">
-        <td class="px-4 py-2">
-            <input type="date" name="{{ document_formset.empty_form.document_date.html_name }}"
-                class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
-        </td>
-        <td class="px-4 py-2">
-            <input type="text" name="{{ document_formset.empty_form.name.html_name }}"
-                class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="例：公司設立登記函">
-        </td>
-        <td class="px-4 py-2">
-            <input type="file" name="{{ document_formset.empty_form.file.html_name }}"
-                class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-        </td>
-        <td class="px-4 py-2 text-center">
-            <button type="button" @click="removeRow($el)" class="text-red-400 hover:text-red-600">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
-        </td>
+    <!-- Empty card template -->
+    <template x-ref="emptyCard">
+        <div data-doc-card class="border border-slate-200 rounded-lg shadow-sm bg-white p-4">
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                <div class="sm:w-44">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">日期</label>
+                    <input type="date" name="{{ document_formset.empty_form.document_date.html_name }}"
+                        class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">名稱</label>
+                    <input type="text" name="{{ document_formset.empty_form.name.html_name }}"
+                        class="w-full px-3 py-1.5 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        placeholder="例：公司設立登記">
+                </div>
+                <button type="button" @click="removeCard($el)"
+                    class="text-red-400 hover:text-red-600 self-end sm:self-auto pb-1.5" title="刪除此事件">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-3 pl-1">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">新增檔案（可多選）</label>
+                <input type="file" name="{{ document_formset.empty_form.prefix }}-newfiles" multiple
+                    class="block w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+        </div>
     </template>
 
     <div class="mt-3">
-        <button type="button" @click="addRow()"
+        <button type="button" @click="addCard()"
             class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 text-sm font-medium transition">
             <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            新增文件
+            新增文件事件
         </button>
     </div>
 </div>

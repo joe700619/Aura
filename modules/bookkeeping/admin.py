@@ -20,6 +20,7 @@ from .models import (
     ClientBill,
     BusinessRegistration,
     BusinessRegistrationDocument,
+    BusinessRegistrationDocumentFile,
     ServiceRemuneration,
     ServiceRemunerationTaxRate,
     NHIConfig,
@@ -290,7 +291,7 @@ class ClientBillAdmin(admin.ModelAdmin):
 class BusinessRegistrationDocumentInline(admin.TabularInline):
     model = BusinessRegistrationDocument
     extra = 0
-    fields = ('document_date', 'name', 'file')
+    fields = ('document_date', 'name')
 
 
 @admin.register(BusinessRegistration)
@@ -298,6 +299,20 @@ class BusinessRegistrationAdmin(admin.ModelAdmin):
     list_display = ('client',)
     search_fields = ('client__name', 'client__tax_id')
     inlines = [BusinessRegistrationDocumentInline]
+
+
+class BusinessRegistrationDocumentFileInline(admin.TabularInline):
+    model = BusinessRegistrationDocumentFile
+    extra = 0
+    fields = ('file', 'original_filename')
+
+
+@admin.register(BusinessRegistrationDocument)
+class BusinessRegistrationDocumentAdmin(admin.ModelAdmin):
+    list_display = ('registration', 'document_date', 'name')
+    search_fields = ('registration__client__name', 'registration__client__tax_id', 'name')
+    list_filter = ('document_date',)
+    inlines = [BusinessRegistrationDocumentFileInline]
 
 
 @admin.register(ServiceRemunerationTaxRate)

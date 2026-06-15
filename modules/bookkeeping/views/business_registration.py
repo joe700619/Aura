@@ -9,13 +9,16 @@ from core.mixins import (
     BusinessRequiredMixin, FilterMixin, ListActionMixin,
     SearchMixin, SortMixin, EmployeeDataIsolationMixin, PrevNextMixin,
 )
-from ..models import BookkeepingClient, BusinessRegistration, BusinessRegistrationDocument
+from ..models import (
+    BookkeepingClient, BusinessRegistration,
+    BusinessRegistrationDocument, BusinessRegistrationDocumentFile,
+)
 
 
 BusinessRegistrationDocumentFormSet = inlineformset_factory(
     BusinessRegistration,
     BusinessRegistrationDocument,
-    fields=['document_date', 'name', 'file'],
+    fields=['document_date', 'name'],
     extra=0,
     can_delete=True,
 )
@@ -98,6 +101,7 @@ class BusinessRegistrationUpdateView(PrevNextMixin, BusinessRequiredMixin, Updat
         else:
             context['document_formset'] = BusinessRegistrationDocumentFormSet(
                 instance=self.object, prefix='documents',
+                queryset=BusinessRegistrationDocument.objects.prefetch_related('files'),
             )
 
         if hasattr(self.object, 'history'):
@@ -119,7 +123,26 @@ class BusinessRegistrationUpdateView(PrevNextMixin, BusinessRequiredMixin, Updat
         )
         if formset.is_valid():
             with transaction.atomic():
-                formset.save()
+                formset.save()  # 先存事件（日期 + 名稱），新事件取得 pk
+
+                # ── 刪除既有檔案（限定本登記，避免越權刪別人的檔）──
+                delete_ids = request.POST.getlist('delete_file')
+                if delete_ids:
+                    BusinessRegistrationDocumentFile.objects.filter(
+                        pk__in=delete_ids, document__registration=self.object,
+                    ).delete()
+
+                # ── 為每個事件掛上新上傳的檔案 ──
+                for form in formset.forms:
+                    if form.cleaned_data.get('DELETE'):
+                        continue
+                    document = form.instance
+                    if not document.pk:
+                        continue
+                    for uploaded in request.FILES.getlist(f'{form.prefix}-newfiles'):
+                        BusinessRegistrationDocumentFile.objects.create(
+                            document=document, file=uploaded,
+                        )
             messages.success(request, '商工登記儲存成功！')
             return redirect(self.get_success_url())
         messages.error(request, '表單內容有誤，請檢查後再試。')

@@ -52,5 +52,5 @@ class DocumentCenterView(ClientRequiredMixin, TemplateView):
         context['business_registration_documents'] = BusinessRegistrationDocument.objects.filter(
             registration__client=client,
             is_deleted=False,
-        ).order_by('-document_date', '-created_at')
+        ).prefetch_related('files').order_by('-document_date', '-created_at')
         return context

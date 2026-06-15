@@ -13,7 +13,7 @@ from .income_tax import (
     IncomeTaxFiling,
 )
 from .income_tax_media import IncomeTaxMediaData
-from .business_registration import BusinessRegistration, BusinessRegistrationDocument
+from .business_registration import BusinessRegistration, BusinessRegistrationDocument, BusinessRegistrationDocumentFile
 from .service_remuneration import ServiceRemuneration, ServiceRemunerationTaxRate, NHIConfig
 from .corporate_tax import CorporateTaxFiling, TaxAdjustmentEntry
 from .billing import ServiceFee, ClientBill, ClientBillItem
@@ -41,6 +41,7 @@ __all__ = [
     'IncomeTaxFiling',
     'BusinessRegistration',
     'BusinessRegistrationDocument',
+    'BusinessRegistrationDocumentFile',
     'ServiceRemuneration',
     'ServiceRemunerationTaxRate',
     'NHIConfig',

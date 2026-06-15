@@ -415,18 +415,18 @@
             </div>
             <div class="dc-tl-rail">
               {% for doc in group.list %}
-              <div class="dc-tl-item {% if doc.file %}has-file{% endif %}" x-show="!query || '{{ doc.name|escapejs }}'.toLowerCase().includes(query.toLowerCase()) || '{% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% endif %}'.includes(query)">
+              <div class="dc-tl-item {% if doc.files.all %}has-file{% endif %}" x-show="!query || '{{ doc.name|escapejs }}'.toLowerCase().includes(query.toLowerCase()) || '{% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% endif %}'.includes(query)">
                 <span class="dc-tl-date">{% if doc.document_date %}{{ doc.document_date|date:'Y/m/d' }}{% else %}—{% endif %}</span>
                 <span class="dc-tl-name">{{ doc.name }}</span>
-                <div class="dc-tl-action">
-                  {% if doc.file %}
-                  <a href="{{ doc.file.url }}" target="_blank" class="dc-btn dc-btn-ghost">
+                <div class="dc-tl-action" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
+                  {% for f in doc.files.all %}
+                  <a href="{{ f.file.url }}" target="_blank" class="dc-btn dc-btn-ghost" title="{{ f.original_filename }}">
                     <svg class="dc-btn-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    下載
+                    {{ f.original_filename|default:"下載"|truncatechars:24 }}
                   </a>
-                  {% else %}
+                  {% empty %}
                   <span class="dc-btn dc-btn-disabled">無檔案</span>
-                  {% endif %}
+                  {% endfor %}
                 </div>
               </div>
               {% endfor %}
