@@ -72,27 +72,26 @@ def auto_create_business_registration(sender, instance, created, **kwargs):
 @receiver(post_save, sender=BookkeepingClient)
 def auto_create_tax_filing_setting(sender, instance, created, **kwargs):
     """
-    新增 BookkeepingClient 且需要報營業稅時，自動建立 TaxFilingSetting。
+    新增 BookkeepingClient 時一律建立 TaxFilingSetting（比照 IncomeTaxSetting）。
 
-    - VAT_BUSINESS → 401 表
+    可見性由 view 端以 service_type 即時判斷，不再以「子檔是否存在」當開關，
+    因此每位客戶都先備妥設定檔，服務型態日後切換進營業人時不會缺子檔。
+
+    form_type 預設值仍依建立當下的 service_type 推導（之後可在設定卡片手動調整）：
     - MIXED_DIRECT / MIXED_RATIO → 403 表
-    - 其他 service_type 不建立
+    - 其餘（含 VAT_BUSINESS）→ 401 表
     """
     if not created:
         return
 
-    needs_vat = [
-        BookkeepingClient.ServiceType.VAT_BUSINESS,
+    mixed = (
         BookkeepingClient.ServiceType.MIXED_DIRECT,
         BookkeepingClient.ServiceType.MIXED_RATIO,
-    ]
-    if instance.service_type not in needs_vat:
-        return
-
-    if instance.service_type == BookkeepingClient.ServiceType.VAT_BUSINESS:
-        form_type = TaxFilingSetting.FormType.FORM_401
-    else:
+    )
+    if instance.service_type in mixed:
         form_type = TaxFilingSetting.FormType.FORM_403
+    else:
+        form_type = TaxFilingSetting.FormType.FORM_401
 
     TaxFilingSetting.objects.get_or_create(
         client=instance,

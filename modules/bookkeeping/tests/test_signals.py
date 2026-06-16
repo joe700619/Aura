@@ -47,7 +47,7 @@ class TestBookkeepingClientSignals:
         setting = TaxFilingSetting.objects.get(client=client)
         assert setting.form_type == TaxFilingSetting.FormType.FORM_403
 
-    def test_investment_does_not_create_tax_filing_setting(self, customer):
+    def test_investment_creates_setting_but_not_in_vat_scope(self, customer):
         from modules.bookkeeping.models import BookkeepingClient
         from modules.bookkeeping.models.business_tax import TaxFilingSetting
 
@@ -55,8 +55,11 @@ class TestBookkeepingClientSignals:
             tax_id='10000004', name='D', customer=customer,
             service_type='investment',
         )
-        # 投資公司不需要報營業稅 → 不建 TaxFilingSetting
-        assert not TaxFilingSetting.objects.filter(client=client).exists()
+        # 改採「人人都有設定檔、可見性由 service_type 決定」：
+        # 設定檔仍建立（401 預設），但投資公司不屬於營業稅範圍。
+        setting = TaxFilingSetting.objects.get(client=client)
+        assert setting.form_type == TaxFilingSetting.FormType.FORM_401
+        assert client.service_type not in BookkeepingClient.VAT_SERVICE_TYPES
 
     def test_creating_client_creates_income_tax_setting(self, customer):
         from modules.bookkeeping.models import BookkeepingClient

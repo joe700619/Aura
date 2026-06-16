@@ -5,7 +5,7 @@ from ..models import BookkeepingClient
 class BusinessTaxListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     """
     營業稅申報列表視圖
-    顯示所有已經建立過「營業稅申報設定」的客戶，方便快速進入各期申報維護。
+    顯示服務型態屬於營業人類（VAT_SERVICE_TYPES）的客戶，方便快速進入各期申報維護。
     """
     model = BookkeepingClient
     template_name = 'bookkeeping/business_tax/list.html'
@@ -19,14 +19,14 @@ class BusinessTaxListView(FilterMixin, ListActionMixin, SearchMixin, BusinessReq
 
     def get_base_queryset(self):
         return super().get_base_queryset().filter(
-            tax_setting__isnull=False,
+            service_type__in=BookkeepingClient.VAT_SERVICE_TYPES,
             acceptance_status='active',
         ).select_related('tax_setting', 'bookkeeping_assistant').order_by('name')
 
     def _base_qs_for_counts(self):
         return BookkeepingClient.objects.filter(
             is_deleted=False,
-            tax_setting__isnull=False,
+            service_type__in=BookkeepingClient.VAT_SERVICE_TYPES,
             acceptance_status='active',
         )
 

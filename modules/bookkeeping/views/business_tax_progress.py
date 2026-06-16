@@ -7,12 +7,9 @@ from datetime import date
 from ..models import TaxFilingYear, TaxFilingPeriod, BookkeepingClient
 
 
-# 只顯示需要申報營業稅的服務類型（排除執行業務與專營投資公司）
-VAT_SERVICE_TYPES = [
-    BookkeepingClient.ServiceType.VAT_BUSINESS,
-    BookkeepingClient.ServiceType.MIXED_DIRECT,
-    BookkeepingClient.ServiceType.MIXED_RATIO,
-]
+# 需要申報營業稅的服務類型集中定義於 BookkeepingClient.VAT_SERVICE_TYPES，
+# 此處別名沿用，保持既有引用不變。
+VAT_SERVICE_TYPES = BookkeepingClient.VAT_SERVICE_TYPES
 
 
 class BusinessTaxProgressView(BusinessRequiredMixin, TemplateView):

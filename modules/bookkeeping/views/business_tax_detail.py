@@ -19,8 +19,10 @@ class BusinessTaxDetailView(BusinessRequiredMixin, DetailView):
     context_object_name = 'client'
 
     def get_queryset(self):
-        # 僅限擁有營業稅設定檔的客戶才允許進入維護畫面
-        return super().get_queryset().filter(tax_setting__isnull=False).select_related('tax_setting')
+        # 僅限服務型態屬於營業人類的客戶才允許進入維護畫面
+        return super().get_queryset().filter(
+            service_type__in=BookkeepingClient.VAT_SERVICE_TYPES
+        ).select_related('tax_setting')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -89,7 +91,10 @@ class AddBusinessTaxYearView(BusinessRequiredMixin, View):
     """快速建立申報年度及對應期數的 API/Action"""
     
     def post(self, request, pk):
-        client = get_object_or_404(BookkeepingClient, pk=pk, tax_setting__isnull=False)
+        client = get_object_or_404(
+            BookkeepingClient, pk=pk,
+            service_type__in=BookkeepingClient.VAT_SERVICE_TYPES,
+        )
         year_val = request.POST.get('year')
         
         if not year_val or not year_val.isdigit():
@@ -137,7 +142,10 @@ class SaveTaxSettingsView(BusinessRequiredMixin, View):
     """儲存申報設定卡片的設定值 (filing_frequency)"""
 
     def post(self, request, pk):
-        client = get_object_or_404(BookkeepingClient, pk=pk, tax_setting__isnull=False)
+        client = get_object_or_404(
+            BookkeepingClient, pk=pk,
+            service_type__in=BookkeepingClient.VAT_SERVICE_TYPES,
+        )
         setting = client.tax_setting
 
         allowed_frequency = [c[0] for c in TaxFilingSetting.FilingFrequency.choices]

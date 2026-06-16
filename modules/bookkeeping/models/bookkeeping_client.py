@@ -30,6 +30,15 @@ class BookkeepingClient(BaseModel):
         PROFESSIONAL = 'professional', '執行業務'
         OTHER = 'other', '其他'
 
+    # 需要申報營業稅的服務類型（排除投資公司、執行業務、其他）。
+    # 營業稅清單/明細/進度頁一律以「客戶當下的 service_type 是否在此清單」決定可見性，
+    # 而非子檔是否存在——讓服務型態變更能即時反映，且永不刪除歷史申報資料。
+    VAT_SERVICE_TYPES = [
+        ServiceType.VAT_BUSINESS,
+        ServiceType.MIXED_DIRECT,
+        ServiceType.MIXED_RATIO,
+    ]
+
     class SendInvoiceMethod(models.TextChoices):
         POST = 'post', '郵寄'
         IN_PERSON = 'in_person', '親送'
