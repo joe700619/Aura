@@ -58,6 +58,11 @@ SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT')
 SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE')
 CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE')
 
+# POST 欄位數上限：Django 預設 1000。admin 的 Group 權限表單採 filter_horizontal,
+# 每個被勾選的權限會送出一個 POST 欄位;系統 model 數眾多時權限總數遠超過 1000,
+# 一次儲存大量權限會觸發 TooManyFieldsSent → 400 Bad Request。故調高上限。
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
+
 
 # -----------------------------------------------------------------------------
 # Application definition
