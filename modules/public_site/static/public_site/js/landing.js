@@ -65,7 +65,7 @@
     });
   });
 
-  // ── Form helpers (前端驗證；送出尚未串後端) ────────────────
+  // ── Form helpers (前端驗證；實際送出見下方 inquiry form submit) ──
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   function showError(form, name, msg) {

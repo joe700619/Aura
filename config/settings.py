@@ -353,6 +353,9 @@ ANYMAIL = {
 # Wagtail CMS
 # -----------------------------------------------------------------------------
 LINE_OA_URL = env('LINE_OA_URL', default='https://lin.ee/RYzygHv')
+# 官網諮詢 / 快速登記表單送出時通知事務所的收件信箱（多個用逗號分隔）。
+# 主要在 admin「系統參數設定」的 INQUIRY_NOTIFY_EMAIL 設定；這裡的 env 僅作 fallback。
+INQUIRY_NOTIFY_EMAIL = env('INQUIRY_NOTIFY_EMAIL', default='')
 WAGTAIL_SITE_NAME = '勤信 CMS'
 WAGTAILADMIN_BASE_URL = env('WAGTAILADMIN_BASE_URL', default='http://localhost:8000')
 WAGTAILDOCS_EXTENSIONS = ['csv', 'docx', 'key', 'odt', 'pdf', 'pptx', 'rtf', 'txt', 'xlsx', 'zip']

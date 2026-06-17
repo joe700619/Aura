@@ -346,6 +346,7 @@ class Inquiry(BaseModel):
     class Source(models.TextChoices):
         LANDING_CONTACT = 'landing_contact', '首頁聯絡表單'
         APPOINTMENT_MODAL = 'appointment_modal', '預約諮詢視窗'
+        REGISTRATION_QUICKFORM = 'registration_quickform', '快速登記表單'
         OTHER = 'other', '其他'
 
     class Status(models.TextChoices):

@@ -658,10 +658,9 @@
       <div class="page-eyebrow">QUICK START · 開始登記</div>
       <h2>看完流程，現在告訴我們幾件事</h2>
       <p style="width: 600.719px">
-        這份簡短的資料只需 <strong>約 2 分鐘</strong>填完。送出後，我們會在
-        <strong>1 個工作日內</strong>把「Magic Link」寄到您的 Email
-        — 打開連結即可繼續填寫詳細資料（含證件、租約等敏感文件上傳），
-        可隨時回來、不必一次填完。
+        這份簡短的資料只需 <strong>約 2 分鐘</strong>填完。送出後，您的負責顧問會在
+        <strong>1 個工作日內</strong>透過電話或 Email 與您聯繫，
+        確認需求與後續所需文件（證件、租約等），陪您一步步完成登記。
       </p>
 
       <ol class="qf-mini-flow" aria-hidden="true">
@@ -670,20 +669,21 @@
           <span class="qf-mini-label">填基本資料</span>
           <span class="qf-mini-time">現在 · 2 分鐘</span>
         </li>
-        <li class="qf-mini-step" data-tooltip="為方便上傳及填寫資料，在您送出資料後，我們將會寄送 Email 給您，裡面會有報價及網頁連結，協助您完成後續填寫。">
+        <li class="qf-mini-step" data-tooltip="送出後，您的負責顧問會在 1-2 個工作日內透過電話或 Email 與您聯繫，確認需求與報價。">
           <span class="qf-mini-num">貳</span>
-          <span class="qf-mini-label">收 Magic Link</span>
+          <span class="qf-mini-label">顧問與您聯繫</span>
           <span class="qf-mini-time">1-2個工作日內</span>
         </li>
-        <li class="qf-mini-step" data-tooltip="Magic Link 可隨時查閱及上傳資料，並且資料保密。">
+        <li class="qf-mini-step" data-tooltip="我們會協助您備齊證件、租約等文件，並代為送件，資料全程保密。">
           <span class="qf-mini-num">參</span>
-          <span class="qf-mini-label">上傳資料</span>
-          <span class="qf-mini-time">分次填寫</span>
+          <span class="qf-mini-label">備齊文件 · 送件</span>
+          <span class="qf-mini-time">專人協助</span>
         </li>
       </ol>
     </header>
 
     <form class="qf-form" id="quickForm" novalidate>
+      {% csrf_token %}
 
       <!-- 壹 · 聯絡人 -->
       <fieldset class="qf-section">
@@ -832,13 +832,11 @@
         <div class="qf-success-eyebrow">SUBMISSION RECEIVED · 已收到</div>
         <h3 class="qf-success-title">已收到您的資料，謝謝</h3>
         <p>
-          我們會在 <strong>1 個工作日內</strong>，把繼續填寫的「Magic Link」寄到
-          <strong id="successEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="740d1b0106341119151d185a171b19">[email&#160;protected]</a></strong>。
-          打開連結就能上傳證件、租約等文件，可分次填寫。
+          我們已收到您填寫的資料（聯絡信箱：<strong id="successEmail">—</strong>）。
         </p>
         <p>
-          同時，您的負責顧問會在 <strong>24 小時內</strong>透過電話與您聯繫，
-          確認流程細節與時程。
+          您的負責顧問會在 <strong>1 個工作日內</strong>透過電話或 Email 與您聯繫，
+          確認需求、報價與後續所需文件。
         </p>
 
         <dl class="qf-success-meta">
@@ -1137,7 +1135,23 @@ document.querySelectorAll('.step').forEach(btn => {
   form.addEventListener('change', autosave);
 
   /* ── Submission handling ──────────────────────────────── */
-  form.addEventListener('submit', (e) => {
+  const ENTITY_LABEL = { firm: '行號（獨資 / 合夥）', limited: '有限公司', corp: '股份有限公司' };
+
+  // 把登記專屬欄位（組織類別、公司名候選、營業項目、地址）整理成一段文字，
+  // 寫進共用 Inquiry 的 message 欄位，後端不必為此表單另開欄位。
+  function buildMessage(data) {
+    const lines = [];
+    lines.push(`【組織類別】${ENTITY_LABEL[data.entity] || data.entity || '未選'}`);
+    if (data.names.length) {
+      lines.push('【公司名候選】');
+      data.names.forEach((n, i) => lines.push(`  ${i + 1}. ${n}`));
+    }
+    if (data.activities) lines.push(`【主要營業項目】${data.activities}`);
+    if (data.address) lines.push(`【聯絡地址】${data.address}`);
+    return lines.join('\n');
+  }
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     // Native validation
     if (!form.checkValidity()) {
@@ -1154,18 +1168,48 @@ document.querySelectorAll('.step').forEach(btn => {
       return;
     }
 
-    const submission = {
-      ...data,
-      submittedAt: new Date().toISOString(),
-      id: 'QX-' + new Date().getFullYear() + '-' +
-          Math.random().toString(36).slice(2, 8).toUpperCase(),
-    };
-    try {
-      localStorage.setItem(SUBMISSION_KEY, JSON.stringify(submission));
-      localStorage.removeItem(STORAGE_KEY); // clear draft
-    } catch (e) {}
+    const submitBtn = form.querySelector('.qf-submit');
+    if (submitBtn) submitBtn.disabled = true;
 
-    showSuccess(submission);
+    const fd = new FormData();
+    fd.set('name', data.name);
+    fd.set('phone', data.phone);
+    fd.set('email', data.email);
+    fd.set('company', data.names[0] || '');
+    fd.set('source', 'registration_quickform');
+    fd.set('message', buildMessage(data));
+    const csrf = (form.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+
+    try {
+      const res = await fetch('/inquiry/submit/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok && json.ok) {
+        const submission = {
+          ...data,
+          submittedAt: new Date().toISOString(),
+          id: 'QX-' + new Date().getFullYear() + '-' + String(json.id || '').padStart(4, '0'),
+        };
+        try {
+          localStorage.setItem(SUBMISSION_KEY, JSON.stringify(submission));
+          localStorage.removeItem(STORAGE_KEY); // clear draft
+        } catch (e) {}
+        showSuccess(submission);
+      } else if (json.errors) {
+        alert('請確認姓名、Email、電話都已正確填寫。');
+        if (submitBtn) submitBtn.disabled = false;
+      } else {
+        alert(res.status === 429 ? '送出太頻繁了，請稍後再試。' : '送出失敗，請稍後再試或直接 LINE 聯繫我們。');
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    } catch (err) {
+      alert('網路異常，請稍後再試。');
+      if (submitBtn) submitBtn.disabled = false;
+    }
   });
 
   function showSuccess(submission) {
