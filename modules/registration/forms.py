@@ -449,6 +449,7 @@ class VATEntityChangeForm(forms.ModelForm):
         model = VATEntityChange
         fields = [
             'unified_business_no', 'company_name', 'tax_id', 'registered_address',
+            'representative_name', 'capital_stock_amount', 'paid_in_capital_amount',
             'assistant_name', 'email',
             'case_types', 'registration_no', 'is_completed', 'closed_at',
             'note'
@@ -458,10 +459,18 @@ class VATEntityChangeForm(forms.ModelForm):
             'company_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'tax_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'registered_address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'representative_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'capital_stock_amount': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'min': '0'}),
+            'paid_in_capital_amount': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'min': '0'}),
             'assistant_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'email': forms.EmailInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'registration_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md bg-slate-100 text-slate-500 text-sm', 'readonly': 'readonly'}),
-            'is_completed': forms.CheckboxInput(attrs={'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer'}),
+            # 沒勾任何案件種類時，前端禁用並自動取消勾選（後端 clean() 再擋一次）。
+            'is_completed': forms.CheckboxInput(attrs={
+                'class': 'h-5 w-5 text-green-600 focus:ring-green-500 border-slate-300 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
+                'x-bind:disabled': '$store.vatReq.selected.length === 0',
+                'x-effect': 'if ($store.vatReq.selected.length === 0) $el.checked = false',
+            }),
             'closed_at': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
@@ -472,3 +481,10 @@ class VATEntityChangeForm(forms.ModelForm):
         self.fields['registration_no'].required = False
         if self.instance and self.instance.pk and self.instance.company_name:
             self.fields['search_customer'].widget.button_label = self.instance.company_name
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # 後端防線：前端會禁用完成框，但 POST 仍可被繞過，這裡再擋一次。
+        if cleaned_data.get('is_completed') and not cleaned_data.get('case_types'):
+            self.add_error('is_completed', _('請先勾選至少一項案件種類，才能標記為完成。'))
+        return cleaned_data

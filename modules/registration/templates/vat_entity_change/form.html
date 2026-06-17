@@ -30,6 +30,17 @@
             class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>
         {{ form.unified_business_no }}
         {{ form.unified_business_no.errors }}
+        <div class="flex items-center gap-2 mt-1.5">
+            <button type="button" id="btn_fetch_gcis" onclick="fetchGcisCompany()"
+                class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded-md text-xs font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                取得公司資料
+            </button>
+            <span id="gcis_fetch_msg" class="text-xs"></span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">依統編向經濟部商工登記帶入負責人、地址、資本額（取得後可手動校正）。</p>
     </div>
 
     <div>
@@ -45,7 +56,80 @@
         {{ form.registered_address }}
         {{ form.registered_address.errors }}
     </div>
+
+    <div>
+        <label for="{{ form.representative_name.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">負責人姓名</label>
+        {{ form.representative_name }}
+        {{ form.representative_name.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.capital_stock_amount.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">資本總額（登記資本額）</label>
+        {{ form.capital_stock_amount }}
+        {{ form.capital_stock_amount.errors }}
+    </div>
+
+    <div>
+        <label for="{{ form.paid_in_capital_amount.id_for_label }}"
+            class="block text-sm font-medium text-slate-700 mb-1">實收資本額</label>
+        {{ form.paid_in_capital_amount }}
+        {{ form.paid_in_capital_amount.errors }}
+    </div>
 </div>
+
+<script>
+    function fetchGcisCompany() {
+        const taxId = document.getElementById('id_unified_business_no').value.trim();
+        const msgEl = document.getElementById('gcis_fetch_msg');
+        const btn = document.getElementById('btn_fetch_gcis');
+
+        if (!taxId || taxId.length !== 8) {
+            msgEl.textContent = '請先填入 8 位統一編號';
+            msgEl.className = 'text-xs text-red-500';
+            return;
+        }
+
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<svg class="h-3.5 w-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+        </svg> 查詢中...`;
+        msgEl.textContent = '';
+
+        fetch(`/basic-data/api/gcis-proxy/?tax_id=${taxId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('id_registered_address').value = data.registered_address || '';
+                    document.getElementById('id_representative_name').value = data.responsible_name || '';
+                    document.getElementById('id_capital_stock_amount').value =
+                        (data.capital_stock_amount ?? '') === null ? '' : (data.capital_stock_amount ?? '');
+                    document.getElementById('id_paid_in_capital_amount').value =
+                        (data.paid_in_capital_amount ?? '') === null ? '' : (data.paid_in_capital_amount ?? '');
+                    msgEl.textContent = '✓ 帶入成功，請確認後儲存';
+                    msgEl.className = 'text-xs text-green-600';
+                } else if (data.type === 'no_location') {
+                    msgEl.textContent = '非公司組織，請自行填入';
+                    msgEl.className = 'text-xs text-orange-500';
+                } else {
+                    msgEl.textContent = data.error || '查詢失敗';
+                    msgEl.className = 'text-xs text-red-500';
+                }
+            })
+            .catch(err => {
+                console.error('GCIS proxy error:', err);
+                msgEl.textContent = '查詢失敗，請稍後再試';
+                msgEl.className = 'text-xs text-red-500';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+    }
+</script>
 {% endblock %}
 
 {% block form_card_2 %}
@@ -90,13 +174,18 @@
                 ],
                 init() {
                     this.selected = this.options.filter(o => o.checked).map(o => o.value);
+                    this.syncStore();
                 },
                 toggle(value) {
                     if (this.selected.includes(value)) {
                         this.selected = this.selected.filter(v => v !== value);
                     } else {
-                        this.selected.push(value);
+                        this.selected = [...this.selected, value];
                     }
+                    this.syncStore();
+                },
+                syncStore() {
+                    this.$store.vatReq.selected = [...this.selected];
                 },
                 displaySelected() {
                     if (this.selected.length === 0) return '請選擇案件種類';
@@ -154,11 +243,14 @@
         {{ form.closed_at.errors }}
     </div>
 
-    <div class="flex items-center gap-2 py-2">
+    <div x-data class="flex items-center gap-2 py-2">
         {{ form.is_completed }}
-        <label for="{{ form.is_completed.id_for_label }}" class="text-sm font-semibold text-slate-700 cursor-pointer">
+        <label for="{{ form.is_completed.id_for_label }}"
+            class="text-sm font-semibold cursor-pointer"
+            :class="$store.vatReq.selected.length === 0 ? 'text-slate-400 cursor-not-allowed' : 'text-slate-700'">
             {{ form.is_completed.label }}
         </label>
+        <span x-show="$store.vatReq.selected.length === 0" x-cloak class="text-xs text-amber-600">（請先勾選案件種類）</span>
     </div>
 </div>
 {% endblock %}
@@ -188,8 +280,67 @@
 {% endblock %}
 
 {% block tabs_content %}
-<div x-show="activeTab === 'tab_requirements'" x-cloak class="py-12 text-center text-slate-400 italic">
-    尚未新增內容
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('vatReq', {
+            docs: {{ case_type_documents_json|safe }},
+            notes: {{ document_notes_json|safe }},
+            selected: [],
+            // 依各案件種類文件清單在表格中出現的順序，建立固定排序（避免依勾選順序而跳動）。
+            masterOrder() {
+                const seen = new Set(), order = [];
+                Object.keys(this.docs).forEach(ct => (this.docs[ct] || []).forEach(d => {
+                    if (!seen.has(d)) { seen.add(d); order.push(d); }
+                }));
+                return order;
+            },
+            // 已勾選案件種類所需文件的聯集（去重 + 固定排序）。
+            requiredDocs() {
+                const needed = new Set();
+                this.selected.forEach(ct => (this.docs[ct] || []).forEach(d => needed.add(d)));
+                return this.masterOrder().filter(d => needed.has(d));
+            },
+            // 只顯示目前清單真的用到的附註（如「(註1)」）。
+            visibleNotes() {
+                const docs = this.requiredDocs();
+                return this.notes.filter(note => {
+                    const marker = note.split('：')[0];
+                    return docs.some(d => d.includes('(' + marker + ')'));
+                });
+            }
+        });
+    });
+</script>
+<div x-show="activeTab === 'tab_requirements'" x-cloak class="py-4">
+    <template x-if="$store.vatReq.selected.length === 0">
+        <div class="py-12 text-center text-slate-400 italic text-sm">
+            請先於上方「案件種類」勾選項目，這裡會列出需要準備的文件。
+        </div>
+    </template>
+
+    <template x-if="$store.vatReq.selected.length > 0">
+        <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                <h3 class="font-bold text-slate-700 text-sm">登記需要準備的文件</h3>
+            </div>
+            <ul class="divide-y divide-slate-100">
+                <template x-for="(doc, idx) in $store.vatReq.requiredDocs()" :key="doc">
+                    <li class="flex items-center gap-3 px-4 py-3">
+                        <span class="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold"
+                            x-text="idx + 1"></span>
+                        <span class="text-sm text-slate-800" x-text="doc"></span>
+                    </li>
+                </template>
+            </ul>
+            <template x-if="$store.vatReq.visibleNotes().length > 0">
+                <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 space-y-1">
+                    <template x-for="note in $store.vatReq.visibleNotes()" :key="note">
+                        <p class="text-xs text-slate-500 leading-relaxed" x-text="note"></p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </template>
 </div>
 {% endblock %}
 

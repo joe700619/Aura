@@ -110,6 +110,10 @@ class GcisProxyApiView(View):
                 'success': True,
                 'company_name': company_name,
                 'registered_address': location,
+                # 以下為營業人變更登記申請書套表所需的快照欄位（其他既有呼叫端會忽略）。
+                'responsible_name': company.get('Responsible_Name', '').strip(),
+                'capital_stock_amount': company.get('Capital_Stock_Amount'),
+                'paid_in_capital_amount': company.get('Paid_In_Capital_Amount'),
             })
 
         except Exception as e:

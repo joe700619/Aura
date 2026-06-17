@@ -1,9 +1,21 @@
+import json
+
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, SortMixin, PrevNextMixin, SoftDeleteMixin
-from ..models import VATEntityChange
+from ..models import VATEntityChange, CASE_TYPE_DOCUMENTS, DOCUMENT_NOTES
 from ..forms import VATEntityChangeForm
+
+
+class _RequirementsContextMixin:
+    """把「案件種類 → 所需文件」對應表餵給表單頁，供前端即時顯示登記需要資料。"""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['case_type_documents_json'] = json.dumps(CASE_TYPE_DOCUMENTS, ensure_ascii=False)
+        context['document_notes_json'] = json.dumps(DOCUMENT_NOTES, ensure_ascii=False)
+        return context
 
 
 class VATEntityChangeListView(SortMixin, SearchMixin, ListActionMixin, BusinessRequiredMixin, ListView):
@@ -19,7 +31,7 @@ class VATEntityChangeListView(SortMixin, SearchMixin, ListActionMixin, BusinessR
         return super().get_queryset().filter(is_deleted=False)
 
 
-class VATEntityChangeCreateView(BusinessRequiredMixin, CreateView):
+class VATEntityChangeCreateView(_RequirementsContextMixin, BusinessRequiredMixin, CreateView):
     model = VATEntityChange
     form_class = VATEntityChangeForm
     template_name = 'vat_entity_change/form.html'
@@ -35,7 +47,7 @@ class VATEntityChangeCreateView(BusinessRequiredMixin, CreateView):
         return context
 
 
-class VATEntityChangeUpdateView(BusinessRequiredMixin, PrevNextMixin, UpdateView):
+class VATEntityChangeUpdateView(_RequirementsContextMixin, BusinessRequiredMixin, PrevNextMixin, UpdateView):
     model = VATEntityChange
     form_class = VATEntityChangeForm
     template_name = 'vat_entity_change/form.html'
