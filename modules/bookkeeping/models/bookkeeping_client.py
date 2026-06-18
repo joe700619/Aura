@@ -146,6 +146,12 @@ class BookkeepingClient(BaseModel):
         help_text=_('每月1號自動提醒尚未繳納的勞務報酬扣繳/補充保費'),
     )
 
+    # ── 申報服務 ──
+    company_act_22_1_filing = models.BooleanField(
+        _('公司法22-1申報'), default=False,
+        help_text=_('由事務所代為申報，每期加收500元服務費用'),
+    )
+
     # ── 備註 ──
     notes = models.TextField(_('備註'), blank=True, null=True)
 

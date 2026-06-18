@@ -270,7 +270,43 @@
             </div>
         </div>
 
-        <!-- ⑤ 勞務報酬通知中心 -->
+        <!-- ⑤ 公司法22-1申報 -->
+        <div style="display:flex; gap:80px; padding:40px 0; border-bottom:1px solid var(--border-subtle);"
+             x-data="{ filing: {{ client.company_act_22_1_filing|yesno:'true,false' }} }">
+
+            <!-- 左：標題說明 -->
+            <div style="width:200px; flex-shrink:0;">
+                <div style="font-family:var(--font-serif); font-size:15px; font-weight:600; color:var(--fg1); margin-bottom:6px;">公司法22-1申報</div>
+                <div style="font-size:13px; color:var(--fg3); line-height:1.65;">由事務所代為申報</div>
+            </div>
+
+            <!-- 右：Toggle ＋ 說明 -->
+            <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+                    <button type="button"
+                        @click="filing = !filing"
+                        :style="{ backgroundColor: filing ? 'var(--success)' : 'var(--ink-300)' }"
+                        style="position:relative; display:inline-flex; width:42px; height:24px; border-radius:999px; border:none; cursor:pointer; padding:2px; transition:background 200ms; outline:none; flex-shrink:0;"
+                        role="switch" :aria-checked="filing.toString()">
+                        <span :style="{ transform: filing ? 'translateX(18px)' : 'translateX(0)' }"
+                              style="width:20px; height:20px; border-radius:999px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.2); transition:transform 200ms ease-in-out; display:block;"></span>
+                    </button>
+                    <span style="font-size:13.5px; font-weight:600; color:var(--fg1);">公司法22-1申報</span>
+                    <template x-if="filing">
+                        <input type="hidden" name="{{ form.company_act_22_1_filing.html_name }}" value="on">
+                    </template>
+                </div>
+
+                <template x-if="filing">
+                    <div style="background:var(--warning-soft); border:1px solid var(--warning-border); border-radius:var(--radius-md); padding:14px 16px; display:flex; align-items:flex-start; gap:10px;">
+                        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px; color:var(--warning);"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5 20h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 13.25A2 2 0 004.26 20z"/></svg>
+                        <p style="margin:0; font-size:13px; color:var(--fg2); line-height:1.65;">有，我們申報，將加收 <strong>500 元</strong>服務費用。</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ⑦ 勞務報酬通知中心 -->
         <div style="display:flex; gap:80px; padding:40px 0; border-bottom:1px solid var(--border-subtle);"
              x-data="{ enabled: {{ client.service_remuneration_reminder_enabled|yesno:'true,false' }} }">
 
@@ -317,7 +353,7 @@
             </div>
         </div>
 
-        <!-- ⑥ 案件清單範本 -->
+        <!-- ⑧ 案件清單範本 -->
         <div style="display:flex; gap:80px; padding:40px 0; border-bottom:1px solid var(--border-subtle);">
 
             <!-- 左：標題說明 -->

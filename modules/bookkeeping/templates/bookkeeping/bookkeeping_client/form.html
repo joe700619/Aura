@@ -255,6 +255,15 @@
         </select>
     </div>
 
+    <div class="flex items-center gap-3">
+        <input type="checkbox" name="{{ form.company_act_22_1_filing.name }}" id="id_company_act_22_1_filing"
+            {% if form.company_act_22_1_filing.value %}checked{% endif %}
+            class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+        <label for="id_company_act_22_1_filing" class="text-sm font-medium text-slate-700 cursor-pointer">
+            公司法22-1申報（由事務所代申報，每期加收500元服務費用）
+        </label>
+    </div>
+
     <div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 mt-1">
         <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">通知方式</label>
