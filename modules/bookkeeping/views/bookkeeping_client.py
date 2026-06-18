@@ -209,6 +209,7 @@ BOOKKEEPING_CLIENT_FIELDS = [
     'last_convenience_bag_date', 'last_convenience_bag_qty',
     'notes', 'cost_sharing_data', 'client_source', 'contact_date', 'transfer_checklist',
     'national_tax_password', 'e_invoice_account', 'e_invoice_password',
+    'company_act_22_1_filing',
 ]
 
 

@@ -21,6 +21,7 @@ class ClientSettingsForm(forms.ModelForm):
             'correspondence_address', 'registered_address',
             'national_tax_password', 'e_invoice_account', 'e_invoice_password',
             'has_group_invoice',
+            'company_act_22_1_filing',
         ]
         widgets = {
             'tax_registration_no': forms.TextInput(attrs={'class': _INPUT}),

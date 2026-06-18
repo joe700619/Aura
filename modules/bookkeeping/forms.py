@@ -31,6 +31,7 @@ class BookkeepingClientForm(forms.ModelForm):
             'notes', 'cost_sharing_data', 'client_source', 'contact_date', 'transfer_checklist',
             'national_tax_password', 'e_invoice_account', 'e_invoice_password',
             'notification_method', 'payment_method',
+            'company_act_22_1_filing',
         ]
         widgets = {
             'customer': ModalSelectWidget(
