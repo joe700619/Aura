@@ -3,7 +3,9 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from core.mixins import (
@@ -154,9 +156,13 @@ class EngagementLetterDeleteView(BusinessRequiredMixin, View):
         return redirect('bookkeeping:engagement_list')
 
 
+@method_decorator(xframe_options_sameorigin, name='dispatch')
 class EngagementLetterPublicView(View):
     """客戶端免登入同意頁（token）。單一頁面 public.html 處理三態：
-    待簽顯示同意/婉拒、已簽顯示確認 banner、已婉拒顯示結尾。"""
+    待簽顯示同意/婉拒、已簽顯示確認 banner、已婉拒顯示結尾。
+
+    xframe_options_sameorigin：允許承辦詳情頁以同源 iframe 內嵌預覽
+    （覆蓋全站預設 X-Frame-Options: DENY，僅放行同源）。"""
 
     def _render(self, request, letter):
         # 已簽看凍結快照（所見即所簽）；未簽即時渲染。
