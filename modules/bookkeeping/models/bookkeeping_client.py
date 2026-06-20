@@ -183,6 +183,10 @@ class BookkeepingClient(BaseModel):
         choices=ClientSource.choices,
         blank=True, null=True
     )
+    assigned_at = models.DateField(
+        _('指派記帳助理日期'), blank=True, null=True,
+        help_text=_('指派 bookkeeping_assistant 那刻寫入；SLA 時鐘 B（遲未首次聯繫）的計時基準點'),
+    )
     contact_date = models.DateField(
         _('聯繫客戶日期'), blank=True, null=True
     )
@@ -226,6 +230,16 @@ class BookkeepingClient(BaseModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        # SLA 時鐘 B 基準點：指派記帳助理（從無到有）即蓋上指派日期；
+        # 助理被清空則重置，讓改派能重新計時。維護在 save() 以涵蓋
+        # form / admin / 程式三條指派路徑，不在各 view 重複。
+        if self.bookkeeping_assistant_id and not self.assigned_at:
+            self.assigned_at = timezone.now().date()
+        elif not self.bookkeeping_assistant_id and self.assigned_at:
+            self.assigned_at = None
+        super().save(*args, **kwargs)
 
     @property
     def active_service_fee(self):

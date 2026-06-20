@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block page_title %}記帳委任書 - {{ letter.company_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6 px-4">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <a href="{% url 'bookkeeping:engagement_list' %}" class="text-sm text-slate-500 hover:text-slate-700">← 回委任書列表</a>
+      <h1 class="text-2xl font-bold text-slate-800 mt-1">{{ letter.company_name }}</h1>
+    </div>
+    <div>
+      {% if letter.status == 'signed' %}<span class="px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">已簽署</span>
+      {% elif letter.status == 'sent' %}<span class="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">已寄出待簽</span>
+      {% elif letter.status == 'declined' %}<span class="px-3 py-1 rounded-full text-sm bg-red-100 text-red-700">已婉拒</span>
+      {% else %}<span class="px-3 py-1 rounded-full text-sm bg-slate-100 text-slate-600">草稿</span>{% endif %}
+    </div>
+  </div>
+
+  {% if messages %}{% for m in messages %}
+  <div class="mb-4 px-4 py-2 rounded-md text-sm {% if m.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">{{ m }}</div>
+  {% endfor %}{% endif %}
+
+  <div class="bg-white rounded-lg shadow p-5 mb-6 grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+    <div><span class="text-slate-500">統一編號：</span>{{ letter.tax_id|default:"—" }}</div>
+    <div><span class="text-slate-500">開始委任日：</span>{{ letter.engagement_start_date|date:"Y-m-d" }}</div>
+    <div><span class="text-slate-500">收費方案：</span>{{ letter.get_pricing_type_display }}</div>
+    <div><span class="text-slate-500">每月服務費：</span>${{ letter.service_fee }}（帳簿費 ${{ letter.ledger_fee }}）</div>
+    <div><span class="text-slate-500">收費週期：</span>{{ letter.get_billing_cycle_display }}</div>
+    <div><span class="text-slate-500">採用範本：</span>v{{ letter.template_version.version }}</div>
+    {% if letter.fee_note %}<div class="col-span-2"><span class="text-slate-500">費用說明：</span>{{ letter.fee_note }}</div>{% endif %}
+    {% if letter.status == 'signed' %}
+    <div><span class="text-slate-500">簽署時間：</span>{{ letter.signed_at|date:"Y-m-d H:i" }}</div>
+    <div><span class="text-slate-500">已建記帳客戶：</span>
+      {% if letter.created_client %}<a href="{% url 'bookkeeping:client_update' letter.created_client.pk %}" class="text-blue-600 hover:underline">{{ letter.created_client.name }}</a>{% else %}—{% endif %}</div>
+    {% endif %}
+    {% if letter.status == 'declined' and letter.decline_reason %}
+    <div class="col-span-2"><span class="text-slate-500">婉拒原因：</span>{{ letter.decline_reason }}</div>{% endif %}
+  </div>
+
+  <div class="flex flex-wrap gap-3 mb-6">
+    {% if letter.status == 'draft' %}
+    <a href="{% url 'bookkeeping:engagement_update' letter.pk %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md text-sm font-bold border border-slate-300">編輯草稿</a>
+    {% endif %}
+    {% if letter.status == 'draft' or letter.status == 'sent' %}
+    <form method="post" action="{% url 'bookkeeping:engagement_send' letter.pk %}">{% csrf_token %}
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-bold">
+        {% if letter.status == 'draft' %}發送給客戶{% else %}重新發送{% endif %}</button>
+    </form>
+    <div class="flex items-center gap-2 text-sm">
+      <input type="text" readonly value="{{ public_url }}" class="w-80 border border-slate-300 rounded-md px-2 py-2 text-xs text-slate-600"
+             onclick="this.select()">
+      <span class="text-xs text-slate-400">客戶簽署連結</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-5 py-3 border-b text-sm font-bold text-slate-700">
+      委任書內容{% if letter.status == 'signed' %}（簽署凍結版）{% else %}（即時預覽）{% endif %}
+    </div>
+    <div class="p-6 prose max-w-none text-sm leading-relaxed">{{ rendered|safe }}</div>
+  </div>
+
+</div>
+{% endblock %}

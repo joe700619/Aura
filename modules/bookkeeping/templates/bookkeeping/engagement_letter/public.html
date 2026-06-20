@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>記帳服務委任書 - {{ letter.company_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen py-8 px-4">
+  <div class="max-w-3xl mx-auto">
+
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div class="bg-blue-600 px-6 py-5 text-white">
+        <h1 class="text-xl font-bold">記帳服務委任書</h1>
+        <p class="text-blue-100 text-sm mt-1">{{ letter.company_name }}</p>
+      </div>
+
+      <div class="px-6 py-5 border-b bg-slate-50 grid grid-cols-2 gap-y-2 text-sm">
+        <div><span class="text-slate-500">開始委任日：</span>{{ letter.engagement_start_date|date:"Y 年 m 月 d 日" }}</div>
+        <div><span class="text-slate-500">每月服務費：</span>NT$ {{ letter.service_fee }}</div>
+        {% if letter.ledger_fee %}<div><span class="text-slate-500">帳簿費：</span>NT$ {{ letter.ledger_fee }}</div>{% endif %}
+        <div><span class="text-slate-500">收費週期：</span>{{ letter.get_billing_cycle_display }}</div>
+      </div>
+
+      <div class="px-6 py-6 prose max-w-none text-sm leading-relaxed text-slate-700">
+        {{ rendered|safe }}
+      </div>
+
+      <div class="px-6 py-5 border-t bg-slate-50">
+        <p class="text-sm text-slate-600 mb-4">請詳閱以上委任內容。若同意委任本所辦理記帳服務，請按「同意委任」。</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <form method="post" class="flex-1">{% csrf_token %}
+            <input type="hidden" name="action" value="agree">
+            <button type="submit"
+              onclick="return confirm('確認同意委任並送出？送出後即成立委任關係。')"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg">同意委任</button>
+          </form>
+          <details class="flex-1">
+            <summary class="w-full text-center bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-lg cursor-pointer list-none">暫不委任</summary>
+            <form method="post" class="mt-3 bg-white border rounded-lg p-3">{% csrf_token %}
+              <input type="hidden" name="action" value="decline">
+              <label class="block text-sm text-slate-600 mb-1">可留下原因（選填）</label>
+              <textarea name="reason" rows="2" class="w-full border border-slate-300 rounded-md px-2 py-1 text-sm"></textarea>
+              <button type="submit" class="mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white text-sm font-bold py-2 rounded-md">確認暫不委任</button>
+            </form>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-slate-400 mt-4">本頁為線上委任確認，送出即視為同意。如有疑問請與本所聯繫。</p>
+  </div>
+</body>
+</html>

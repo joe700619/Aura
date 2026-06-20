@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block page_title %}記帳交接儀表板{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">記帳交接儀表板</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    工商登記完成、客戶簽記帳委任書後的交接收件匣。卡住的案會留在這裡，逾期標紅。
+  </p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  {# ── 第一欄：待指派助理 ── #}
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-5 py-4 border-b flex items-center justify-between">
+      <h2 class="font-bold text-gray-800">
+        待指派記帳助理
+        <span class="ml-2 text-xs font-normal text-gray-500">逾 {{ assign_days }} 天未指派即逾期</span>
+      </h2>
+      <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-semibold
+                   {% if unassigned_count %}bg-amber-100 text-amber-800{% else %}bg-gray-100 text-gray-500{% endif %}">
+        {{ unassigned_count }}
+      </span>
+    </div>
+    <div class="divide-y">
+      {% for row in unassigned %}
+      <a href="{% url 'bookkeeping:client_update' row.client.pk %}"
+         class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition">
+        <div>
+          <div class="font-medium {% if row.escalated %}text-red-600{% elif row.overdue %}text-amber-700{% else %}text-gray-800{% endif %}">
+            {{ row.client.name }}
+          </div>
+          <div class="text-xs text-gray-500">{{ row.client.tax_id|default:"—" }}</div>
+        </div>
+        <div class="text-right text-sm {% if row.escalated %}text-red-600 font-bold{% elif row.overdue %}text-amber-700 font-semibold{% else %}text-gray-500{% endif %}">
+          等待 {{ row.days }} 天{% if row.escalated %}　🔴 逾期{% elif row.overdue %}　🟠 逾期{% endif %}
+        </div>
+      </a>
+      {% empty %}
+      <div class="px-5 py-8 text-center text-sm text-gray-400">目前沒有待指派的客戶 🎉</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── 第二欄：已指派、待首次聯繫 ── #}
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-5 py-4 border-b flex items-center justify-between">
+      <h2 class="font-bold text-gray-800">
+        已指派、待首次聯繫
+        <span class="ml-2 text-xs font-normal text-gray-500">指派逾 {{ contact_days }} 天未聯繫即逾期</span>
+      </h2>
+      <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-semibold
+                   {% if uncontacted_count %}bg-amber-100 text-amber-800{% else %}bg-gray-100 text-gray-500{% endif %}">
+        {{ uncontacted_count }}
+      </span>
+    </div>
+    <div class="divide-y">
+      {% for row in uncontacted %}
+      <a href="{% url 'bookkeeping:client_update' row.client.pk %}"
+         class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition">
+        <div>
+          <div class="font-medium {% if row.escalated %}text-red-600{% elif row.overdue %}text-amber-700{% else %}text-gray-800{% endif %}">
+            {{ row.client.name }}
+          </div>
+          <div class="text-xs text-gray-500">
+            {{ row.client.tax_id|default:"—" }}
+            ・助理：{{ row.client.bookkeeping_assistant.name|default:"—" }}
+          </div>
+        </div>
+        <div class="text-right text-sm {% if row.escalated %}text-red-600 font-bold{% elif row.overdue %}text-amber-700 font-semibold{% else %}text-gray-500{% endif %}">
+          指派 {{ row.days }} 天{% if row.escalated %}　🔴 逾期{% elif row.overdue %}　🟠 逾期{% endif %}
+        </div>
+      </a>
+      {% empty %}
+      <div class="px-5 py-8 text-center text-sm text-gray-400">目前沒有待聯繫的客戶 🎉</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<p class="text-xs text-gray-400 mt-6">
+  停止提醒：指派助理（清單一）後，助理發出前置收料連結或填上「聯繫客戶日期」（清單二），該案即從收件匣消失。
+</p>
+{% endblock %}

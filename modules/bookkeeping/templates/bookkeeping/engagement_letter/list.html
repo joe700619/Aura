@@ -1,0 +1,63 @@
+{% extends 'components/list_view.html' %}
+
+{% block page_title %}記帳委任書{% endblock %}
+{% block header_title %}記帳委任書{% endblock %}
+{% block header_description %}工商登記完成後轉記帳的委任書；客戶線上同意即自動建立記帳客戶與費用{% endblock %}
+{% block search_placeholder %}搜尋公司名稱 / 統編 / 聯絡人{% endblock %}
+
+{% block actions %}
+<a href="{% url 'bookkeeping:engagement_create' %}"
+   class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg transition inline-flex items-center shadow-md">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+  新增記帳委任書
+</a>
+{% endblock %}
+
+{% block filters %}
+{% with fc=filter_counts %}
+<a href="?filter=all" class="px-3 py-1.5 rounded-md text-sm font-medium {% if current_filter == 'all' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">全部 ({{ fc.all }})</a>
+<a href="?filter=draft" class="px-3 py-1.5 rounded-md text-sm font-medium {% if current_filter == 'draft' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">草稿 ({{ fc.draft }})</a>
+<a href="?filter=sent" class="px-3 py-1.5 rounded-md text-sm font-medium {% if current_filter == 'sent' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">已寄出 ({{ fc.sent }})</a>
+<a href="?filter=signed" class="px-3 py-1.5 rounded-md text-sm font-medium {% if current_filter == 'signed' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">已簽署 ({{ fc.signed }})</a>
+<a href="?filter=declined" class="px-3 py-1.5 rounded-md text-sm font-medium {% if current_filter == 'declined' %}bg-blue-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">已婉拒 ({{ fc.declined }})</a>
+{% endwith %}
+{% endblock %}
+
+{% block table_headers %}
+<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">公司</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">開始委任日</th>
+<th class="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">月費</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">方案</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">狀態</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">範本版本</th>
+{% endblock %}
+
+{% block table_rows %}
+{% for l in letters %}
+<tr class="hover:bg-slate-50 transition duration-150"
+    :class="selectedRows.includes({{ l.pk }}) ? 'bg-blue-50/30' : ''">
+  {% include "components/row_checkbox.html" with value=l.pk %}
+  <td class="px-4 py-3">
+    <a href="{% url 'bookkeeping:engagement_detail' l.pk %}" class="block">
+      <div class="font-medium text-blue-600 hover:underline">{{ l.company_name }}</div>
+      <div class="text-xs text-slate-500">{{ l.tax_id|default:"—" }}</div>
+    </a>
+  </td>
+  <td class="px-4 py-3 text-sm text-slate-600">{{ l.engagement_start_date|date:"Y-m-d" }}</td>
+  <td class="px-4 py-3 text-sm text-right text-slate-700">${{ l.service_fee }}</td>
+  <td class="px-4 py-3 text-sm">
+    <span class="{% if l.pricing_type == 'custom' %}text-amber-700{% else %}text-slate-500{% endif %}">{{ l.get_pricing_type_display }}</span>
+  </td>
+  <td class="px-4 py-3 text-sm">
+    {% if l.status == 'signed' %}<span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">已簽署</span>
+    {% elif l.status == 'sent' %}<span class="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">已寄出待簽</span>
+    {% elif l.status == 'declined' %}<span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">已婉拒</span>
+    {% else %}<span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">草稿</span>{% endif %}
+  </td>
+  <td class="px-4 py-3 text-sm text-slate-500">v{{ l.template_version.version }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">尚無委任書</td></tr>
+{% endfor %}
+{% endblock %}

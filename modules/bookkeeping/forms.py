@@ -1,7 +1,13 @@
 from django import forms
+from django.conf import settings
 from modules.basic_data.models import Customer
 from core.widgets import ModalSelectWidget
-from .models import BookkeepingClient
+from .models import BookkeepingClient, EngagementLetter
+
+
+# 表單欄位統一 Tailwind 樣式（form_view 無全域 input 樣式，各表單自套）。
+_INPUT_CLS = ('w-full border border-slate-300 rounded-md px-3 py-2 text-sm '
+              'focus:ring-2 focus:ring-blue-500 focus:border-blue-500')
 
 
 class BookkeepingClientForm(forms.ModelForm):
@@ -40,3 +46,33 @@ class BookkeepingClientForm(forms.ModelForm):
                 button_label='請選擇客戶...',
             ),
         }
+
+
+class EngagementLetterForm(forms.ModelForm):
+    """記帳委任書草稿表單。template_version 由 view 自動帶 active 範本，不在此選。"""
+
+    class Meta:
+        model = EngagementLetter
+        fields = [
+            'inquiry', 'progress_no',
+            'company_name', 'tax_id', 'contact_name', 'contact_email',
+            'contact_phone', 'client_source',
+            'engagement_start_date', 'pricing_type',
+            'service_fee', 'ledger_fee', 'billing_cycle', 'fee_note',
+        ]
+        widgets = {
+            'engagement_start_date': forms.DateInput(
+                attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'fee_note': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 新建時預帶基礎方案月費
+        if not self.instance.pk and not self.initial.get('service_fee'):
+            self.fields['service_fee'].initial = getattr(
+                settings, 'BOOKKEEPING_BASE_MONTHLY_FEE', 2000)
+        self.fields['inquiry'].required = False
+        for name, field in self.fields.items():
+            base = field.widget.attrs.get('class', '')
+            field.widget.attrs['class'] = (base + ' ' + _INPUT_CLS).strip()
