@@ -107,8 +107,9 @@ class EngagementLetter(BaseModel):
 
     # ── 委任內容 ──
     engagement_start_date = models.DateField(
-        _('開始委任日期'),
-        help_text=_('人工填；配合營業稅週期，通常從最近要申報的營業稅期起算'),
+        _('開始委任日期'), blank=True, null=True,
+        help_text=_('人工填；配合營業稅週期，通常從最近要申報的營業稅期起算。'
+                    '結案自動產生的草稿此欄為空，發送前須補填'),
     )
     pricing_type = models.CharField(
         _('收費方案'), max_length=20, choices=PricingType.choices,

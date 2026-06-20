@@ -90,6 +90,44 @@ def sign_letter(letter: EngagementLetter, ip=None) -> BookkeepingClient:
     return client
 
 
+def create_draft_from_progress(progress_no, company_name, tax_id='',
+                               contact_name='', contact_phone='',
+                               contact_email='') -> EngagementLetter:
+    """工商案結案時，由 registration signal 呼叫，自動建記帳委任書草稿。
+
+    idempotent：同一工商案號已有委任書（含已刪/已簽）則不重建。
+    開始委任日與 email 留空，承辦補填後才發送（見 send view 的 guard）。
+    費用預帶基礎方案。跨模組由 registration → 此 service 進入，傳純值不傳 model。
+    """
+    from django.conf import settings
+    from ..models import EngagementLetterTemplate
+
+    if EngagementLetter.objects.filter(progress_no=progress_no).exists():
+        return None
+    template = EngagementLetterTemplate.get_active()
+    if not template:
+        logger.warning('無使用中委任書範本，略過自動建草稿 progress=%s', progress_no)
+        return None
+
+    letter = EngagementLetter.objects.create(
+        progress_no=progress_no,
+        company_name=company_name,
+        tax_id=tax_id or '',
+        contact_name=contact_name or '',
+        contact_phone=contact_phone or '',
+        contact_email=contact_email or '',
+        client_source=BookkeepingClient.ClientSource.OUR_FIRM,
+        engagement_start_date=None,
+        pricing_type=EngagementLetter.PricingType.BASE,
+        service_fee=getattr(settings, 'BOOKKEEPING_BASE_MONTHLY_FEE', 2000),
+        billing_cycle=ServiceFee.BillingCycle.BIMONTHLY,
+        template_version=template,
+        status=EngagementLetter.Status.DRAFT,
+    )
+    logger.info('結案自動建記帳委任書草稿：progress=%s letter=%s', progress_no, letter.pk)
+    return letter
+
+
 def decline_letter(letter: EngagementLetter, reason: str = '') -> None:
     """客戶婉拒。不建客戶；Inquiry 維持原狀由承辦決定是否標未成交。"""
     if letter.status in (EngagementLetter.Status.SIGNED,

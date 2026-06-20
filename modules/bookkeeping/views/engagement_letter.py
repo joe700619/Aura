@@ -109,6 +109,10 @@ class EngagementLetterSendView(BusinessRequiredMixin, View):
             messages.error(request, '此委任書已簽署或婉拒，無法重新發送。')
             return redirect('bookkeeping:engagement_detail', pk=pk)
 
+        if not letter.engagement_start_date:
+            messages.error(request, '請先填寫「開始委任日期」再發送（結案自動產生的草稿此欄為空）。')
+            return redirect('bookkeeping:engagement_detail', pk=pk)
+
         public_url = request.build_absolute_uri(
             reverse('bookkeeping:engagement_public', kwargs={'token': letter.token})
         )
