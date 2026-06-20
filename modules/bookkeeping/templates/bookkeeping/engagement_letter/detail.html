@@ -55,11 +55,15 @@
     {% endif %}
   </div>
 
-  <div class="bg-white rounded-lg shadow">
-    <div class="px-5 py-3 border-b text-sm font-bold text-slate-700">
-      委任書內容{% if letter.status == 'signed' %}（簽署凍結版）{% else %}（即時預覽）{% endif %}
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-5 py-3 border-b text-sm font-bold text-slate-700 flex items-center justify-between">
+      <span>委任書預覽{% if letter.status == 'signed' %}（簽署凍結版）{% else %}（與客戶端同一版面）{% endif %}</span>
+      <a href="{{ public_url }}" target="_blank" class="text-xs font-normal text-blue-600 hover:underline">在新分頁開啟客戶頁 ↗</a>
     </div>
-    <div class="p-6 prose max-w-none text-sm leading-relaxed">{{ rendered|safe }}</div>
+    {# 內嵌客戶端 v2 頁（preview=1 隱藏同意/婉拒鈕），版面與客戶 100% 一致、樣式不污染後台 #}
+    <iframe src="{{ public_url }}?preview=1" title="委任書預覽"
+            style="width:100%;border:0;display:block;background:#faf8f5;"
+            onload="try{this.style.height=(this.contentWindow.document.body.scrollHeight+40)+'px';}catch(e){this.style.height='1200px';}"></iframe>
   </div>
 
 </div>

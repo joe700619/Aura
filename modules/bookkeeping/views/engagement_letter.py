@@ -155,38 +155,29 @@ class EngagementLetterDeleteView(BusinessRequiredMixin, View):
 
 
 class EngagementLetterPublicView(View):
-    """客戶端免登入同意頁（token）。GET 看條文、POST 同意/婉拒。"""
+    """客戶端免登入同意頁（token）。單一頁面 public.html 處理三態：
+    待簽顯示同意/婉拒、已簽顯示確認 banner、已婉拒顯示結尾。"""
+
+    def _render(self, request, letter):
+        # 已簽看凍結快照（所見即所簽）；未簽即時渲染。
+        rendered = letter.rendered_snapshot or render_letter_html(letter)
+        return render(request, 'bookkeeping/engagement_letter/public.html', {
+            'letter': letter,
+            'rendered': rendered,
+            'preview': request.GET.get('preview') == '1',
+        })
 
     def get(self, request, token):
         letter = get_object_or_404(EngagementLetter, token=token)
-        if letter.status == EngagementLetter.Status.SIGNED:
-            return render(request, 'bookkeeping/engagement_letter/public_done.html', {
-                'letter': letter, 'declined': False,
-            })
-        if letter.status == EngagementLetter.Status.DECLINED:
-            return render(request, 'bookkeeping/engagement_letter/public_done.html', {
-                'letter': letter, 'declined': True,
-            })
-        return render(request, 'bookkeeping/engagement_letter/public.html', {
-            'letter': letter,
-            'rendered': render_letter_html(letter),
-        })
+        return self._render(request, letter)
 
     def post(self, request, token):
         letter = get_object_or_404(EngagementLetter, token=token)
         action = request.POST.get('action')
-        if letter.status in (EngagementLetter.Status.SIGNED,
-                             EngagementLetter.Status.DECLINED):
-            return redirect('bookkeeping:engagement_public', token=token)
-
-        if action == 'agree':
-            sign_letter(letter, ip=_client_ip(request))
-            return render(request, 'bookkeeping/engagement_letter/public_done.html', {
-                'letter': letter, 'declined': False,
-            })
-        if action == 'decline':
-            decline_letter(letter, reason=request.POST.get('reason', ''))
-            return render(request, 'bookkeeping/engagement_letter/public_done.html', {
-                'letter': letter, 'declined': True,
-            })
-        return redirect('bookkeeping:engagement_public', token=token)
+        if letter.status not in (EngagementLetter.Status.SIGNED,
+                                 EngagementLetter.Status.DECLINED):
+            if action == 'agree':
+                sign_letter(letter, ip=_client_ip(request))
+            elif action == 'decline':
+                decline_letter(letter, reason=request.POST.get('reason', ''))
+        return self._render(request, letter)
