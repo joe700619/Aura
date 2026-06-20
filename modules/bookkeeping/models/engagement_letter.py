@@ -169,3 +169,14 @@ class EngagementLetter(BaseModel):
     @property
     def is_signable(self):
         return self.status in (self.Status.SENT, self.Status.DRAFT)
+
+    # ── 供 public_v2 範本使用的語意別名（對應現有欄位，零 migration）──
+    @property
+    def agreed_at(self):
+        """已同意時間＝簽署時間（範本以此判斷『已確認』狀態並顯示時間）。"""
+        return self.signed_at
+
+    @property
+    def declined_at(self):
+        """已婉拒時間（範本僅作布林判斷用；無專屬欄位，婉拒時以 updated_at 近似）。"""
+        return self.updated_at if self.status == self.Status.DECLINED else None

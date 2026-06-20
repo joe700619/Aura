@@ -1,54 +1,340 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+{% comment %}
+============================================================
+  記帳服務委任書 — 客戶端線上確認頁（勤信設計系統 · 正式公文體）
+  取代舊版 public.html（Tailwind 藍）。
+
+  ▍版面三層分離（改版只動「內容層」，樣式層永遠不動）
+    1. 外框層：信頭 / 委任要項 meta / 簽署與確認 → 用 letter.* 結構化欄位
+    2. 內容層：{{ rendered|safe }} → 由文字範本渲染，未來改版只改這裡
+    3. 樣式層：.letter-body { ... } prose 規則，結構無關，認語意標籤
+
+  ▍letter.* 需要的欄位（沿用舊版，新增以 default 容錯）
+    letter.company_name            委任公司名稱
+    letter.tax_id                  統一編號（選填）
+    letter.issue_date              發文日期（選填，預設用 engagement_start_date）
+    letter.engagement_start_date   服務起算日
+    letter.service_fee             每月基本公費（數字）
+    letter.ledger_fee              帳簿費（選填）
+    letter.get_billing_cycle_display  收費方式顯示字串
+    letter.cpa_name                受任會計師（選填，預設 黃勝平）
+    letter.agreed_at               已同意時間（有值＝已確認狀態）
+    rendered                       委任內容正文 HTML（語意標籤，勿帶 inline style）
+============================================================
+{% endcomment %}
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>記帳服務委任書 - {{ letter.company_name }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>記帳服務委任書 — {{ letter.company_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink-50:#faf8f5; --ink-100:#f2efe9; --ink-200:#e6e2d9; --ink-300:#cfc9bd;
+    --ink-400:#a8a194; --ink-500:#78716c; --ink-600:#4b4842; --ink-700:#2e2b27; --ink-800:#1a1816; --ink-900:#0d0c0b;
+    --primary:#1a1816; --primary-soft:#f2efe9; --primary-ring:rgba(26,24,22,0.12);
+    --accent:#a0332a; --accent-hover:#8a2a22; --accent-soft:#fbf1ef;
+    --indigo:#35516e; --indigo-soft:#eef2f6;
+    --success:#5a7a4f; --success-soft:#eef3ea; --success-border:#c8dcc0;
+    --warning:#b8861b; --warning-soft:#fbf4e3; --warning-border:#f0e0b8;
+    --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194; --fg-on-primary:#faf8f5;
+    --bg-page:#faf8f5; --bg-panel:#fff; --bg-subtle:#f2efe9; --bg-hover:#f6f3ee;
+    --border-subtle:#e6e2d9; --border-default:#cfc9bd; --border-strong:#a8a194;
+    --font-serif:"Noto Serif TC",serif; --font-sans:"Noto Sans TC",sans-serif; --font-mono:"JetBrains Mono",monospace;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --shadow-sm:0 1px 3px rgba(26,24,22,0.06); --shadow-md:0 4px 12px rgba(26,24,22,0.08); --shadow-lg:0 12px 32px rgba(26,24,22,0.10);
+  }
+  html,body { font-family:var(--font-sans); font-size:15px; color:var(--fg2); background:var(--bg-page); -webkit-font-smoothing:antialiased; line-height:1.65; }
+
+  .page { max-width:840px; margin:0 auto; padding:40px 24px 64px; }
+
+  /* ── Confirmed banner ─────────────────────────────────── */
+  .banner {
+    display:flex; align-items:flex-start; gap:14px; padding:18px 22px; margin-bottom:24px;
+    background:var(--success-soft); border:1px solid var(--success-border); border-left:4px solid var(--success);
+    border-radius:var(--radius-md);
+  }
+  .banner-icon { width:36px; height:36px; border-radius:50%; background:var(--success); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .banner-title { font-family:var(--font-serif); font-size:15px; font-weight:700; color:var(--success); margin-bottom:3px; }
+  .banner-desc { font-size:13px; color:var(--fg2); line-height:1.6; }
+  .banner-desc strong { color:var(--fg1); font-weight:600; }
+
+  /* ── Sheet ────────────────────────────────────────────── */
+  .sheet { background:var(--bg-panel); border:1px solid var(--border-subtle); box-shadow:var(--shadow-md); border-radius:var(--radius-sm); overflow:hidden; }
+
+  /* Letterhead */
+  .lh { padding:30px 52px 18px; border-bottom:2px solid var(--ink-800); position:relative; }
+  .lh::after { content:""; position:absolute; left:52px; right:52px; bottom:-5px; height:1px; background:var(--ink-800); }
+  .lh-row { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
+  .lh-firm { font-family:var(--font-serif); font-size:21px; font-weight:700; color:var(--ink-900); letter-spacing:0.08em; }
+  .lh-en { font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.14em; color:var(--fg3); margin-top:5px; }
+  .lh-contact { text-align:right; font-size:11px; color:var(--fg3); line-height:1.75; flex-shrink:0; }
+  .lh-contact .addr { color:var(--fg2); }
+
+  /* Title */
+  .titlewrap { text-align:center; padding:30px 52px 8px; }
+  .title { font-family:var(--font-serif); font-size:27px; font-weight:700; color:var(--ink-900); letter-spacing:0.32em; padding-left:0.32em; }
+  .title-rule { width:46px; height:2px; background:var(--accent); margin:14px auto 0; }
+
+  /* Meta */
+  .meta { padding:10px 52px 0; display:flex; justify-content:space-between; align-items:baseline; gap:16px; font-size:13px; flex-wrap:wrap; }
+  .meta .recipient { color:var(--fg1); }
+  .meta .recipient b { font-family:var(--font-serif); font-weight:700; font-size:15px; }
+  .meta .date { color:var(--fg3); font-family:var(--font-mono); white-space:nowrap; }
+
+  /* Key terms (委任要項) */
+  .terms { margin:22px 52px 0; border:1px solid var(--border-default); border-radius:var(--radius-sm); overflow:hidden; }
+  .terms-head { background:var(--ink-100); padding:8px 16px; font-family:var(--font-serif); font-size:12.5px; font-weight:700; color:var(--fg1); letter-spacing:0.06em; border-bottom:1px solid var(--border-default); }
+  .terms-grid { display:grid; grid-template-columns:1fr 1fr; }
+  .terms-grid > div { padding:12px 16px; }
+  .terms-grid > div:nth-child(odd) { border-right:1px solid var(--border-subtle); }
+  .terms-grid > div:nth-child(n+3) { border-top:1px solid var(--border-subtle); }
+  .kt-term { font-size:11px; font-weight:500; letter-spacing:0.05em; color:var(--fg4); margin-bottom:3px; }
+  .kt-val { font-size:14px; font-weight:600; color:var(--fg1); }
+  .kt-val .unit { font-size:12px; color:var(--fg3); font-weight:400; }
+  .kt-val .mono { font-family:var(--font-mono); }
+  .terms .fee .kt-val { font-family:var(--font-serif); font-size:19px; color:var(--accent); }
+
+  /* ── Body wrapper (.letter-body == {{ rendered|safe }}) ──
+     結構無關 prose 樣式：認語意標籤，不認文字。改版勿動此區。 */
+  .a-body { padding:24px 52px 8px; }
+  .letter-body { font-size:14.5px; color:var(--fg2); line-height:1.85; }
+  .letter-body > *:first-child { margin-top:0; }
+  .letter-body > *:last-child { margin-bottom:0; }
+  .letter-body p { margin:0 0 12px; }
+  .letter-body strong, .letter-body b { color:var(--fg1); font-weight:600; }
+  .letter-body em { font-style:normal; color:var(--accent); }
+  .letter-body a { color:var(--indigo); text-decoration:underline; text-underline-offset:2px; word-break:break-all; }
+  .letter-body h2 { font-family:var(--font-serif); font-size:18px; font-weight:700; color:var(--fg1); margin:28px 0 12px; }
+  .letter-body h3 {
+    font-family:var(--font-serif); font-size:16px; font-weight:700; color:var(--fg1);
+    letter-spacing:0.02em; margin:26px 0 12px; padding-bottom:7px; border-bottom:1px solid var(--border-subtle);
+    display:flex; align-items:center; gap:9px;
+  }
+  .letter-body h3::before { content:""; width:3px; height:15px; background:var(--accent); border-radius:2px; flex-shrink:0; }
+  .letter-body h4 { font-family:var(--font-sans); font-size:14px; font-weight:700; color:var(--fg1); margin:18px 0 8px; }
+  .letter-body ol, .letter-body ul { margin:8px 0 14px; padding-left:0; list-style:none; }
+  .letter-body ol { counter-reset:li; }
+  .letter-body ol > li { counter-increment:li; position:relative; padding:5px 0 5px 30px; }
+  .letter-body ol > li::before {
+    content:counter(li); position:absolute; left:0; top:5px; width:21px; height:21px; border-radius:50%;
+    background:var(--ink-100); color:var(--fg2); font-family:var(--font-mono); font-size:11px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .letter-body ul > li { position:relative; padding:4px 0 4px 22px; }
+  .letter-body ul > li::before { content:""; position:absolute; left:6px; top:13px; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+  .letter-body li.excl { color:var(--fg4); }
+  .letter-body li.excl::before { content:"✕"; background:transparent; border:1px solid var(--border-default); color:var(--fg4); font-size:10px; width:21px; height:21px; top:5px; left:0; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .letter-body table { width:100%; border-collapse:collapse; margin:12px 0 16px; font-size:13px; }
+  .letter-body th, .letter-body td { border:1px solid var(--border-subtle); padding:9px 12px; text-align:left; vertical-align:middle; }
+  .letter-body th { background:var(--ink-100); font-family:var(--font-sans); font-weight:600; color:var(--fg1); font-size:12.5px; }
+  .letter-body tbody td:first-child { font-weight:500; color:var(--fg1); background:var(--ink-50); }
+  .letter-body .note { font-size:12.5px; color:var(--fg3); line-height:1.7; padding:10px 14px; background:var(--ink-50); border-left:3px solid var(--border-default); border-radius:0 var(--radius-sm) var(--radius-sm) 0; margin:10px 0 14px; }
+  .letter-body .fee-callout { display:flex; align-items:baseline; gap:10px; margin:8px 0 14px; padding:14px 18px; background:var(--accent-soft); border:1px solid #f0d8d4; border-radius:var(--radius-md); }
+  .letter-body .fee-callout .amt { font-family:var(--font-serif); font-size:26px; font-weight:700; color:var(--accent); }
+  .letter-body .fee-callout .unit { font-size:13px; color:var(--fg2); }
+
+  /* Sign block */
+  .sign { margin:14px 52px 0; padding:24px 0 0; border-top:1px dashed var(--border-default); }
+  .sign-stmt { font-size:13.5px; color:var(--fg2); line-height:1.8; margin-bottom:22px; }
+  .sign-stmt b { color:var(--accent); font-weight:600; }
+  .sign-rows { display:flex; justify-content:space-between; align-items:flex-end; gap:40px; }
+  .sign-block { font-size:12.5px; color:var(--fg3); line-height:2; }
+  .sign-block .who { font-family:var(--font-serif); font-size:15px; font-weight:700; color:var(--fg1); letter-spacing:0.06em; }
+  .sign-block.firm { text-align:right; }
+  .cpa-seal { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border:1.5px solid var(--accent); border-radius:4px; color:var(--accent); font-family:var(--font-serif); font-size:18px; font-weight:700; margin-left:10px; transform:rotate(-5deg); vertical-align:middle; }
+
+  /* Actions */
+  .actions { padding:26px 52px 40px; }
+  .action-prompt { font-size:12.5px; color:var(--fg3); text-align:center; margin-bottom:16px; line-height:1.75; }
+  .action-prompt strong { color:var(--fg2); font-weight:600; }
+  .action-grid { display:flex; gap:14px; align-items:flex-start; }
+  .action-grid .col-agree { flex:1.6; }
+  .action-grid .col-decline { flex:1; }
+  form { margin:0; }
+  .btn-agree {
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:14px 28px;
+    background:var(--primary); color:var(--fg-on-primary); border:none; border-radius:var(--radius-md);
+    font-family:var(--font-sans); font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-md); transition:all 150ms;
+  }
+  .btn-agree:hover { background:#000; transform:translateY(-1px); box-shadow:var(--shadow-lg); }
+  .btn-agree:active { transform:translateY(0); }
+  details.decline > summary { display:flex; align-items:center; justify-content:center; width:100%; padding:14px 20px; background:var(--bg-panel); color:var(--fg3); border:1px solid var(--border-default); border-radius:var(--radius-md); font-size:14px; font-weight:500; cursor:pointer; list-style:none; transition:all 150ms; }
+  details.decline > summary::-webkit-details-marker { display:none; }
+  details.decline > summary:hover { background:var(--bg-hover); color:var(--fg2); }
+  details.decline[open] > summary { border-color:var(--border-strong); }
+  .decline-form { margin-top:10px; background:var(--bg-panel); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; }
+  .decline-form label { display:block; font-size:12.5px; color:var(--fg3); margin-bottom:6px; }
+  .decline-form textarea { width:100%; border:1px solid var(--border-default); border-radius:var(--radius-sm); padding:8px 10px; font-family:var(--font-sans); font-size:13px; color:var(--fg2); resize:vertical; }
+  .decline-form textarea:focus { outline:none; border-color:var(--ink-500); box-shadow:0 0 0 3px var(--primary-ring); }
+  .decline-submit { margin-top:10px; width:100%; padding:10px; background:var(--ink-600); color:#fff; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; }
+  .decline-submit:hover { background:var(--ink-700); }
+
+  /* Declined / closed footer note inside sheet */
+  .closed-note { padding:24px 52px 40px; }
+  .closed-inner { text-align:center; font-size:13px; color:var(--fg3); padding:18px; background:var(--bg-subtle); border:1px solid var(--border-subtle); border-radius:var(--radius-md); line-height:1.7; }
+
+  /* Page footer */
+  .pf { text-align:center; font-size:11px; color:var(--fg4); margin-top:24px; line-height:1.7; }
+  .pf b { color:var(--fg3); font-weight:600; }
+
+  @media (max-width:640px) {
+    .page { padding:24px 14px 44px; }
+    .lh, .titlewrap, .meta, .terms, .a-body, .sign, .actions, .closed-note { padding-left:22px; padding-right:22px; }
+    .lh::after { left:22px; right:22px; }
+    .terms { margin-left:22px; margin-right:22px; }
+    .sign { margin-left:22px; margin-right:22px; }
+    .title { font-size:22px; letter-spacing:0.22em; padding-left:0.22em; }
+    .lh-row { flex-direction:column; gap:10px; }
+    .lh-contact { text-align:left; }
+    .terms-grid { grid-template-columns:1fr; }
+    .terms-grid > div:nth-child(odd) { border-right:none; }
+    .terms-grid > div:nth-child(2) { border-top:1px solid var(--border-subtle); }
+    .sign-rows { flex-direction:column; align-items:flex-start; gap:20px; }
+    .sign-block.firm { text-align:left; }
+    .action-grid { flex-direction:column; }
+  }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen py-8 px-4">
-  <div class="max-w-3xl mx-auto">
+<body>
+  <div class="page">
 
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-      <div class="bg-blue-600 px-6 py-5 text-white">
-        <h1 class="text-xl font-bold">記帳服務委任書</h1>
-        <p class="text-blue-100 text-sm mt-1">{{ letter.company_name }}</p>
+    {% if letter.agreed_at %}
+    <div class="banner">
+      <div class="banner-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>
       </div>
-
-      <div class="px-6 py-5 border-b bg-slate-50 grid grid-cols-2 gap-y-2 text-sm">
-        <div><span class="text-slate-500">開始委任日：</span>{{ letter.engagement_start_date|date:"Y 年 m 月 d 日" }}</div>
-        <div><span class="text-slate-500">每月服務費：</span>NT$ {{ letter.service_fee }}</div>
-        {% if letter.ledger_fee %}<div><span class="text-slate-500">帳簿費：</span>NT$ {{ letter.ledger_fee }}</div>{% endif %}
-        <div><span class="text-slate-500">收費週期：</span>{{ letter.get_billing_cycle_display }}</div>
-      </div>
-
-      <div class="px-6 py-6 prose max-w-none text-sm leading-relaxed text-slate-700">
-        {{ rendered|safe }}
-      </div>
-
-      <div class="px-6 py-5 border-t bg-slate-50">
-        <p class="text-sm text-slate-600 mb-4">請詳閱以上委任內容。若同意委任本所辦理記帳服務，請按「同意委任」。</p>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <form method="post" class="flex-1">{% csrf_token %}
-            <input type="hidden" name="action" value="agree">
-            <button type="submit"
-              onclick="return confirm('確認同意委任並送出？送出後即成立委任關係。')"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg">同意委任</button>
-          </form>
-          <details class="flex-1">
-            <summary class="w-full text-center bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-lg cursor-pointer list-none">暫不委任</summary>
-            <form method="post" class="mt-3 bg-white border rounded-lg p-3">{% csrf_token %}
-              <input type="hidden" name="action" value="decline">
-              <label class="block text-sm text-slate-600 mb-1">可留下原因（選填）</label>
-              <textarea name="reason" rows="2" class="w-full border border-slate-300 rounded-md px-2 py-1 text-sm"></textarea>
-              <button type="submit" class="mt-2 w-full bg-slate-600 hover:bg-slate-700 text-white text-sm font-bold py-2 rounded-md">確認暫不委任</button>
-            </form>
-          </details>
-        </div>
+      <div>
+        <div class="banner-title">已完成委任確認</div>
+        <div class="banner-desc">貴公司已於 <strong>{{ letter.agreed_at|date:"Y/m/d H:i" }}</strong> 同意本委任書，委任關係已成立。如有疑問請與本所聯繫。</div>
       </div>
     </div>
+    {% endif %}
 
-    <p class="text-center text-xs text-slate-400 mt-4">本頁為線上委任確認，送出即視為同意。如有疑問請與本所聯繫。</p>
+    <div class="sheet">
+
+      <!-- 信頭 -->
+      <div class="lh">
+        <div class="lh-row">
+          <div>
+            <div class="lh-firm">勤信聯合會計師事務所</div>
+            <div class="lh-en">Chi-XIn United CPAs</div>
+          </div>
+          <div class="lh-contact">
+            <div class="addr">台中市西區五權路 1-67 號 11 樓之 5</div>
+            <div>TEL (04) 2375-8628　FAX (04) 2375-8689</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 標題 -->
+      <div class="titlewrap">
+        <div class="title">會計服務委任書</div>
+        <div class="title-rule"></div>
+      </div>
+
+      <!-- 受文者 / 日期 -->
+      <div class="meta">
+        <div class="recipient">受文者：<b>{{ letter.company_name }}</b></div>
+        <div class="date">{{ letter.issue_date|default:letter.engagement_start_date|date:"Y 年 n 月 j 日" }}</div>
+      </div>
+
+      <!-- 委任要項（公費與付款方式重點欄位） -->
+      <div class="terms">
+        <div class="terms-head">委任要項</div>
+        <div class="terms-grid">
+          <div class="fee">
+            <div class="kt-term">每月基本公費</div>
+            <div class="kt-val">NT$ {{ letter.service_fee }}<span class="unit"> / 月</span></div>
+          </div>
+          <div>
+            <div class="kt-term">收費方式</div>
+            <div class="kt-val">{{ letter.get_billing_cycle_display }}</div>
+          </div>
+          <div>
+            <div class="kt-term">服務起算日</div>
+            <div class="kt-val"><span class="mono">{{ letter.engagement_start_date|date:"Y / m / d" }}</span></div>
+          </div>
+          <div>
+            <div class="kt-term">帳簿費</div>
+            <div class="kt-val">{% if letter.ledger_fee %}NT$ {{ letter.ledger_fee }}{% else %}<span class="unit">依約定</span>{% endif %}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▍內容層：改版只改 rendered 範本，不動本檔 -->
+      <div class="a-body">
+        <div class="letter-body">{{ rendered|safe }}</div>
+      </div>
+
+      <!-- 簽署 -->
+      <div class="sign">
+        <div class="sign-stmt">
+          茲同意本函所述服務範圍、收費金額及收款方式，並確認上列資料無誤。經線上按下「<b>同意委任</b>」即視為簽署生效，本所將據以承接後續記帳作業。
+        </div>
+        <div class="sign-rows">
+          <div class="sign-block">
+            <div>委任人</div>
+            <div class="who">{{ letter.company_name }}</div>
+            {% if letter.tax_id %}<div>統一編號　{{ letter.tax_id }}</div>{% endif %}
+          </div>
+          <div class="sign-block firm">
+            <div>受任會計師</div>
+            <div class="who">{{ letter.cpa_name|default:"黃 勝 平" }}<span class="cpa-seal">勝</span></div>
+          </div>
+        </div>
+      </div>
+
+      {% if letter.agreed_at %}
+      <!-- 已確認：不再顯示動作 -->
+      <div class="closed-note">
+        <div class="closed-inner">本委任書已於 {{ letter.agreed_at|date:"Y/m/d H:i" }} 確認生效，無需再次操作。</div>
+      </div>
+      {% elif letter.declined_at %}
+      <div class="closed-note">
+        <div class="closed-inner">貴公司已回覆暫不委任。如欲重新委任，請與本所聯繫 04-2375-8628。</div>
+      </div>
+      {% elif preview %}
+      <!-- 承辦預覽：不顯示客戶操作 -->
+      <div class="closed-note">
+        <div class="closed-inner">— 承辦預覽（客戶端此處顯示「同意委任 / 暫不委任」操作）—</div>
+      </div>
+      {% else %}
+      <!-- 確認動作 -->
+      <div class="actions">
+        <div class="action-prompt">送出後即成立委任關係並記錄確認時間；如需更改請聯繫本所助理 <strong>許紘綺　04-2375-8628 分機 15</strong></div>
+        <div class="action-grid">
+          <div class="col-agree">
+            <form method="post">{% csrf_token %}
+              <input type="hidden" name="action" value="agree">
+              <button type="submit" class="btn-agree" onclick="return confirm('確認同意委任並送出？送出後即成立委任關係。');">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"/></svg>
+                同意委任
+              </button>
+            </form>
+          </div>
+          <div class="col-decline">
+            <details class="decline">
+              <summary>暫不委任</summary>
+              <form method="post" class="decline-form">{% csrf_token %}
+                <input type="hidden" name="action" value="decline">
+                <label for="decline-reason">可留下原因（選填）</label>
+                <textarea id="decline-reason" name="reason" rows="2" placeholder="例：仍在評估中、需與股東討論…"></textarea>
+                <button type="submit" class="decline-submit">確認暫不委任</button>
+              </form>
+            </details>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /.sheet -->
+
+    <div class="pf">本頁為線上委任確認 · <b>勤信聯合會計師事務所</b> · 如有疑問請與本所聯繫 04-2375-8628</div>
+
   </div>
 </body>
 </html>
