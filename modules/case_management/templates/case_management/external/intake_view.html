@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文件上傳 | 勤信會計</title>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink-700:#2e2b27; --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194;
+    --bg-page:#faf8f5; --bg-subtle:#f2efe9; --bg-hover:#f6f3ee;
+    --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+    --accent:#a0332a; --success:#5a7a4f; --success-soft:#eef3ea; --warning:#b8861b; --warning-soft:#fbf4e3; --warning-border:#f0e0b8;
+    --primary:#1a1816; --fg-on-primary:#faf8f5;
+    --font-serif:"Noto Serif TC", serif;
+    --font-sans:"Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --shadow-xs:0 1px 2px rgba(26,24,22,0.04);
+  }
+  html, body { font-family:var(--font-sans); font-size:15px; color:var(--fg2); background:var(--bg-page); min-height:100vh; -webkit-font-smoothing:antialiased; }
+  .intk-wrap { max-width:720px; margin:0 auto; padding:32px 20px 60px; }
+
+  .intk-notice {
+    display:flex; align-items:flex-start; gap:10px;
+    background:var(--warning-soft); border:1px solid var(--warning-border);
+    border-radius:var(--radius-md); padding:12px 16px;
+    font-size:13px; color:var(--warning); margin-bottom:18px;
+  }
+  .intk-notice strong { color:var(--fg1); font-weight:600; }
+
+  .intk-card { background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-xs); overflow:hidden; }
+  .intk-head { padding:24px 26px 20px; border-bottom:1px solid var(--border-subtle); }
+  .intk-head h1 { font-family:var(--font-serif); font-size:24px; font-weight:600; color:var(--fg1); margin-bottom:6px; }
+  .intk-head p { font-size:13.5px; color:var(--fg3); line-height:1.6; }
+
+  .intk-progress { display:flex; align-items:center; gap:12px; padding:14px 26px; background:var(--bg-subtle); font-size:13px; color:var(--fg3); }
+  .intk-progress-bar { flex:1; height:4px; background:#fff; border-radius:2px; overflow:hidden; border:1px solid var(--border-subtle); }
+  .intk-progress-fill { height:100%; background:var(--success); transition:width 300ms; }
+
+  .intk-list { padding:8px 14px; }
+  .intk-item { display:flex; align-items:center; gap:14px; padding:16px 12px; border-bottom:1px solid var(--bg-subtle); }
+  .intk-item:last-child { border-bottom:none; }
+  .intk-check {
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    border:2px solid var(--border-default); background:#fff;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .intk-check svg { width:14px; height:14px; color:#fff; opacity:0; }
+  .intk-item.done .intk-check { background:var(--success); border-color:var(--success); }
+  .intk-item.done .intk-check svg { opacity:1; }
+  .intk-body { flex:1; min-width:0; }
+  .intk-title { font-size:15px; font-weight:600; color:var(--fg1); }
+  .intk-status { font-size:12px; color:var(--fg4); margin-top:2px; }
+  .intk-status.done { color:var(--success); }
+  .intk-files { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+  .intk-file-row { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--success); }
+  .intk-file-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px; }
+  .intk-file-del { background:none; border:none; cursor:pointer; font-family:var(--font-sans); font-size:12px; color:var(--fg4); text-decoration:underline; padding:0; flex-shrink:0; }
+  .intk-file-del:hover { color:var(--accent); }
+  .intk-doc-link { color:var(--success); text-decoration:underline; }
+  .intk-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .intk-upload { flex-shrink:0; }
+  .intk-file { display:none; }
+  .btn-help { color:var(--fg3); padding:8px 12px; }
+  .btn-help svg { width:15px; height:15px; }
+  .btn-help:hover { color:var(--accent); border-color:var(--border-default); background:var(--bg-hover); }
+
+  .btn {
+    display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:var(--radius-sm);
+    font-family:var(--font-sans); font-size:13px; font-weight:600; cursor:pointer; border:1px solid transparent;
+    transition:all 150ms; text-decoration:none; white-space:nowrap;
+  }
+  .btn-primary { background:var(--primary); color:var(--fg-on-primary); }
+  .btn-primary:hover { background:#0d0c0b; }
+  .btn-ghost { background:#fff; color:var(--fg2); border-color:var(--border-default); }
+  .btn-ghost:hover { background:var(--bg-hover); }
+  .btn-disabled { background:var(--bg-subtle); color:var(--fg4); cursor:not-allowed; }
+
+  .intk-foot { padding:22px 26px; border-top:1px solid var(--border-subtle); text-align:center; }
+  .intk-submit-btn { font-size:14px; padding:11px 28px; }
+  .intk-submit-hint { font-size:12px; color:var(--fg4); margin-top:8px; }
+  .cv-done-banner { padding:16px; background:var(--success-soft); color:var(--success); border-radius:var(--radius-md); font-weight:600; }
+
+  .intk-footer { text-align:center; font-size:11px; color:var(--fg4); margin-top:24px; }
+  .htmx-request .btn { opacity:0.6; pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="intk-wrap">
+
+  {% if access %}
+  <div class="intk-notice">
+    <span style="flex-shrink:0;">🔒</span>
+    <div>
+      您正使用安全連結上傳文件（<strong>{{ access.email }}</strong>）。
+      連結有效期至 <strong>{{ access.expires_at|date:"Y-m-d" }}</strong>。
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="intk-card">
+    <div class="intk-head">
+      <h1>{{ case.title }}</h1>
+      <p>請依下列項目逐一上傳文件。每項顯示綠勾即代表已收到，全部完成後請按最下方「送出」。</p>
+    </div>
+
+    {% if tasks %}
+    {% with done_count=tasks|length %}{% endwith %}
+    <div class="intk-progress">
+      <span>上傳進度</span>
+      <div class="intk-progress-bar">
+        <div class="intk-progress-fill" id="intk-fill" style="width:0%"></div>
+      </div>
+      <span id="intk-count" style="font-family:monospace;">0 / {{ tasks|length }}</span>
+    </div>
+
+    <div class="intk-list">
+      {% for t in tasks %}
+        {% include 'case_management/external/_intake_task.html' with t=t token=token %}
+      {% endfor %}
+    </div>
+
+    <div class="intk-foot">
+      <div id="intk-submit-area">
+        {% include 'case_management/external/_intake_submit.html' with token=token all_done=all_done %}
+      </div>
+    </div>
+    {% else %}
+    <div class="intk-list" style="padding:40px; text-align:center; color:var(--fg4);">
+      目前沒有需要上傳的項目。
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="intk-footer">Aura ERP · 安全文件上傳</div>
+</div>
+
+<script>
+  document.body.addEventListener('htmx:configRequest', (e) => {
+    const t = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (t) e.detail.headers['X-CSRFToken'] = t.value;
+  });
+  function refreshProgress() {
+    const items = document.querySelectorAll('.intk-item');
+    const done = document.querySelectorAll('.intk-item.done').length;
+    const total = items.length;
+    const fill = document.getElementById('intk-fill');
+    const count = document.getElementById('intk-count');
+    if (count) count.textContent = done + ' / ' + total;
+    if (fill) fill.style.width = (total ? Math.round(done/total*100) : 0) + '%';
+  }
+  document.body.addEventListener('htmx:afterSwap', refreshProgress);
+  refreshProgress();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{% comment %}送出按鈕區（全項到齊才解鎖）。參數：token、all_done{% endcomment %}
+{% if all_done %}
+<form hx-post="{% url 'case_management:intake_external_submit' token=token %}"
+      hx-target="#intk-submit-area" hx-swap="innerHTML">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary intk-submit-btn">全部上傳完成，送出</button>
+  <p class="intk-submit-hint">送出後將通知您的承辦人員。</p>
+</form>
+{% else %}
+<button type="button" class="btn btn-disabled intk-submit-btn" disabled>請先上傳所有文件</button>
+<p class="intk-submit-hint">所有項目顯示綠勾後，即可送出。</p>
+{% endif %}

@@ -1,0 +1,185 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>所有權人/實質受益人聲明書 | 勤信會計</title>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194;
+    --bg-page:#faf8f5; --bg-subtle:#f2efe9; --bg-hover:#f6f3ee;
+    --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+    --accent:#a0332a; --success:#5a7a4f; --warning:#b8861b; --warning-soft:#fbf4e3; --warning-border:#f0e0b8;
+    --danger-soft:#fbeae8; --danger:#a0332a;
+    --primary:#1a1816; --fg-on-primary:#faf8f5;
+    --font-serif:"Noto Serif TC", serif;
+    --font-sans:"Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --shadow-xs:0 1px 2px rgba(26,24,22,0.04);
+  }
+  html, body { font-family:var(--font-sans); font-size:15px; color:var(--fg2); background:var(--bg-page); min-height:100vh; -webkit-font-smoothing:antialiased; }
+  .dcl-wrap { max-width:760px; margin:0 auto; padding:32px 20px 60px; }
+  .dcl-card { background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-xs); overflow:hidden; }
+  .dcl-head { padding:26px 28px 18px; border-bottom:1px solid var(--border-subtle); text-align:center; }
+  .dcl-head h1 { font-family:var(--font-serif); font-size:22px; font-weight:700; color:var(--fg1); }
+  .dcl-head .sub { font-size:13px; color:var(--fg3); margin-top:4px; }
+
+  .dcl-msg { margin-bottom:16px; padding:12px 16px; border-radius:var(--radius-md); font-size:13.5px; }
+  .dcl-msg.error { background:var(--danger-soft); border:1px solid #e9c3bd; color:var(--danger); }
+
+  .dcl-body { padding:22px 28px; }
+  .dcl-clauses {
+    background:var(--bg-subtle); border:1px solid var(--border-subtle); border-radius:var(--radius-md);
+    padding:18px 20px; max-height:320px; overflow-y:auto; font-size:13.5px; line-height:1.85; color:var(--fg2);
+  }
+  .dcl-clauses h2 { font-size:14.5px; color:var(--fg1); margin:14px 0 6px; font-weight:700; }
+  .dcl-clauses h2:first-child { margin-top:0; }
+  .dcl-clauses p { margin-bottom:8px; text-align:justify; }
+  .dcl-clauses .blank { color:var(--accent); font-weight:600; }
+
+  .dcl-form { margin-top:22px; }
+  .dcl-field { margin-bottom:16px; }
+  .dcl-field label { display:block; font-size:13px; font-weight:600; color:var(--fg2); margin-bottom:5px; }
+  .dcl-field label .req { color:var(--accent); }
+  .dcl-field input[type=text] {
+    width:100%; padding:9px 12px; border:1px solid var(--border-default); border-radius:var(--radius-sm);
+    font-family:var(--font-sans); font-size:14px; color:var(--fg1); background:#fff;
+  }
+  .dcl-field input:focus { outline:none; border-color:var(--accent); }
+  .dcl-field .hint { font-size:11.5px; color:var(--fg4); margin-top:4px; }
+
+  .dcl-sign-label { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .dcl-sign-label span { font-size:13px; font-weight:600; color:var(--fg2); }
+  .dcl-sign-label .req { color:var(--accent); }
+  .dcl-clear { background:none; border:none; cursor:pointer; font-family:var(--font-sans); font-size:12.5px; color:var(--fg3); text-decoration:underline; }
+  .dcl-clear:hover { color:var(--accent); }
+  .dcl-pad-box { position:relative; border:1.5px dashed var(--border-default); border-radius:var(--radius-md); background:#fff; touch-action:none; }
+  .dcl-pad-box canvas { display:block; width:100%; height:180px; border-radius:var(--radius-md); }
+  .dcl-pad-ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--fg4); font-size:13px; pointer-events:none; }
+
+  .dcl-foot { padding:20px 28px 26px; border-top:1px solid var(--border-subtle); }
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:11px 24px; border-radius:var(--radius-sm);
+    font-family:var(--font-sans); font-size:14px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:all 150ms; text-decoration:none;
+  }
+  .btn-primary { background:var(--primary); color:var(--fg-on-primary); width:100%; }
+  .btn-primary:hover { background:#0d0c0b; }
+  .btn-ghost { background:#fff; color:var(--fg2); border-color:var(--border-default); }
+  .dcl-back { display:inline-block; margin-top:14px; font-size:13px; color:var(--fg3); text-decoration:none; }
+  .dcl-back:hover { color:var(--fg1); }
+  .dcl-footer { text-align:center; font-size:11px; color:var(--fg4); margin-top:22px; }
+</style>
+</head>
+<body>
+<div class="dcl-wrap">
+
+  {% if messages %}
+    {% for m in messages %}
+    <div class="dcl-msg {% if m.tags %}{{ m.tags }}{% endif %}">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="dcl-card">
+    <div class="dcl-head">
+      <h1>所有權人或實質受益人聲明書</h1>
+      <div class="sub">（客戶為法人者適用）請詳閱以下內容，校對欄位後於下方手寫簽名。</div>
+    </div>
+
+    <div class="dcl-body">
+      <div class="dcl-clauses">
+        <h2>一、所有權人或實質受益人茲此聲明：</h2>
+        <p>（一）本法人委任 貴所為<span class="blank">{{ transaction|default:"（所從事之交易）" }}</span>之準備或進行交易一案，本法人業已自行查驗依註冊所在地之相關所有權與控制權結構，清楚瞭解所有業務性質，並無「洗錢防制法」第3條所稱特定犯罪之情，亦無第4條之特定犯罪所得；並業已自行查驗最終直接或間接持有本法人股份或資本超過百分之二十五之自然人屬實質受益人部分，皆已向 貴所揭露。</p>
+        <p>（二）本法人對註冊地國人民、法人、團體或其他機構直接或間接持有本法人股份或出資比率之計算及其直接或間接對本法人是否為實質受益人之研判，確實依照相關認定標準為判斷。</p>
+        <p>（三）本法人承諾，於本交易準備或進行中及終止時 貴所得為必要查驗時，本法人願意配合提供背後董事及股東名冊（至最終實質受益人）及海外控股架構圖等資料，並同意依 貴所要求，經查驗有違反洗錢防制法相關規定之虞時，願由 貴所將相關資訊提供給法務部調查局申報。本聲明就防制洗錢查驗情形暨所附資料為正確無誤，如有不實，本法人願負一切中華民國之法律責任。</p>
+        <h2>二、代理人茲此聲明：</h2>
+        <p>（一）本代理人對上述所有權人或實質受益人確實明瞭現行法規對防制洗錢相關規定之定義及股權計算、控制力查驗方式及相關罰則規定。並了解「洗錢防制法」第14條至第16條對代理人相關制裁之規定。</p>
+        <p>（二）本交易案準備或進行中及終止時五年內， 貴所有需配合法務部調查局查驗時，本代理人有義務督請所有權人及實質受益人提供背後董事及股東名冊（至最終受益人）及海外控股架構圖等資料。</p>
+        <p style="margin-top:12px;">此致　勤信聯合會計師事務所</p>
+      </div>
+
+      <form class="dcl-form" method="post"
+            action="{% url 'case_management:intake_declaration_submit' token=token task_id=task.id %}"
+            id="dcl-form">
+        {% csrf_token %}
+
+        <div class="dcl-field">
+          <label>本法人名稱 <span class="req">*</span></label>
+          <input type="text" name="company_name" value="{{ company_name }}" required>
+          <div class="hint">請書寫國籍及法人名稱（例：中華民國　○○有限公司）</div>
+        </div>
+
+        <div class="dcl-field">
+          <label>所從事之交易</label>
+          <input type="text" name="transaction" value="{{ transaction }}">
+          <div class="hint">本次委任事務所辦理之交易（如有疑問請洽承辦人員）</div>
+        </div>
+
+        <div class="dcl-field">
+          <label>代表人職稱 <span class="req">*</span></label>
+          <input type="text" name="representative_title" placeholder="例：董事長" required>
+        </div>
+
+        <div class="dcl-field">
+          <div class="dcl-sign-label">
+            <span>代表人簽署 <span class="req">*</span></span>
+            <button type="button" class="dcl-clear" id="dcl-clear">清除重簽</button>
+          </div>
+          <div class="dcl-pad-box">
+            <canvas id="dcl-pad"></canvas>
+            <div class="dcl-pad-ph" id="dcl-pad-ph">請用手指或滑鼠在此簽名</div>
+          </div>
+          <input type="hidden" name="signature" id="dcl-signature">
+        </div>
+
+        <div class="dcl-foot" style="padding:0; border:none; margin-top:8px;">
+          <button type="submit" class="btn btn-primary">確認並送出簽署</button>
+        </div>
+      </form>
+
+      <a href="{% url 'case_management:intake_external' token=token %}" class="dcl-back">← 返回文件清單</a>
+    </div>
+  </div>
+
+  <div class="dcl-footer">Aura ERP · 安全電子簽署</div>
+</div>
+
+<script>
+  const canvas = document.getElementById('dcl-pad');
+  const ph = document.getElementById('dcl-pad-ph');
+  const pad = new SignaturePad(canvas, { penColor: '#13204f', minWidth: 1.2, maxWidth: 2.6 });
+
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const data = pad.toData();
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext('2d').scale(ratio, ratio);
+    pad.clear();
+    if (data && data.length) pad.fromData(data);
+    togglePh();
+  }
+  function togglePh() { ph.style.display = pad.isEmpty() ? 'flex' : 'none'; }
+
+  pad.addEventListener('endStroke', togglePh);
+  window.addEventListener('resize', resizeCanvas);
+  setTimeout(resizeCanvas, 50);
+
+  document.getElementById('dcl-clear').addEventListener('click', () => { pad.clear(); togglePh(); });
+
+  document.getElementById('dcl-form').addEventListener('submit', (e) => {
+    if (pad.isEmpty()) {
+      e.preventDefault();
+      alert('請先手寫簽名後再送出。');
+      return;
+    }
+    document.getElementById('dcl-signature').value = pad.toDataURL('image/png');
+  });
+</script>
+
+</body>
+</html>

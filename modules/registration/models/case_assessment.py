@@ -75,6 +75,16 @@ class CaseAssessment(BaseModel):
 
     note = models.TextField(_('說明'), blank=True, null=True)
 
+    # 關係人（所有權人/實質受益人）聲明書連結：洗錢防制評估的佐證來源。
+    # 同 module 直接關聯；一份評估表對應一份聲明書（一對一語意，用可空 FK 容許晚綁/改綁）。
+    beneficial_owner_declaration = models.ForeignKey(
+        'registration.BeneficialOwnerDeclaration',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='case_assessments',
+        verbose_name=_('關係人聲明書'),
+    )
+
     class Meta:
         verbose_name = _('案件評估表')
         verbose_name_plural = _('案件評估表')

@@ -297,6 +297,13 @@
         : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
     工作清單
 </button>
+
+<button type="button" @click="activeTab = 'tab_intake'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_intake'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    收料
+</button>
 {% endblock %}
 
 {% block tabs_content %}
@@ -712,6 +719,28 @@
             </table>
         </div>
     </div>
+</div>
+
+<!-- Tab 5: 收料 -->
+<div x-show="activeTab === 'tab_intake'" x-cloak class="py-4">
+    {% if object.pk %}
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <h3 class="font-bold text-slate-700 text-sm">向客戶收件</h3>
+            <p class="text-xs text-slate-400 mt-0.5">勾選要收的文件 → 產生上傳連結（MagicLink）寄給客戶 → 客戶逐項上傳，全到齊後通知你。檔案存入「登記資料庫」。</p>
+        </div>
+        <div class="p-5">
+            <a href="{% url 'case_management:intake_workbench' progress_pk=object.pk %}?company={{ object.company_name|urlencode }}&registration_no={{ object.registration_no|urlencode }}"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                開啟收料工作台
+            </a>
+            <p class="text-xs text-slate-400 mt-3">收料的開單、進度追蹤與連結補發都在工作台操作。</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center text-sm text-slate-400 py-10">請先儲存此登記案，才能開始收料。</div>
+    {% endif %}
 </div>
 {% endblock %}
 

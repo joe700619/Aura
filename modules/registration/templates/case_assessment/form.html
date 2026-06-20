@@ -281,5 +281,41 @@
         {{ form.note }}
         {{ form.note.errors }}
     </div>
+
+    <div class="mt-6 pt-4 border-t border-slate-100">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-1 h-4 bg-amber-500 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">關係人聲明書（洗錢防制佐證）</h4>
+        </div>
+        <div class="max-w-xl">
+            <label class="block text-sm font-medium text-slate-700 mb-1">連結的聲明書</label>
+            {{ form.beneficial_owner_declaration }}
+            {{ form.beneficial_owner_declaration.errors }}
+            <p class="mt-1 text-xs text-slate-400">系統已依統編／案號／公司名帶出建議，可手動更換或清除。</p>
+
+            {% with decl=form.instance.beneficial_owner_declaration %}
+            {% if decl %}
+            <div class="mt-3 p-3 bg-amber-50/60 border border-amber-200 rounded-md text-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="text-slate-700">
+                        <div class="font-medium">{{ decl.company_name }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">
+                            代表人職稱：{{ decl.representative_title }}
+                            · 簽署：{{ decl.signed_at|date:"Y-m-d H:i" }}
+                            {% if decl.signer_email %}· {{ decl.signer_email }}{% endif %}
+                        </div>
+                    </div>
+                    {% if decl.rendered_document and decl.rendered_document.file %}
+                    <a href="{{ decl.rendered_document.file.url }}" target="_blank" rel="noopener"
+                       class="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-amber-300 text-amber-700 rounded-md text-xs font-bold hover:bg-amber-50">
+                        查看 PDF
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -1,9 +1,10 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     Case, CaseTask, CaseReply, CaseAttachment,
     CaseAccessToken, CaseNotificationPreference, CaseNotificationLog,
-    Inquiry,
+    Inquiry, IntakeDocTypeHelp,
 )
 
 
@@ -85,6 +86,12 @@ class CaseNotificationLogAdmin(admin.ModelAdmin):
     search_fields = ('recipient_email', 'case__title')
     readonly_fields = ('case', 'event', 'channel', 'recipient_user', 'recipient_email',
                        'sent_at', 'error_message', 'created_at', 'updated_at')
+
+
+@admin.register(IntakeDocTypeHelp)
+class IntakeDocTypeHelpAdmin(SimpleHistoryAdmin):
+    list_display = ('doc_type', 'help_url', 'note', 'is_active')
+    list_filter = ('is_active',)
 
 
 @admin.register(Inquiry)

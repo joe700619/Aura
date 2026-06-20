@@ -11,6 +11,10 @@ from .views import (
     BookkeepingClientLookupView, StaffUserLookupView,
     ClientCaseAnalyticsView,
     InquiryListView, InquiryDetailView, InquiryUpdateView, InquiryClaimView,
+    IntakeWorkbenchView, IntakeReissueLinkView,
+    ExternalIntakeView, ExternalIntakeUploadView, ExternalIntakeSubmitView,
+    ExternalIntakeDeleteFileView,
+    ExternalDeclarationView, ExternalDeclarationSubmitView,
 )
 
 app_name = 'case_management'
@@ -22,6 +26,17 @@ urlpatterns = [
     path('api/users/lookup/', StaffUserLookupView.as_view(), name='api_user_lookup'),
     path('access/<str:token>/', ExternalCaseAccessView.as_view(), name='external_access'),
     path('access/<str:token>/reply/', ExternalCaseReplyView.as_view(), name='external_reply'),
+
+    # 商工登記收料：承辦工作台（掛 Progress 詳情頁）
+    path('intake/progress/<int:progress_pk>/', IntakeWorkbenchView.as_view(), name='intake_workbench'),
+    path('intake/case/<int:pk>/reissue-link/', IntakeReissueLinkView.as_view(), name='intake_reissue_link'),
+    # 商工登記收料：客戶端免登入上傳
+    path('intake/access/<str:token>/', ExternalIntakeView.as_view(), name='intake_external'),
+    path('intake/access/<str:token>/upload/<int:task_id>/', ExternalIntakeUploadView.as_view(), name='intake_external_upload'),
+    path('intake/access/<str:token>/upload/<int:task_id>/delete/<int:doc_id>/', ExternalIntakeDeleteFileView.as_view(), name='intake_external_delete'),
+    path('intake/access/<str:token>/declaration/<int:task_id>/', ExternalDeclarationView.as_view(), name='intake_declaration'),
+    path('intake/access/<str:token>/declaration/<int:task_id>/submit/', ExternalDeclarationSubmitView.as_view(), name='intake_declaration_submit'),
+    path('intake/access/<str:token>/submit/', ExternalIntakeSubmitView.as_view(), name='intake_external_submit'),
     path('<int:pk>/', InternalCaseDetailView.as_view(), name='internal_detail'),
     path('<int:pk>/reply/', InternalCaseReplyView.as_view(), name='internal_reply'),
     path('<int:pk>/status/', InternalCaseStatusUpdateView.as_view(), name='internal_status'),

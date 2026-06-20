@@ -185,7 +185,8 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
             'appendix_2', 'appendix_2_note',
             'appendix_3', 'appendix_3_note',
             'appendix_4', 'appendix_4_note',
-            'note'
+            'note',
+            'beneficial_owner_declaration',
         ]
         widgets = {
             'company_name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
@@ -218,6 +219,7 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
             'appendix_4_note': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
 
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 4}),
+            'beneficial_owner_declaration': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -227,6 +229,41 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
         self.fields['needs_reporting'].required = False
         if self.instance and self.instance.pk and self.instance.company_name:
             self.fields['search_customer'].widget.button_label = self.instance.company_name
+        self._setup_declaration_field()
+
+    def _setup_declaration_field(self):
+        """關係人聲明書：下拉可選全部，並依本案統編/案號/公司名智慧預設最新一份。"""
+        from django.db.models import Q
+        from .models import BeneficialOwnerDeclaration
+
+        field = self.fields['beneficial_owner_declaration']
+        field.required = False
+        field.label = _('關係人聲明書')
+        field.empty_label = '— 未連結 —'
+        field.queryset = (
+            BeneficialOwnerDeclaration.objects
+            .filter(is_deleted=False)
+            .select_related('progress')
+            .order_by('-signed_at')
+        )
+
+        inst = self.instance
+        if not (inst and inst.pk):
+            return
+        # 已連結就不動；未連結才依鍵值帶出建議
+        if inst.beneficial_owner_declaration_id:
+            return
+        conds = Q()
+        if inst.unified_business_no:
+            conds |= Q(progress__unified_business_no=inst.unified_business_no)
+        if inst.registration_no:
+            conds |= Q(progress__registration_no=inst.registration_no)
+        if inst.company_name:
+            conds |= Q(progress__company_name=inst.company_name)
+        if conds:
+            best = field.queryset.filter(conds).first()
+            if best:
+                self.initial['beneficial_owner_declaration'] = best.pk
 
 class ShareholderForm(forms.ModelForm):
     class Meta:

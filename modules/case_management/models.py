@@ -102,13 +102,46 @@ class CaseTask(BaseModel):
         INTERNAL = 'internal', '內部處理'
         EXTERNAL = 'external', '請客戶提供'
 
+    # 鏡像 registration.RegistrationDocument.DocType。
+    # 刻意「複製值」而非 import，讓 case_management 不依賴 registration model（避免雙向耦合）；
+    # 值必須與 registration 端一致，落檔 service 才會收到正確的 doc_type 字串。
+    class CollectedDocType(models.TextChoices):
+        # 收料清單可勾選的文件型別。值須與 registration.RegistrationDocument.DocType 對齊
+        # （刻意複製不 import，維持單向依賴）。warehouse 端多一個 photo（股東代表照），不在此清單。
+        ID_CARD = 'id_card', '身分證影本'
+        NHI_CARD = 'nhi_card', '負責人健保卡影本'
+        LEASE = 'lease', '租約或使用同意書影本'
+        HOUSE_TAX = 'house_tax', '房屋稅單或建物權狀影本'
+        BANKBOOK_COVER = 'bankbook_cover', '存摺封面影本'
+        BANKBOOK_AMOUNT = 'bankbook_amount', '存摺金額頁影本'
+        BANKBOOK_TERMS = 'bankbook_terms', '存摺約定條款影本'
+        BALANCE_PROOF = 'balance_proof', '餘額證明影本'
+        FUND_SOURCE = 'fund_source', '資金來源證明影本'
+        OTHER = 'other', '其他'
+
+    class ItemKind(models.TextChoices):
+        DOCUMENT = 'document', '文件上傳'
+        DECLARATION = 'declaration', '聲明書簽署'
+
     case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='tasks', verbose_name="所屬案件")
     title = models.CharField(max_length=300, verbose_name="待辦項目")
     note = models.TextField(blank=True, verbose_name="備註")
+    # 收料項目的互動型態：document=客戶上傳檔案；declaration=客戶填寫並手寫簽署聲明書
+    item_kind = models.CharField(
+        max_length=20, choices=ItemKind.choices, default=ItemKind.DOCUMENT, verbose_name="項目型態"
+    )
+    # 聲明書項目用：承辦預填的「所從事之交易」（客戶端可校對）
+    declaration_transaction = models.CharField(max_length=200, blank=True, verbose_name="聲明書交易內容")
     assignee_type = models.CharField(
         max_length=10, choices=Assignee.choices, default=Assignee.INTERNAL, verbose_name="責任歸屬"
     )
     due_date = models.DateField(null=True, blank=True, verbose_name="期限")
+
+    # 收件清單項目時，標記此項要客戶上傳哪一型別的文件（決定落檔到 RegistrationDocument 的 doc_type）。
+    target_doc_type = models.CharField(
+        max_length=20, choices=CollectedDocType.choices,
+        null=True, blank=True, verbose_name="收料文件型別",
+    )
 
     is_done = models.BooleanField(default=False, verbose_name="是否完成")
     done_at = models.DateTimeField(null=True, blank=True, verbose_name="完成時間")
@@ -118,6 +151,16 @@ class CaseTask(BaseModel):
     )
     is_hidden = models.BooleanField(default=False, verbose_name="從清單隱藏")
     order = models.PositiveIntegerField(default=0, verbose_name="排序")
+
+    # 收件清單復用 case_management 當後端管道時，逐項「已上傳」的狀態來源。
+    # 檔案本體落在獨立登記資料庫 RegistrationDocument；一項可對多檔，故用 M2M。
+    # 關聯宣告在 case_management 這側（string ref），維持單向依賴、不形成循環。
+    satisfied_by_documents = models.ManyToManyField(
+        'registration.RegistrationDocument',
+        blank=True,
+        related_name='satisfied_tasks',
+        verbose_name="滿足此項的登記文件",
+    )
 
     class Meta:
         verbose_name = "案件待辦"
@@ -338,6 +381,34 @@ class CaseTaskTemplate(BaseModel):
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.title}"
+
+
+class IntakeDocTypeHelp(BaseModel):
+    """收料文件型別的「說明」設定。
+
+    客戶上傳頁每一項旁邊的「點我看說明」按鈕，連到此處設定的操作影片 / 說明文件。
+    一個 doc_type 一列，承辦在 admin 自行維護。以字串對應 CaseTask.CollectedDocType，
+    不 import registration，維持 case_management 單向不依賴 registration（收料鐵則）。
+    """
+
+    doc_type = models.CharField(
+        max_length=20, choices=CaseTask.CollectedDocType.choices,
+        unique=True, verbose_name="文件型別",
+    )
+    help_url = models.URLField(
+        verbose_name="說明連結",
+        help_text="操作影片或說明文件的網址，客戶端會以新分頁開啟",
+    )
+    note = models.CharField(max_length=200, blank=True, verbose_name="補充說明")
+    is_active = models.BooleanField(default=True, verbose_name="啟用")
+
+    class Meta:
+        verbose_name = "收料說明設定"
+        verbose_name_plural = "收料說明設定"
+        ordering = ['doc_type']
+
+    def __str__(self):
+        return f"{self.get_doc_type_display()} 說明"
 
 
 class Inquiry(BaseModel):

@@ -1,0 +1,75 @@
+{% comment %}單一收料項目（可被 HTMX swap）。參數：t (CaseTask)、token、all_done、oob_submit{% endcomment %}
+{% with docs=t.satisfied_by_documents.all %}
+<div class="intk-item {% if t.is_done %}done{% endif %}" id="intk-task-{{ t.id }}">
+  <span class="intk-check">
+    <svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+  </span>
+
+  {% if t.item_kind == 'declaration' %}
+  {# ── 聲明書項目：填寫 + 手寫簽署 ── #}
+  <div class="intk-body">
+    <div class="intk-title">{{ t.title }}</div>
+    {% if t.is_done %}
+      <div class="intk-status done">已簽署{% for d in docs %}{% if d.file %} · <a href="{{ d.file.url }}" target="_blank" rel="noopener" class="intk-doc-link">查看聲明書</a>{% endif %}{% endfor %}</div>
+    {% else %}
+      <div class="intk-status">待填寫簽署</div>
+    {% endif %}
+  </div>
+  <div class="intk-actions">
+    <a href="{% url 'case_management:intake_declaration' token=token task_id=t.id %}"
+       class="btn {% if t.is_done %}btn-ghost{% else %}btn-primary{% endif %}">
+      {% if t.is_done %}重新填寫簽署{% else %}填寫並簽署{% endif %}
+    </a>
+  </div>
+
+  {% else %}
+  {# ── 一般文件上傳項目（可多檔 + 逐檔刪除）── #}
+  <div class="intk-body">
+    <div class="intk-title">{{ t.title }}</div>
+    {% if docs %}
+      <div class="intk-files">
+        {% for d in docs %}
+        <div class="intk-file-row">
+          <span class="intk-file-name">{{ d.original_filename|default:"已上傳檔案" }}</span>
+          <button type="button" class="intk-file-del"
+                  hx-post="{% url 'case_management:intake_external_delete' token=token task_id=t.id doc_id=d.id %}"
+                  hx-target="#intk-task-{{ t.id }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="確定要刪除「{{ d.original_filename|default:'這份檔案' }}」嗎？">刪除</button>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="intk-status">待上傳</div>
+    {% endif %}
+  </div>
+  <div class="intk-actions">
+    {% if t.help and t.help.help_url %}
+    <a href="{{ t.help.help_url }}" target="_blank" rel="noopener"
+       class="btn btn-ghost btn-help"{% if t.help.note %} title="{{ t.help.note }}"{% endif %}>
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9a3.001 3.001 0 015.772 1c0 2-3 2-3 4M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      點我看說明
+    </a>
+    {% endif %}
+    <form class="intk-upload"
+          hx-post="{% url 'case_management:intake_external_upload' token=token task_id=t.id %}"
+          hx-target="#intk-task-{{ t.id }}"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" name="file" id="file-{{ t.id }}" class="intk-file" multiple
+             onchange="this.form.requestSubmit()">
+      <label for="file-{{ t.id }}" class="btn {% if docs %}btn-ghost{% else %}btn-primary{% endif %}">
+        {% if docs %}新增檔案{% else %}選擇檔案上傳{% endif %}
+      </label>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endwith %}
+
+{% if oob_submit %}
+<div id="intk-submit-area" hx-swap-oob="true">
+  {% include 'case_management/external/_intake_submit.html' with token=token all_done=all_done %}
+</div>
+{% endif %}

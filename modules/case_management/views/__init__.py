@@ -15,6 +15,12 @@ from .analytics import ClientCaseAnalyticsView
 from .inquiry import (
     InquiryListView, InquiryDetailView, InquiryUpdateView, InquiryClaimView,
 )
+from .intake import (
+    IntakeWorkbenchView, IntakeReissueLinkView,
+    ExternalIntakeView, ExternalIntakeUploadView, ExternalIntakeSubmitView,
+    ExternalIntakeDeleteFileView,
+    ExternalDeclarationView, ExternalDeclarationSubmitView,
+)
 
 __all__ = [
     'InternalCaseListView', 'InternalCaseDetailView', 'InternalCaseCreateView',
@@ -28,4 +34,8 @@ __all__ = [
     'BookkeepingClientLookupView', 'StaffUserLookupView',
     'ClientCaseAnalyticsView',
     'InquiryListView', 'InquiryDetailView', 'InquiryUpdateView', 'InquiryClaimView',
+    'IntakeWorkbenchView', 'IntakeReissueLinkView',
+    'ExternalIntakeView', 'ExternalIntakeUploadView', 'ExternalIntakeSubmitView',
+    'ExternalIntakeDeleteFileView',
+    'ExternalDeclarationView', 'ExternalDeclarationSubmitView',
 ]

@@ -1,6 +1,11 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
-from .models import ClientAssessment, CaseAssessment, Shareholder, ShareholderRegister, EquityTransaction, CompanyFiling, Progress, VATEntityChange
+from simple_history.admin import SimpleHistoryAdmin
+from .models import (
+    ClientAssessment, CaseAssessment, Shareholder, ShareholderRegister,
+    EquityTransaction, CompanyFiling, Progress, VATEntityChange,
+    RegistrationDocument, BeneficialOwnerDeclaration,
+)
 
 
 def restore_deleted(_modeladmin, _request, queryset):
@@ -19,6 +24,21 @@ class ClientAssessmentAdmin(ImportExportModelAdmin):
     def get_queryset(self, _request):
         # 顯示全部資料（包含已軟刪除），方便在 admin 找回
         return self.model._default_manager.all()
+
+
+@admin.register(RegistrationDocument)
+class RegistrationDocumentAdmin(SimpleHistoryAdmin):
+    list_display = ['doc_type', 'owner_name', 'owner_id_number', 'source', 'progress', 'is_deleted', 'created_at']
+    list_filter = ['doc_type', 'source', 'is_deleted']
+    search_fields = ['owner_name', 'owner_id_number', 'original_filename']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(BeneficialOwnerDeclaration)
+class BeneficialOwnerDeclarationAdmin(SimpleHistoryAdmin):
+    list_display = ['company_name', 'representative_title', 'signed_at', 'signer_email', 'progress']
+    search_fields = ['company_name', 'signer_email']
+    readonly_fields = ['created_at', 'updated_at', 'signed_at']
 
 
 @admin.register(CaseAssessment)
