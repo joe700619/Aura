@@ -1,0 +1,100 @@
+"""記帳委任書：渲染、簽署投影、婉拒。
+
+簽署成立＝投影：凍結快照 → 建 BookkeepingClient（未指派，自動進交接 SLA 收件匣）
+→ 投影 ServiceFee（生效日＝開始委任日）→ 翻來源 Inquiry 為已成交。
+與 intake→孤島、SLA 同哲學：未簽不生客戶、髒資料不落地。
+"""
+import logging
+
+from django.db import transaction
+from django.template import Context, Template
+from django.utils import timezone
+
+from ..models import BookkeepingClient, EngagementLetter, ServiceFee
+
+logger = logging.getLogger(__name__)
+
+
+def render_letter_html(letter: EngagementLetter) -> str:
+    """用委任書採用的範本版本 + 本件資料渲染條款本文。
+
+    預覽（公開頁待簽時）與簽署凍結都走這支，確保所見即所簽。
+    """
+    tpl = Template(letter.template_version.body_html)
+    ctx = Context({
+        'company_name': letter.company_name,
+        'tax_id': letter.tax_id,
+        'contact_name': letter.contact_name,
+        'engagement_start_date': letter.engagement_start_date,
+        'pricing_type': letter.get_pricing_type_display(),
+        'service_fee': letter.service_fee,
+        'ledger_fee': letter.ledger_fee,
+        'billing_cycle': letter.get_billing_cycle_display(),
+        'fee_note': letter.fee_note,
+        'today': timezone.now().date(),
+    })
+    return tpl.render(ctx)
+
+
+@transaction.atomic
+def sign_letter(letter: EngagementLetter, ip=None) -> BookkeepingClient:
+    """客戶按同意時呼叫。idempotent：已簽則直接回傳已建客戶。"""
+    if letter.status == EngagementLetter.Status.SIGNED:
+        return letter.created_client
+
+    # ① 凍結快照（簽署那刻的渲染內容，永不重生）
+    letter.rendered_snapshot = render_letter_html(letter)
+    letter.status = EngagementLetter.Status.SIGNED
+    letter.signed_at = timezone.now()
+    letter.signer_ip = ip
+
+    # ② 建 / 連記帳客戶。有統編則 get_or_create（避免重複建檔）；無統編直接建。
+    client_defaults = {
+        'name': letter.company_name,
+        'client_source': letter.client_source,
+        'email': letter.contact_email,
+        'contact_person': letter.contact_name,
+        'phone': letter.contact_phone,
+    }
+    created = False
+    if letter.tax_id:
+        client, created = BookkeepingClient.objects.get_or_create(
+            tax_id=letter.tax_id, is_deleted=False,
+            defaults=client_defaults,
+        )
+    else:
+        client = BookkeepingClient.objects.create(**client_defaults)
+        created = True
+
+    # ③ 投影 ServiceFee（只在新建客戶時，避免動到既有客戶的計費歷史）
+    if created:
+        ServiceFee.objects.create(
+            client=client,
+            service_fee=letter.service_fee,
+            ledger_fee=letter.ledger_fee,
+            billing_cycle=letter.billing_cycle,
+            effective_date=letter.engagement_start_date,
+            notes=letter.fee_note,
+        )
+
+    letter.created_client = client
+    letter.save()
+
+    # ④ 翻來源 Inquiry 為已成交（跨模組走 service）
+    if letter.inquiry_id:
+        from modules.case_management.services import mark_inquiry_converted
+        mark_inquiry_converted(letter.inquiry_id)
+
+    logger.info('記帳委任書簽署投影完成：letter=%s client=%s(created=%s)',
+                letter.pk, client.pk, created)
+    return client
+
+
+def decline_letter(letter: EngagementLetter, reason: str = '') -> None:
+    """客戶婉拒。不建客戶；Inquiry 維持原狀由承辦決定是否標未成交。"""
+    if letter.status in (EngagementLetter.Status.SIGNED,
+                         EngagementLetter.Status.DECLINED):
+        return
+    letter.status = EngagementLetter.Status.DECLINED
+    letter.decline_reason = reason
+    letter.save(update_fields=['status', 'decline_reason', 'updated_at'])

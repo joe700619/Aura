@@ -229,7 +229,22 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'bookkeeping.send_remuneration_reminders',
         'schedule': crontab(hour=9, minute=0, day_of_month=1),
     },
+    # 每日早上 9:30 掃描記帳交接 SLA（遲未指派/遲未首次聯繫）並發催促 digest
+    'send-onboarding-sla-reminders-daily': {
+        'task': 'bookkeeping.send_onboarding_sla_reminders',
+        'schedule': crontab(hour=9, minute=30),
+    },
 }
+
+# 記帳客戶 onboarding 斷點 SLA 門檻（日曆天）。見《商工登記_端到端流程架構》§11.5。
+ONBOARDING_SLA_ASSIGN_DAYS = 2      # 時鐘A：簽約建檔後遲未指派助理
+ONBOARDING_SLA_CONTACT_DAYS = 3     # 時鐘B：指派後遲未首次聯繫客戶
+ONBOARDING_SLA_ESCALATE_DAYS = 7    # 任一逾此天數 → 升級副知合夥人
+ONBOARDING_SLA_GROUP_LEAD_GROUP = 'management'  # 收未指派/未聯繫提醒（沿用既有管理層群組）
+ONBOARDING_SLA_PARTNER_GROUP = 'CPA'            # 收第 7 天升級提醒（沿用既有會計師/合夥人群組）
+
+# 記帳委任書基礎方案月費（預帶值；少數客製案承辦自行改）。
+BOOKKEEPING_BASE_MONTHLY_FEE = 2000
 
 
 AUTH_USER_MODEL = 'core.User'

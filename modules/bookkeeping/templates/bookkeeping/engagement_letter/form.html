@@ -1,0 +1,56 @@
+{% extends 'components/form_view.html' %}
+
+{% block page_title %}{% if object %}編輯記帳委任書 - {{ object.company_name }}{% else %}新增記帳委任書{% endif %}{% endblock %}
+
+{% block toolbar_nav %}
+{{ block.super }}
+<a href="{% url 'bookkeeping:engagement_list' %}"
+   class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300">回列表</a>
+{% endblock %}
+
+{% block form_card_1 %}
+<div class="space-y-4">
+  <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+    <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+    <h4 class="font-bold text-slate-800 text-sm">公司與聯絡資料</h4>
+  </div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">公司名稱 *</label>{{ form.company_name }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">統一編號</label>{{ form.tax_id }}
+    <p class="text-xs text-slate-500 mt-1">新設立公司若統編尚未核發可留空</p></div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">聯絡人</label>{{ form.contact_name }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">Email</label>{{ form.contact_email }}
+    <p class="text-xs text-slate-500 mt-1">發送委任書連結用</p></div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">電話</label>{{ form.contact_phone }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">客戶來源</label>{{ form.client_source }}</div>
+</div>
+{% endblock %}
+
+{% block form_card_2 %}
+<div class="space-y-4">
+  <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+    <div class="w-1 h-4 bg-emerald-500 rounded-full"></div>
+    <h4 class="font-bold text-slate-800 text-sm">委任內容</h4>
+  </div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">開始委任日期 *</label>{{ form.engagement_start_date }}
+    <p class="text-xs text-slate-500 mt-1">配合營業稅週期，通常從最近要申報的營業稅期起算</p></div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">來源諮詢（選填）</label>{{ form.inquiry }}
+    <p class="text-xs text-slate-500 mt-1">連結潛在客戶，簽成後自動標記為已成交</p></div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">來源工商案號（選填）</label>{{ form.progress_no }}</div>
+</div>
+{% endblock %}
+
+{% block form_card_3 %}
+<div class="space-y-4">
+  <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+    <div class="w-1 h-4 bg-amber-500 rounded-full"></div>
+    <h4 class="font-bold text-slate-800 text-sm">收費</h4>
+  </div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">收費方案</label>{{ form.pricing_type }}
+    <p class="text-xs text-slate-500 mt-1">預設基礎方案；客製請改下方金額並填說明</p></div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">每月服務費 *</label>{{ form.service_fee }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">帳簿費</label>{{ form.ledger_fee }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">收費週期</label>{{ form.billing_cycle }}</div>
+  <div><label class="block text-sm font-medium text-slate-700 mb-1">費用說明</label>{{ form.fee_note }}
+    <p class="text-xs text-slate-500 mt-1">客製方案說明複雜度原因（發票量大／兼營／外幣帳…）</p></div>
+</div>
+{% endblock %}

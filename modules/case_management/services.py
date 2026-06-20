@@ -1,8 +1,21 @@
-"""案件管理共用 helpers"""
+"""案件管理共用 helpers / 對外 service"""
 from datetime import timedelta
 
 
 GROUPING_WINDOW = timedelta(minutes=5)
+
+
+def mark_inquiry_converted(inquiry_id):
+    """把潛在客戶標記為已成交（供其他模組於委任成立時呼叫）。
+
+    跨 module 寫 Inquiry 一律走這支，不讓他模組直接操作 Inquiry.objects。
+    idempotent：已成交則不動。回傳是否有更新。
+    """
+    from .models import Inquiry
+    updated = Inquiry.objects.filter(pk=inquiry_id).exclude(
+        status=Inquiry.Status.CONVERTED
+    ).update(status=Inquiry.Status.CONVERTED)
+    return bool(updated)
 
 
 def annotate_reply_display(replies):

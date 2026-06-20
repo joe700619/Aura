@@ -17,6 +17,7 @@ from .business_registration import BusinessRegistration, BusinessRegistrationDoc
 from .service_remuneration import ServiceRemuneration, ServiceRemunerationTaxRate, NHIConfig
 from .corporate_tax import CorporateTaxFiling, TaxAdjustmentEntry
 from .billing import ServiceFee, ClientBill, ClientBillItem
+from .engagement_letter import EngagementLetterTemplate, EngagementLetter
 
 from .expert_system import ClientRuleSetting, RuleAlert
 from .industry_tax_rate import IndustryTaxRate
@@ -51,6 +52,8 @@ __all__ = [
     'ServiceFee',
     'ClientBill',
     'ClientBillItem',
+    'EngagementLetterTemplate',
+    'EngagementLetter',
     'CorporateTaxFiling',
     'TaxAdjustmentEntry',
     'ClientRuleSetting',

@@ -7,6 +7,16 @@ from modules.bookkeeping.views.bookkeeping_client import (
     BookkeepingClientUpdateView,
     BookkeepingClientDeleteView,
 )
+from modules.bookkeeping.views.onboarding_dashboard import OnboardingDashboardView
+from modules.bookkeeping.views.engagement_letter import (
+    EngagementLetterListView,
+    EngagementLetterCreateView,
+    EngagementLetterUpdateView,
+    EngagementLetterDetailView,
+    EngagementLetterSendView,
+    EngagementLetterDeleteView,
+    EngagementLetterPublicView,
+)
 from modules.bookkeeping.views.group_invoice_report import (
     GroupInvoiceReportView,
     GroupInvoiceExportView,
@@ -69,6 +79,19 @@ app_name = 'bookkeeping'
 
 urlpatterns = [
     path('vat/', VATListView.as_view(), name='vat_list'),
+
+    # 記帳交接儀表板（組長保險絲）
+    path('onboarding/', OnboardingDashboardView.as_view(), name='onboarding_dashboard'),
+
+    # 記帳委任書（斷點）
+    path('engagement-letters/', EngagementLetterListView.as_view(), name='engagement_list'),
+    path('engagement-letters/add/', EngagementLetterCreateView.as_view(), name='engagement_create'),
+    path('engagement-letters/<int:pk>/', EngagementLetterDetailView.as_view(), name='engagement_detail'),
+    path('engagement-letters/<int:pk>/edit/', EngagementLetterUpdateView.as_view(), name='engagement_update'),
+    path('engagement-letters/<int:pk>/send/', EngagementLetterSendView.as_view(), name='engagement_send'),
+    path('engagement-letters/<int:pk>/delete/', EngagementLetterDeleteView.as_view(), name='engagement_delete'),
+    # 客戶端免登入簽署頁
+    path('engagement/<uuid:token>/', EngagementLetterPublicView.as_view(), name='engagement_public'),
 
     # 記帳客戶基本資料
     path('clients/', BookkeepingClientListView.as_view(), name='client_list'),

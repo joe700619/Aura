@@ -25,10 +25,31 @@ from .models import (
     ServiceRemunerationTaxRate,
     NHIConfig,
     TaxUnit,
+    EngagementLetterTemplate,
+    EngagementLetter,
 )
 from .models.bookkeeping_client import DEFAULT_PORTAL_PASSWORD
 from modules.hr.models import Employee
 from core.auth.models import User
+from simple_history.admin import SimpleHistoryAdmin
+
+
+@admin.register(EngagementLetterTemplate)
+class EngagementLetterTemplateAdmin(SimpleHistoryAdmin):
+    list_display = ('version', 'title', 'status', 'effective_from', 'updated_at')
+    list_filter = ('status',)
+    readonly_fields = ('version',)
+    ordering = ('-version',)
+
+
+@admin.register(EngagementLetter)
+class EngagementLetterAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'tax_id', 'status', 'engagement_start_date',
+                    'pricing_type', 'service_fee', 'created_client')
+    list_filter = ('status', 'pricing_type', 'client_source')
+    search_fields = ('company_name', 'tax_id', 'contact_name')
+    readonly_fields = ('token', 'rendered_snapshot', 'signed_at', 'signer_ip',
+                       'created_client')
 
 
 class BookkeepingClientResource(resources.ModelResource):

@@ -100,3 +100,18 @@ def send_remuneration_reminders() -> dict:
     call_command('send_remuneration_reminders')
     logger.info('勞報繳費提醒 task 執行完成')
     return {'ok': True}
+
+
+@shared_task(name='bookkeeping.send_onboarding_sla_reminders')
+def send_onboarding_sla_reminders() -> dict:
+    """每日記帳交接 SLA 催促（Celery Beat 每日觸發）。
+
+    掃描遲未指派 / 遲未首次聯繫的 onboarding 客戶，發 digest 給組長/助理/合夥人。
+    走 management command 同一條路，admin 的 ScheduledJob 狀態會一併更新；
+    手動測試：docker compose exec web python manage.py send_onboarding_sla_reminders --dry-run
+    """
+    from django.core.management import call_command
+
+    call_command('send_onboarding_sla_reminders')
+    logger.info('記帳交接 SLA 催促 task 執行完成')
+    return {'ok': True}
