@@ -189,3 +189,42 @@ def sync_vat_completion_to_progress(sender, instance, **kwargs):
             registration_no=instance.registration_no,
             progress_status__lt=Progress.ProgressStatus.CLOSED
         ).update(progress_status=Progress.ProgressStatus.CLOSED)
+
+
+def _has_setup_service(progress):
+    """報價單服務項目代碼/名稱以 3.01 開頭 = 公司登記設立。"""
+    qd = progress.quotation_data
+    if not isinstance(qd, list):
+        return False
+    for item in qd:
+        if not isinstance(item, dict):
+            continue
+        for key in ('service_code', 'service_name'):
+            if str(item.get(key) or '').strip().startswith('3.01'):
+                return True
+    return False
+
+
+@receiver(post_save, sender=Progress)
+def auto_create_engagement_draft(sender, instance, created, **kwargs):
+    """工商案結案 + 報價含設立(3.01) → 自動建記帳委任書草稿。
+
+    觸發時機：Progress 存檔，且進度=結案，且報價單有 3.01 開頭的服務項目。
+    副作用：呼叫 bookkeeping service 建一筆 EngagementLetter 草稿（idempotent，
+            同一案號已有委任書則略過）；開始委任日/email 留空待承辦補。
+    跨模組經 service call（傳純值，不直接操作 bookkeeping model）。
+    註：VATEntityChange 自動結案走 QuerySet.update() 不觸發本 signal，
+        該情境由承辦於工商頁手動結案時補觸發。
+    """
+    if instance.progress_status != Progress.ProgressStatus.CLOSED:
+        return
+    if not _has_setup_service(instance):
+        return
+    from modules.bookkeeping.services.engagement_letter import create_draft_from_progress
+    create_draft_from_progress(
+        progress_no=instance.registration_no,
+        company_name=instance.company_name,
+        tax_id=instance.unified_business_no or '',
+        contact_name=instance.main_contact or '',
+        contact_phone=instance.mobile or instance.phone or '',
+    )
