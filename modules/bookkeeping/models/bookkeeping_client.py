@@ -45,6 +45,7 @@ class BookkeepingClient(BaseModel):
         KEEP = 'keep', '自留'
         MERGE = 'merge', '併同其他客戶'
         CLIENT_PICKUP = 'client_pickup', '客戶自己拿來'
+        PURCHASE_BY_CLIENT = 'purchase_by_client', '客戶自己買'
         OTHER = 'other', '其他'
 
     class ReceiveInvoiceMethod(models.TextChoices):
