@@ -8,74 +8,170 @@
     <title>付款確認 - {{ progress.company_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- 勤信 Design System Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        [x-cloak] {
-            display: none !important;
+        /* ── 勤信 Design System tokens ── */
+        :root {
+            --ink-700:#2e2b27; --ink-300:#cfc9bd; --ink-200:#e6e2d9;
+            --primary:#1a1816; --primary-hover:#0d0c0b; --primary-ring:rgba(26,24,22,0.12);
+            --accent:#a0332a; --accent-hover:#8a2a22; --accent-soft:#fbf1ef; --accent-border:#f0ccc8;
+            --success:#5a7a4f;
+            --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194; --fg-on-primary:#faf8f5;
+            --bg-page:#faf8f5; --bg-panel:#ffffff; --bg-subtle:#f2efe9;
+            --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+            --font-serif:"Noto Serif TC","PMingLiU",serif;
+            --font-sans:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+            --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+            --shadow-sm:0 1px 3px rgba(26,24,22,0.06),0 1px 2px rgba(26,24,22,0.04);
+            --shadow-md:0 4px 12px rgba(26,24,22,0.06),0 2px 4px rgba(26,24,22,0.04);
+            --ease-out:cubic-bezier(0.22,0.61,0.36,1); --dur-fast:120ms; --dur-med:200ms;
         }
+        [x-cloak] { display:none !important; }
+        body {
+            font-family:var(--font-sans); color:var(--fg2); background:var(--bg-page);
+            -webkit-font-smoothing:antialiased;
+        }
+        h1, h2, h3 { font-family:var(--font-serif); color:var(--fg1); }
+
+        /* ── Card ── */
+        .pf-card {
+            background:var(--bg-panel); border:1px solid var(--border-subtle);
+            border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-sm);
+        }
+        .pf-card-header {
+            display:flex; align-items:center; gap:10px;
+            padding:16px 22px; border-bottom:1px solid var(--border-subtle); background:var(--bg-page);
+        }
+        .pf-step-num {
+            flex-shrink:0; width:24px; height:24px; border-radius:50%;
+            background:var(--primary); color:var(--fg-on-primary);
+            display:flex; align-items:center; justify-content:center;
+            font-family:var(--font-sans); font-size:13px; font-weight:600;
+        }
+        .pf-card-title { font-family:var(--font-serif); font-size:16px; font-weight:700; color:var(--fg1); margin:0; }
+
+        /* ── Field ── */
+        .pf-label {
+            display:block; font-size:13px; font-weight:600; color:var(--fg1);
+            letter-spacing:0.02em; margin-bottom:6px;
+        }
+        .pf-req { color:var(--accent); }
+        .pf-input {
+            width:100%; box-sizing:border-box; padding:9px 12px;
+            border:1px solid var(--border-default); border-radius:var(--radius-sm);
+            background:#fff; font-family:var(--font-sans); font-size:14px; color:var(--fg1);
+            outline:none; transition:border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+        }
+        .pf-input:focus { border-color:var(--ink-700); box-shadow:0 0 0 3px var(--primary-ring); }
+
+        /* ── recipient_* 強調：放大 + 加粗 + 紅色 ── */
+        .pf-input-emphasis {
+            font-size:18px; font-weight:700; color:var(--accent);
+        }
+        .pf-input-emphasis::placeholder { color:var(--accent-border); font-weight:400; }
+
+        /* ── Pickup option cards ── */
+        .pf-pickup {
+            position:relative; display:flex; align-items:center;
+            padding:16px; border:1px solid var(--border-default); border-radius:var(--radius-md);
+            cursor:pointer; transition:all var(--dur-med) var(--ease-out); background:#fff;
+        }
+        .pf-pickup:hover { border-color:var(--ink-300); }
+        .pf-pickup-active { border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 1px var(--accent); }
+        .pf-pickup-title { font-family:var(--font-serif); font-weight:700; color:var(--fg1); }
+        .pf-pickup-sub { font-size:12px; color:var(--fg3); margin-top:2px; }
+
+        /* ── Fee table ── */
+        .pf-table { width:100%; border-collapse:collapse; }
+        .pf-table thead th {
+            background:var(--bg-subtle); padding:11px 12px; text-align:left;
+            font-size:11px; font-weight:600; color:var(--fg3);
+            letter-spacing:0.06em; text-transform:uppercase; border-bottom:1px solid var(--border-subtle);
+        }
+        .pf-table thead th.right { text-align:right; }
+        .pf-table tbody td { padding:12px; border-bottom:1px solid var(--border-subtle); color:var(--fg2); font-size:14px; }
+        .pf-mono { font-family:"JetBrains Mono","SF Mono",Menlo,monospace; font-feature-settings:"tnum"; }
+        .pf-total-label { padding:16px 12px; text-align:right; font-family:var(--font-serif); font-weight:700; color:var(--fg1); }
+        .pf-total-amount { padding:16px 12px; text-align:right; font-size:22px; font-weight:700; color:var(--accent); }
+
+        /* ── Agreement ── */
+        .pf-agree {
+            display:flex; align-items:flex-start; gap:12px;
+            padding:16px; border:1px solid var(--border-subtle); border-radius:var(--radius-md);
+            cursor:pointer; transition:background var(--dur-fast) var(--ease-out);
+        }
+        .pf-agree:hover { background:var(--bg-subtle); }
+        .pf-agree-title { font-family:var(--font-serif); font-weight:700; color:var(--fg1); display:block; margin-bottom:4px; }
+        .pf-agree-body { font-size:13px; color:var(--fg2); line-height:1.6; }
+
+        /* ── CTA ── */
+        .pf-btn {
+            display:inline-flex; align-items:center; justify-content:center; gap:8px;
+            font-family:var(--font-sans); font-size:16px; font-weight:600; letter-spacing:0.02em;
+            padding:14px 32px; border-radius:var(--radius-md); border:1px solid transparent;
+            background:var(--primary); color:var(--fg-on-primary); cursor:pointer;
+            transition:all var(--dur-med) var(--ease-out);
+        }
+        .pf-btn:hover:not(:disabled) { background:var(--primary-hover); }
+        .pf-btn:disabled { background:var(--ink-200); color:var(--fg4); cursor:not-allowed; }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 antialiased" x-data="paymentForm()">
+<body class="antialiased" x-data="paymentForm()">
 
-    <div class="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="text-center mb-10">
-            <h1 class="text-2xl font-bold text-slate-900 mb-2">付款確認</h1>
-            <p class="text-slate-600">{{ progress.company_name }}</p>
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg4);margin-bottom:8px;">勤信會計師事務所</div>
+            <h1 style="font-size:26px;font-weight:700;color:var(--fg1);margin:0 0 6px;">付款確認</h1>
+            <p style="color:var(--fg3);">{{ progress.company_name }}</p>
         </div>
 
         <form method="post" action="" class="space-y-8" @submit.prevent="submitForm">
             {% csrf_token %}
 
             <!-- 1. Basic Data -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-blue-600 px-6 py-4">
-                    <h2 class="text-lg font-bold text-white flex items-center">
-                        <span
-                            class="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">1</span>
-                        基本資料與文件寄送
-                    </h2>
+            <section class="pf-card">
+                <div class="pf-card-header">
+                    <span class="pf-step-num">1</span>
+                    <h2 class="pf-card-title">基本資料與文件寄送</h2>
                 </div>
-                <div class="p-6 space-y-4">
+                <div class="p-6 space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">聯絡人 <span
-                                    class="text-red-500">*</span></label>
+                            <label class="pf-label">聯絡人 <span class="pf-req">*</span></label>
                             <input type="text" name="recipient_name" required
                                 value="{{ pr.recipient_name|default:progress.main_contact|default:'' }}"
-                                class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                class="pf-input pf-input-emphasis">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">連絡電話 <span
-                                    class="text-red-500">*</span></label>
+                            <label class="pf-label">連絡電話 <span class="pf-req">*</span></label>
                             <input type="tel" name="recipient_phone" required
                                 value="{{ pr.recipient_phone|default:progress.mobile|default:'' }}"
-                                class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                class="pf-input pf-input-emphasis">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">文件寄送地址 <span
-                                class="text-red-500">*</span></label>
+                        <label class="pf-label">文件寄送地址 <span class="pf-req">*</span></label>
                         <input type="text" name="recipient_addr" required
                             value="{{ pr.recipient_addr|default:progress.address|default:'' }}"
-                            class="w-full rounded-md border-2 border-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            class="pf-input pf-input-emphasis">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">取件方式 <span
-                                class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <label
-                                class="relative flex items-center p-4 border rounded-lg cursor-pointer transition-all"
-                                :class="pickupMethod === 'mail' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'">
-                                <input type="radio" name="pickup_method" value="mail" x-model="pickupMethod"
-                                    class="sr-only">
+                        <label class="pf-label">取件方式 <span class="pf-req">*</span></label>
+                        <div class="grid grid-cols-2 gap-4 mt-1">
+                            <label class="pf-pickup" :class="pickupMethod === 'mail' && 'pf-pickup-active'">
+                                <input type="radio" name="pickup_method" value="mail" x-model="pickupMethod" class="sr-only">
                                 <div class="flex-1">
-                                    <div class="font-bold text-slate-900">郵寄</div>
-                                    <div class="text-xs text-slate-500 mt-1">將酌收郵資 $65</div>
+                                    <div class="pf-pickup-title">郵寄</div>
+                                    <div class="pf-pickup-sub">將酌收郵資 $65</div>
                                 </div>
-                                <div class="ml-auto text-blue-600" x-show="pickupMethod === 'mail'">
+                                <div class="ml-auto" style="color:var(--accent);" x-show="pickupMethod === 'mail'">
                                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -84,16 +180,13 @@
                                 </div>
                             </label>
 
-                            <label
-                                class="relative flex items-center p-4 border rounded-lg cursor-pointer transition-all"
-                                :class="pickupMethod === 'self' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300'">
-                                <input type="radio" name="pickup_method" value="self" x-model="pickupMethod"
-                                    class="sr-only">
+                            <label class="pf-pickup" :class="pickupMethod === 'self' && 'pf-pickup-active'">
+                                <input type="radio" name="pickup_method" value="self" x-model="pickupMethod" class="sr-only">
                                 <div class="flex-1">
-                                    <div class="font-bold text-slate-900">自取</div>
-                                    <div class="text-xs text-slate-500 mt-1">親自至本所取件</div>
+                                    <div class="pf-pickup-title">自取</div>
+                                    <div class="pf-pickup-sub">親自至本所取件</div>
                                 </div>
-                                <div class="ml-auto text-blue-600" x-show="pickupMethod === 'self'">
+                                <div class="ml-auto" style="color:var(--accent);" x-show="pickupMethod === 'self'">
                                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -104,61 +197,46 @@
                         </div>
                     </div>
                 </div>
-
             </section>
 
             <!-- 2. Fee -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-blue-600 px-6 py-4">
-                    <h2 class="text-lg font-bold text-white flex items-center">
-                        <span
-                            class="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">2</span>
-                        費用明細
-                    </h2>
+            <section class="pf-card">
+                <div class="pf-card-header">
+                    <span class="pf-step-num">2</span>
+                    <h2 class="pf-card-title">費用明細</h2>
                 </div>
                 <div class="p-6">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200">
+                        <table class="pf-table">
                             <thead>
-                                <tr class="bg-slate-50">
-                                    <th scope="col"
-                                        class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        項目</th>
-                                    <th scope="col"
-                                        class="px-3 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider w-32">
-                                        金額</th>
+                                <tr>
+                                    <th scope="col">項目</th>
+                                    <th scope="col" class="right" style="width:8rem;">金額</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-slate-200">
+                            <tbody>
                                 <!-- Fixed amount from payment request -->
                                 <tr>
-                                    <td class="px-3 py-3 text-sm text-slate-900">
-                                        {{ pr.description|default:"委辦費用" }}
-                                    </td>
-                                    <td class="px-3 py-3 text-sm text-slate-900 text-right font-mono">
-                                        {{ pr.amount|intcomma }}
-                                    </td>
+                                    <td>{{ pr.description|default:"委辦費用" }}</td>
+                                    <td class="text-right pf-mono">{{ pr.amount|intcomma }}</td>
                                 </tr>
 
                                 <!-- Shipping Fee Row -->
-                                <tr x-show="pickupMethod === 'mail'" x-transition class="bg-blue-50/50">
-                                    <td class="px-3 py-3 text-sm text-slate-900 flex items-center">
-                                        <svg class="w-4 h-4 mr-1 text-slate-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
+                                <tr x-show="pickupMethod === 'mail'" x-transition style="background:var(--accent-soft);">
+                                    <td class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1" style="color:var(--fg3);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                         </svg>
                                         郵資
                                     </td>
-                                    <td class="px-3 py-3 text-sm text-slate-900 text-right font-mono">65</td>
+                                    <td class="text-right pf-mono">65</td>
                                 </tr>
                             </tbody>
                             <tfoot>
-                                <tr class="border-t-2 border-slate-200">
-                                    <td class="px-3 py-4 text-base font-bold text-slate-900 text-right">總計</td>
-                                    <td class="px-3 py-4 text-xl font-bold text-red-600 text-right font-mono">
-                                        $<span x-text="totalAmount"></span>
-                                    </td>
+                                <tr style="border-top:2px solid var(--border-default);">
+                                    <td class="pf-total-label">總計</td>
+                                    <td class="pf-total-amount pf-mono">$<span x-text="totalAmount"></span></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -167,43 +245,51 @@
             </section>
 
             <!-- 3. Agreements -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-blue-600 px-6 py-4">
-                    <h2 class="text-lg font-bold text-white flex items-center">
-                        <span
-                            class="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">3</span>
-                        條款同意
-                    </h2>
+            <section class="pf-card">
+                <div class="pf-card-header">
+                    <span class="pf-step-num">3</span>
+                    <h2 class="pf-card-title">條款同意</h2>
                 </div>
                 <div class="p-6 space-y-4">
-                    <label class="flex items-start gap-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer group">
+                    <label class="pf-agree">
                         <input type="checkbox" required x-model="agreedMandate"
-                            class="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                        <div class="text-sm text-slate-700">
-                            <span class="font-bold text-slate-900 block mb-1">登記委任</span>
-                            同意委託事務所辦理本次登記/服務事宜，所稱事項均屬真確，如有虛偽不實，願負法律責任。
+                            class="mt-1 w-5 h-5 rounded" style="accent-color:var(--accent);">
+                        <div>
+                            <span class="pf-agree-title">登記委任</span>
+                            <span class="pf-agree-body">
+                                <ol>
+                                    <li>本人/本法人同意授權受託事務所代為辦理本次登記申請及一切相關行政事務。</li>
+                                    <li>本人/本法人確認所提供之一切資料、文件及陳述事項均屬真實正確，如有虛偽不實或隱匿情事，本人願自負一切法律責任，與受託事務所無涉。</li>
+                                    <li>如有虛偽不實或隱匿情事，事務所得隨時終止委任關係。</li>
+                                </ol>
+                            </span>
                         </div>
                     </label>
 
-                    <label class="flex items-start gap-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer group">
+                    <label class="pf-agree">
                         <input type="checkbox" required x-model="agreedDraft"
-                            class="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                        <div class="text-sm text-slate-700">
-                            <span class="font-bold text-slate-900 block mb-1">擬稿同意</span>
-                            辦理事實均經充分討論，但委託貴所摘要製作文件，本人均已同意。
+                            class="mt-1 w-5 h-5 rounded" style="accent-color:var(--accent);">
+                        <div>
+                            <span class="pf-agree-title">擬稿及用印同意</span>
+                            <span class="pf-agree-body">
+                                <ol>
+                                    <li>受託事務所將依據相關法令規定及雙方討論結果，擬具辦理本次登記申請所需之各項文件（包含但不限於申請書、議事錄、同意書等）。</li>
+                                    <li>本人/本法人同意受託事務所製作之文件內容，並授權事務所依此辦理相關登記事宜。</li>
+                                    <li>如有需要用印之情形，本人/本法人同意授權受託事務所使用存放於事務所之印章，或由事務所向本人/本法人同意後(包括但不限於電話、口頭、或通訊軟體方式同意)進行另外製作印章之行為。</li>
+                                    <li>擬稿文件內容及用印授權範圍，如有疑問，請於確認前向事務所查詢，勾選同意後，即視為已同意並授權擬稿內容及用印授權。</li>
+                                </ol>
+                            </span>
                         </div>
                     </label>
                 </div>
             </section>
 
             <!-- Actions -->
-            <div class="flex justify-end pt-4 pb-12">
-                <button type="submit" :disabled="!isValid"
-                    class="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-lg font-bold px-8 py-4 rounded-lg shadow-lg flex items-center justify-center transition-all transform active:scale-95">
+            <div class="flex justify-end pt-2 pb-12">
+                <button type="submit" :disabled="!isValid" class="pf-btn w-full sm:w-auto">
                     <span>同意並前往付款</span>
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </button>
             </div>

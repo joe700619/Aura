@@ -295,7 +295,10 @@
       </div>
       {% elif letter.declined_at %}
       <div class="closed-note">
-        <div class="closed-inner">貴公司已回覆暫不委任。如欲重新委任，請與本所聯繫 04-2375-8628。</div>
+        <div class="closed-inner" style="text-align:left;">
+          <p style="margin-bottom:10px;">一、貴公司已回覆暫不委任。如欲重新委任，請與本所聯繫 04-2375-8628。</p>
+          <p>二、提醒您，取得稅籍編號後，無論是否開立發票，均須每兩個月向國稅局申報 401，以免受罰。</p>
+        </div>
       </div>
       {% elif preview %}
       <!-- 承辦預覽：不顯示客戶操作 -->
