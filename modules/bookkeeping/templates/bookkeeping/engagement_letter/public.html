@@ -18,7 +18,8 @@
     letter.service_fee             每月基本公費（數字）
     letter.ledger_fee              帳簿費（選填）
     letter.get_billing_cycle_display  收費方式顯示字串
-    letter.cpa_name                受任會計師（選填，預設 黃勝平）
+    letter.get_firm_name_display   受任事務所名稱（信頭/受任人/頁尾共用）
+    letter.firm_name_en            信頭英文副標（隨事務所切換）
     letter.agreed_at               已同意時間（有值＝已確認狀態）
     rendered                       委任內容正文 HTML（語意標籤，勿帶 inline style）
 ============================================================
@@ -145,7 +146,6 @@
   .sign-block { font-size:12.5px; color:var(--fg3); line-height:2; }
   .sign-block .who { font-family:var(--font-serif); font-size:15px; font-weight:700; color:var(--fg1); letter-spacing:0.06em; }
   .sign-block.firm { text-align:right; }
-  .cpa-seal { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border:1.5px solid var(--accent); border-radius:4px; color:var(--accent); font-family:var(--font-serif); font-size:18px; font-weight:700; margin-left:10px; transform:rotate(-5deg); vertical-align:middle; }
 
   /* Actions */
   .actions { padding:26px 52px 40px; }
@@ -220,8 +220,8 @@
       <div class="lh">
         <div class="lh-row">
           <div>
-            <div class="lh-firm">勤信聯合會計師事務所</div>
-            <div class="lh-en">Chi-XIn United CPAs</div>
+            <div class="lh-firm">{{ letter.get_firm_name_display }}</div>
+            <div class="lh-en">{{ letter.firm_name_en }}</div>
           </div>
           <div class="lh-contact">
             <div class="addr">台中市西區五權路 1-67 號 11 樓之 5</div>
@@ -282,8 +282,8 @@
             {% if letter.tax_id %}<div>統一編號　{{ letter.tax_id }}</div>{% endif %}
           </div>
           <div class="sign-block firm">
-            <div>受任會計師</div>
-            <div class="who">{{ letter.cpa_name|default:"黃 勝 平" }}<span class="cpa-seal">勝</span></div>
+            <div>受任人</div>
+            <div class="who">{{ letter.get_firm_name_display }}</div>
           </div>
         </div>
       </div>
@@ -336,7 +336,7 @@
 
     </div><!-- /.sheet -->
 
-    <div class="pf">本頁為線上委任確認 · <b>勤信聯合會計師事務所</b> · 如有疑問請與本所聯繫 04-2375-8628</div>
+    <div class="pf">本頁為線上委任確認 · <b>{{ letter.get_firm_name_display }}</b> · 如有疑問請與本所聯繫 04-2375-8628</div>
 
   </div>
 </body>

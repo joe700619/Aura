@@ -82,6 +82,12 @@ class EngagementLetter(BaseModel):
         BASE = 'base', '基礎方案'
         CUSTOM = 'custom', '客製'
 
+    class FirmName(models.TextChoices):
+        """受任事務所主體。會計師事務所與記帳士事務所是兩個不同主體，
+        切換時整份委任書（信頭、受任人、頁尾）一併套用。"""
+        CPA = 'cpa', '勤信聯合會計師事務所'
+        BOOKKEEPER = 'bookkeeper', '勤信聯合記帳士事務所'
+
     # ── 來源連結（皆可空，string ref 跨模組）──
     inquiry = models.ForeignKey(
         'case_management.Inquiry', on_delete=models.SET_NULL,
@@ -103,6 +109,11 @@ class EngagementLetter(BaseModel):
         _('客戶來源'), max_length=20,
         choices=BookkeepingClient.ClientSource.choices,
         default=BookkeepingClient.ClientSource.OUR_FIRM,
+    )
+    firm_name = models.CharField(
+        _('受任事務所'), max_length=20,
+        choices=FirmName.choices, default=FirmName.CPA,
+        help_text=_('委任書信頭、受任人、頁尾顯示的事務所主體'),
     )
 
     # ── 委任內容 ──
@@ -169,6 +180,13 @@ class EngagementLetter(BaseModel):
     @property
     def is_signable(self):
         return self.status in (self.Status.SENT, self.Status.DRAFT)
+
+    @property
+    def firm_name_en(self):
+        """信頭英文副標，隨受任事務所切換。"""
+        return ('Chi-Xin United CPAs'
+                if self.firm_name == self.FirmName.CPA
+                else 'Chi-Xin United Certified Public Bookkeepers')
 
     # ── 供 public_v2 範本使用的語意別名（對應現有欄位，零 migration）──
     @property

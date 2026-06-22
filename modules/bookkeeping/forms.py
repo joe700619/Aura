@@ -57,7 +57,7 @@ class EngagementLetterForm(forms.ModelForm):
             'inquiry', 'progress_no',
             'company_name', 'tax_id', 'contact_name', 'contact_email',
             'contact_phone', 'client_source',
-            'engagement_start_date', 'pricing_type',
+            'engagement_start_date', 'pricing_type', 'firm_name',
             'service_fee', 'ledger_fee', 'billing_cycle', 'fee_note',
         ]
         widgets = {
