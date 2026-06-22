@@ -155,9 +155,10 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div x-show="pickupMethod === 'mail'" x-transition>
                         <label class="pf-label">文件寄送地址 <span class="pf-req">*</span></label>
-                        <input type="text" name="recipient_addr" required
+                        <input type="text" name="recipient_addr"
+                            :required="pickupMethod === 'mail'"
                             value="{{ pr.recipient_addr|default:progress.address|default:'' }}"
                             class="pf-input pf-input-emphasis">
                     </div>
