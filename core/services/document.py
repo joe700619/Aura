@@ -217,6 +217,35 @@ class DocumentService:
             except Exception:
                 context['collections'] = []
 
+        # Progress（登記進度）: 報價單明細、服務費合計
+        if obj.__class__.__name__ == 'Progress':
+            import json as _json
+
+            try:
+                quotation_data = obj.quotation_data or []
+                if isinstance(quotation_data, str):
+                    quotation_data = _json.loads(quotation_data)
+                quotation_items = []
+                for i, item in enumerate(quotation_data, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    amount = int(item.get('amount', 0) or 0)
+                    quotation_items.append({
+                        'no':           i,
+                        'service_code': item.get('service_code', ''),
+                        'service_name': item.get('service_name', ''),
+                        'amount':       amount,
+                        'amount_fmt':   f"{amount:,}",
+                        'remark':       item.get('remark', ''),
+                    })
+                context['quotation_items'] = quotation_items
+                context['service_fee_total'] = sum(it['amount'] for it in quotation_items)
+                context['service_fee_total_fmt'] = f"{context['service_fee_total']:,}"
+            except Exception:
+                context['quotation_items'] = []
+                context['service_fee_total'] = 0
+                context['service_fee_total_fmt'] = '0'
+
         # TaxFilingPeriod: 營業稅期別繳稅通知變數
         # 批次通知走通用 _build_context，需在此補上單筆送 build_vat_context 才有的
         # 計算型變數（final_total / payment_method / confirm_url 等），兩條路徑才一致。
