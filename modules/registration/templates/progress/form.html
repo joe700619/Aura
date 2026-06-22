@@ -364,6 +364,7 @@
                             {% if pr.status == 'paid' and pr.recipient_name %}
                             <div class="mt-2 text-xs text-slate-500">
                                 收件：{{ pr.recipient_name }} / {{ pr.recipient_phone }} / {% if pr.pickup_method == 'mail' %}郵寄{% else %}自取{% endif %}
+                                {% if pr.recipient_addr %}<br>地址：{{ pr.recipient_addr }}{% endif %}
                             </div>
                             {% endif %}
                         </div>
