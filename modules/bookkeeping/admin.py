@@ -6,10 +6,11 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
-from import_export.widgets import ForeignKeyWidget, CharWidget
+from import_export.widgets import ForeignKeyWidget, CharWidget, DateWidget, IntegerWidget
 
 from .models import (
     BookkeepingClient,
+    ServiceFee,
     GroupInvoice,
     ConvenienceBagLog,
     AccountingBookLog,
@@ -253,6 +254,68 @@ class BookkeepingClientAdmin(ImportExportModelAdmin):
     def restore_clients(self, request, queryset):
         updated = queryset.filter(is_deleted=True).update(is_deleted=False)
         self.message_user(request, f'已還原 {updated} 筆記帳客戶。')
+
+
+class BillingCycleWidget(CharWidget):
+    """收費週期：Excel 可填中文（雙月）或代碼（bimonthly），統一轉成代碼。"""
+
+    LABEL_TO_VALUE = {label: value for value, label in ServiceFee.BillingCycle.choices}
+
+    def clean(self, value, row=None, **kwargs):
+        v = (value or '').strip()
+        if not v:
+            return ServiceFee.BillingCycle.BIMONTHLY
+        if v in ServiceFee.BillingCycle.values:
+            return v
+        if v in self.LABEL_TO_VALUE:
+            return self.LABEL_TO_VALUE[v]
+        raise ValueError(f'未知的收費週期：「{value}」（可填：{"、".join(self.LABEL_TO_VALUE)}）')
+
+
+class ServiceFeeResource(resources.ModelResource):
+    """
+    服務費用匯入 —— 一客戶一筆（目前生效）。
+    客戶以統一編號關聯；同統編已有費用則更新，否則新建（import_id_fields=['client']）。
+    """
+
+    client = fields.Field(
+        attribute='client', column_name='統一編號',
+        widget=ForeignKeyWidget(BookkeepingClient, field='tax_id'),
+    )
+    service_fee = fields.Field(attribute='service_fee', column_name='服務費用', widget=IntegerWidget())
+    ledger_fee = fields.Field(attribute='ledger_fee', column_name='帳簿費用', widget=IntegerWidget())
+    billing_months = fields.Field(attribute='billing_months', column_name='收費月份', widget=IntegerWidget())
+    billing_cycle = fields.Field(attribute='billing_cycle', column_name='收費週期', widget=BillingCycleWidget())
+    effective_date = fields.Field(attribute='effective_date', column_name='生效日', widget=DateWidget())
+    end_date = fields.Field(attribute='end_date', column_name='結束日', widget=DateWidget())
+
+    class Meta:
+        model = ServiceFee
+        import_id_fields = ['client']
+        fields = ('client', 'service_fee', 'ledger_fee', 'billing_months',
+                  'billing_cycle', 'effective_date', 'end_date')
+        skip_unchanged = True
+        report_skipped = True
+        use_transactions = True
+
+    def before_import_row(self, row, _row_number=None, **kwargs):
+        # 統編可能被 Excel 讀成數字，強制轉字串才比對得到客戶
+        if row.get('統一編號') is not None:
+            row['統一編號'] = str(row['統一編號']).strip()
+        # 數值欄空白給預設，避免寫入 NULL 違反 not-null
+        for col, default in (('服務費用', 0), ('帳簿費用', 0), ('收費月份', 13)):
+            v = row.get(col)
+            if v is None or (isinstance(v, str) and not v.strip()):
+                row[col] = default
+
+
+@admin.register(ServiceFee)
+class ServiceFeeAdmin(ImportExportModelAdmin):
+    resource_classes = [ServiceFeeResource]
+    list_display = ('client', 'service_fee', 'ledger_fee', 'billing_cycle',
+                    'billing_months', 'effective_date', 'end_date')
+    list_filter = ('billing_cycle',)
+    search_fields = ('client__name', 'client__tax_id')
 
 
 @admin.register(GroupInvoice)
