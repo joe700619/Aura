@@ -4,7 +4,7 @@ from django.views.generic import ListView, DetailView, UpdateView, TemplateView
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
-from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin
+from core.mixins import BusinessRequiredMixin, FilterMixin, ListActionMixin, SearchMixin, SortMixin
 from django.views import View
 from django.http import HttpResponseRedirect
 from django.forms import modelformset_factory
@@ -12,21 +12,52 @@ from datetime import date
 
 from ..models import BookkeepingClient, BookkeepingYear, BookkeepingPeriod
 
-class ProgressListView(ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
+class ProgressListView(FilterMixin, ListActionMixin, SearchMixin, SortMixin, BusinessRequiredMixin, ListView):
     """
     記帳進度表列表視圖
-    顯示所有已經建立過「記帳進度設定」的客戶。
+    顯示已經建立過「記帳進度設定」的客戶。
+    以承接狀態（acceptance_status）做頁籤切換，預設只看「承接中」，並開啟分頁與表頭排序。
     """
     model = BookkeepingClient
     template_name = 'bookkeeping/progress/list.html'
     context_object_name = 'clients'
     search_fields = ['name', 'tax_id']
+    allowed_sort_fields = ['name', 'tax_id', 'bookkeeping_assistant__name']
+    paginate_by = 25
+    default_filter = 'active'   # 預設只看承接中
+    filter_choices = {
+        'active':      {'acceptance_status': 'active'},
+        'suspended':   {'acceptance_status': 'suspended'},
+        'transferred': {'acceptance_status': 'transferred'},
+    }
+
+    def get_base_queryset(self):
+        # 僅列出擁有「記帳進度設定」此一對一關聯的客戶；
+        # select_related 連 bookkeeping_assistant 一併預載，避免列表頁 N+1。
+        return super().get_base_queryset().filter(
+            bookkeeping_setting__isnull=False
+        ).select_related('bookkeeping_setting', 'bookkeeping_assistant').order_by('name')
+
+    def _base_qs_for_counts(self):
+        # 頁籤筆數要以「有記帳進度設定」為母體計算，不是全部客戶
+        return self.get_base_queryset()
 
     def get_queryset(self):
-        # 僅列出擁有「記帳進度設定」此一對一關聯的客戶
-        return BookkeepingClient.objects.filter(
-            bookkeeping_setting__isnull=False
-        ).select_related('bookkeeping_setting').order_by('name')
+        # FilterMixin 鏈不會自動套用 get_ordering，這裡在篩選後再依 ?sort= 排序
+        qs = super().get_queryset()
+        sort = self.request.GET.get('sort', '').strip()
+        field_to_check = sort.lstrip('-')
+        if sort and field_to_check in self.allowed_sort_fields:
+            qs = qs.order_by(sort)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        fc = context['filter_counts']
+        context['count_active']      = fc['active']
+        context['count_suspended']   = fc['suspended']
+        context['count_transferred'] = fc['transferred']
+        return context
 
 
 class ProgressDetailView(BusinessRequiredMixin, DetailView):

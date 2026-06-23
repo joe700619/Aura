@@ -2,6 +2,28 @@
 
 {% block page_title %}記帳進度表清單{% endblock %}
 
+{% block header_title %}記帳進度表清單{% endblock %}
+{% block header_description %}選擇客戶進入記帳進度追蹤；預設僅顯示承接中的客戶{% endblock %}
+
+{% block filters %}
+<a href="?filter=active{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'active' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    承接中 ({{ count_active }})
+</a>
+<a href="?filter=suspended{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'suspended' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    停業中 ({{ count_suspended }})
+</a>
+<a href="?filter=transferred{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'transferred' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    轉出/解散 ({{ count_transferred }})
+</a>
+<a href="?filter=ALL{% if q %}&q={{ q }}{% endif %}{% if current_per_page %}&per_page={{ current_per_page }}{% endif %}"
+   class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 {% if current_filter == 'ALL' %}bg-blue-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+    全部 ({{ filter_counts.ALL }})
+</a>
+{% endblock %}
+
 {% block actions %}
 <a href="{% url 'bookkeeping:progress_tracker' %}"
    class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors">
@@ -14,8 +36,8 @@
 
 {% block table_headers %}
     <th class="px-4 py-3 font-semibold text-slate-700 text-left rounded-tl-lg" data-sort="name">客戶名稱 <span class="sort-icon text-slate-400">↕</span></th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="taxid">統一編號 <span class="sort-icon text-slate-400">↕</span></th>
-    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="assistant">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="tax_id">統一編號 <span class="sort-icon text-slate-400">↕</span></th>
+    <th class="px-4 py-3 font-semibold text-slate-700 text-left" data-sort="bookkeeping_assistant__name">記帳助理 <span class="sort-icon text-slate-400">↕</span></th>
     <th class="px-4 py-3 font-semibold text-slate-700 text-center rounded-tr-lg w-32">操作</th>
 {% endblock %}
 
@@ -66,6 +88,10 @@
 {% include "components/email_sidebar.html" %}
 {% include "components/line_sidebar.html" %}
 {% endblock %}
+
+{% block extra_pagination_params %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_num %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
+{% block extra_pagination_params_next %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% endblock %}
 
 {% block metadata_json %}
 [
