@@ -167,7 +167,7 @@
                 </div>
               </td>
               <td class="portal-num portal-mono{% if not period.sales_amount %} zero{% endif %}">${{ period.sales_amount|intcomma|default:"0" }}</td>
-              <td class="portal-num portal-mono{% if not period.output_tax %} zero{% endif %}">${{ period.output_tax|intcomma|default:"0" }}</td>
+              <td class="portal-num portal-mono{% if not period.tax_amount %} zero{% endif %}">${{ period.tax_amount|intcomma|default:"0" }}</td>
               <td class="portal-num portal-mono{% if not period.input_tax %} zero{% endif %}">${{ period.input_tax|intcomma|default:"0" }}</td>
               <td class="portal-num portal-mono{% if period.payable_tax %} payable{% else %} zero{% endif %}">${{ period.payable_tax|intcomma|default:"0" }}</td>
               <td class="dc-col-status">

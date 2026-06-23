@@ -75,8 +75,8 @@
     data-name="{{ client.name|escapejs }}"
     data-date="{{ period.accounting_date|date:'Y-m-d'|default:'' }}"
     data-status="{{ period.account_status }}"
-    data-sales="{{ period.sales_amount }}"
-    data-tax="{{ period.payable_tax }}">
+    data-sales="{{ period.vat_sales_amount|default:0 }}"
+    data-tax="{{ period.vat_payable_tax|default:0 }}">
 
     {# Checkbox #}
     {% include "components/row_checkbox.html" with value=period.pk %}
@@ -116,23 +116,27 @@
         {% endif %}
     </td>
 
-    {# 銷售額 #}
+    {# 銷售額（來源：營業稅申報明細） #}
     <td class="px-4 py-3 text-right">
-        {% if period.sales_amount != 0 %}
+        {% if period.vat_sales_amount is None %}
+        <span class="text-slate-300 text-sm">-</span>
+        {% elif period.vat_sales_amount != 0 %}
         <span class="font-mono text-sm font-semibold text-slate-700">
-            {{ period.sales_amount|floatformat:0 }}
+            {{ period.vat_sales_amount|floatformat:0 }}
         </span>
         {% else %}
         <span class="text-slate-300 text-sm">0</span>
         {% endif %}
     </td>
 
-    {# 應納(退)稅額 #}
+    {# 應納(退)稅額（來源：營業稅申報明細） #}
     <td class="px-4 py-3 text-right">
-        {% if period.payable_tax != 0 %}
+        {% if period.vat_payable_tax is None %}
+        <span class="text-slate-300 text-sm">-</span>
+        {% elif period.vat_payable_tax != 0 %}
         <span class="font-mono text-sm font-semibold
-            {% if period.payable_tax > 0 %}text-red-600{% else %}text-green-600{% endif %}">
-            {{ period.payable_tax|floatformat:0 }}
+            {% if period.vat_payable_tax > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+            {{ period.vat_payable_tax|floatformat:0 }}
         </span>
         {% else %}
         <span class="text-slate-300 text-sm">0</span>
