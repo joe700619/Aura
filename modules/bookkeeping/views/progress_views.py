@@ -113,7 +113,7 @@ class ProgressDetailView(BusinessRequiredMixin, DetailView):
         if current_year_obj:
             PeriodFormSet = modelformset_factory(
                 BookkeepingPeriod,
-                fields=('account_status', 'accounting_date', 'notes', 'sales_amount', 'tax_amount', 'input_tax', 'payable_tax', 'filing_status'),
+                fields=('account_status', 'accounting_date', 'notes', 'filing_status'),
                 extra=0,
                 can_delete=False
             )
@@ -229,9 +229,10 @@ class ProgressPeriodDetailView(BusinessRequiredMixin, UpdateView):
     """
     model = BookkeepingPeriod
     template_name = 'bookkeeping/progress/period_detail.html'
+    # 金額欄位 (sales_amount/tax_amount/input_tax/payable_tax) 不在此編輯，
+    # 一律以營業稅申報明細 (TaxFilingPeriod) 為單一來源，此頁僅顯示其累計結果。
     fields = [
-        'account_status', 'accounting_date', 'notes',
-        'sales_amount', 'tax_amount', 'input_tax', 'payable_tax', 'filing_status'
+        'account_status', 'accounting_date', 'notes', 'filing_status'
     ]
 
     def get_object(self, queryset=None):
@@ -396,6 +397,19 @@ class ProgressTrackerView(BusinessRequiredMixin, TemplateView):
                         p.year_record.client.name)
 
             periods.sort(key=_assistant_sort_key)
+
+            # 4.5 金額單一來源：銷售額／應納稅額一律取自營業稅申報明細 (TaxFilingPeriod)，
+            #     不再讀記帳進度自己那份（已停用、不再維護）的金額欄位，避免列表與詳情頁不同步。
+            from ..models import TaxFilingPeriod
+            vat_rows = TaxFilingPeriod.objects.filter(
+                year_record__year=selected_year,
+                period_start_month=bimonthly_month,
+            ).values('year_record__client_id', 'sales_amount', 'payable_tax')
+            vat_map = {row['year_record__client_id']: row for row in vat_rows}
+            for p in periods:
+                vat = vat_map.get(p.year_record.client_id)
+                p.vat_sales_amount = vat['sales_amount'] if vat else None
+                p.vat_payable_tax = vat['payable_tax'] if vat else None
 
         # 5. 統計摘要（篩選前）
         total = len(periods)

@@ -95,11 +95,7 @@
 
     <form id="period-detail-form" method="POST" action="">
         {% csrf_token %}
-        {# 保留舊的記帳進度 VAT 欄位數值，避免儲存時被清空 #}
-        <input type="hidden" name="sales_amount" value="{{ form.sales_amount.value|default:'0' }}">
-        <input type="hidden" name="tax_amount" value="{{ form.tax_amount.value|default:'0' }}">
-        <input type="hidden" name="input_tax" value="{{ form.input_tax.value|default:'0' }}">
-        <input type="hidden" name="payable_tax" value="{{ form.payable_tax.value|default:'0' }}">
+        {# 營業稅金額一律以 TaxFilingPeriod 為單一來源，此頁不再編輯，故不送出金額欄位 #}
         <input type="hidden" name="filing_status" value="{{ form.filing_status.value|default:'not_filed' }}">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

@@ -54,15 +54,6 @@
                 class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-slate-600 hover:bg-slate-700 focus:outline-none disabled:opacity-75">
                 <span x-text="globalSubmitting ? '儲存中...' : '儲存設定'"></span>
             </button>
-            {% if current_year_obj %}
-            <!-- Formset Save Button -->
-            <button type="button"
-                @click="if(!globalSubmitting) { globalSubmitting = true; setTimeout(() => { document.getElementById('tax-formset').requestSubmit() }, 300) }"
-                :disabled="globalSubmitting"
-                class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-75">
-                <span x-text="globalSubmitting ? '儲存中...' : '儲存申報資料'"></span>
-            </button>
-            {% endif %}
         </div>
     </div>
 
@@ -280,13 +271,14 @@
                                     月
                                 </span>
                             </td>
-                            <td class="px-2 py-3">{{ form.invoice_received_date|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400"|attr:"type:date" }}</td>
-                            <td class="px-2 py-3">{{ form.sales_amount|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-right text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400" }}</td>
-                            <td class="px-2 py-3">{{ form.tax_amount|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-right text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400" }}</td>
-                            <td class="px-2 py-3">{{ form.input_tax|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-right text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400" }}</td>
-                            <td class="px-2 py-3">{{ form.retained_tax|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-right text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400" }}</td>
-                            <td class="px-2 py-3">{{ form.payable_tax|add_class:"w-full px-2 py-1.5 border border-blue-400 rounded text-right font-bold text-sm bg-blue-50 focus:ring-1 focus:ring-blue-500" }}</td>
-                            <td class="px-2 py-3">{{ form.filing_date|add_class:"w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-400 focus:border-blue-400"|attr:"type:date" }}</td>
+                            <td class="px-2 py-3">{{ form.invoice_received_date|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"type:date"|attr:"readonly:readonly" }}</td>
+                            {# 金額唯讀：請於各期「詳情」頁編輯，此年度明細表僅供檢視 #}
+                            <td class="px-2 py-3">{{ form.sales_amount|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-right text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"readonly:readonly" }}</td>
+                            <td class="px-2 py-3">{{ form.tax_amount|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-right text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"readonly:readonly" }}</td>
+                            <td class="px-2 py-3">{{ form.input_tax|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-right text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"readonly:readonly" }}</td>
+                            <td class="px-2 py-3">{{ form.retained_tax|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-right text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"readonly:readonly" }}</td>
+                            <td class="px-2 py-3">{{ form.payable_tax|add_class:"w-full px-2 py-1.5 border border-blue-300 rounded text-right font-bold text-sm bg-blue-50 text-slate-700 cursor-default focus:outline-none"|attr:"readonly:readonly" }}</td>
+                            <td class="px-2 py-3">{{ form.filing_date|add_class:"w-full px-2 py-1.5 border border-slate-200 rounded text-sm bg-slate-50 text-slate-700 cursor-default focus:outline-none"|attr:"type:date"|attr:"readonly:readonly" }}</td>
                             <td class="px-2 py-3">
                                 {% if form.instance.filing_document %}
                                     <a href="{{ form.instance.filing_document.url }}" target="_blank" class="text-xs text-blue-600 hover:underline mb-1 flex items-center gap-1 truncate w-40" title="{{ form.instance.filing_document.name }}">
@@ -296,7 +288,7 @@
                                         已上傳
                                     </a>
                                 {% endif %}
-                                {{ form.filing_document|add_class:"block w-48 text-xs text-slate-500 file:cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700" }}
+                                {% if not form.instance.filing_document %}<span class="text-xs text-slate-400">未上傳</span>{% endif %}
                             </td>
                             <td class="px-2 py-3 text-center">
                                 <a href="{% url 'bookkeeping:business_tax_period_detail' client.pk form.instance.pk %}"
@@ -311,13 +303,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-        <!-- Bottom Save Button -->
-        <div class="flex justify-end">
-            <button type="submit"
-                class="inline-flex items-center px-6 py-2.5 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none shadow-sm">
-                儲存申報資料
-            </button>
         </div>
     </form>
     {% endif %}
