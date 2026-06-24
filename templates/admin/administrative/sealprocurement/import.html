@@ -28,6 +28,8 @@
     <p style="margin-bottom:16px; color:#444;">
         請使用標準格式的 Excel 檔案匯入印章採購資料。<br>
         相同<strong>統一編號</strong>且<strong>採購日期</strong>相同的列，會合併為同一張採購單。<br>
+        <strong>異動種類</strong>留空視為採購；出庫類（歸還客戶/借出/盤虧）<strong>數量請填負數</strong>，庫存報表才會正確扣減。<br>
+        歷史已拋轉的代墊款，<strong>已拋轉代墊款</strong>請填「是」，避免日後被重複拋轉。<br>
         匯入後所有採購單會自動設為「<strong>轉為庫存</strong>」。
     </p>
 
@@ -86,6 +88,27 @@
         </thead>
         <tbody>
             {% for code, label in seal_type_choices %}
+            <tr>
+                <td style="border:1px solid #ddd; padding:5px 10px; font-family:monospace;">{{ code }}</td>
+                <td style="border:1px solid #ddd; padding:5px 10px;">{{ label }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2 style="font-size:14px; color:#333; margin-top:20px;">異動種類代碼</h2>
+    <p style="font-size:12px; color:#777; margin:4px 0 8px;">
+        入庫（採購/客戶提供/借入/盤盈）數量填正數；出庫（歸還客戶/借出/盤虧）數量填負數。只有「採購」會計入金額。
+    </p>
+    <table style="border-collapse:collapse; font-size:13px;">
+        <thead>
+            <tr style="background:#f8f8f8;">
+                <th style="border:1px solid #ddd; padding:6px 10px;">代碼</th>
+                <th style="border:1px solid #ddd; padding:6px 10px;">名稱</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for code, label in movement_type_choices %}
             <tr>
                 <td style="border:1px solid #ddd; padding:5px 10px; font-family:monospace;">{{ code }}</td>
                 <td style="border:1px solid #ddd; padding:5px 10px;">{{ label }}</td>

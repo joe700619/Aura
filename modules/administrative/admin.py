@@ -38,6 +38,12 @@ class DocumentReceiptAdmin(admin.ModelAdmin):
     date_hierarchy = 'receipt_date'
 
 SEAL_TYPE_CODE_MAP = {label: code for code, label in SealProcurementItem.SEAL_TYPE_CHOICES}
+MOVEMENT_TYPE_CODE_MAP = {label: code for code, label in SealProcurementItem.MOVEMENT_TYPE_CHOICES}
+
+
+def _truthy(value):
+    """是/否 類欄位的寬鬆判斷：接受 是 / Y / True / 1。"""
+    return str(value or '').strip() in ('是', 'Y', 'y', 'True', 'true', '1')
 
 
 @admin.register(SealProcurement)
@@ -97,7 +103,9 @@ class SealProcurementAdmin(admin.ModelAdmin):
                         line_id=str(first[6] or '').strip(),
                         room_id=str(first[7] or '').strip(),
                         transfer_to_inventory=True,
-                        note=str(first[14] or '').strip(),
+                        transfer_to_advance=_truthy(first[15]),
+                        is_advance_transferred=_truthy(first[16]),
+                        note=str(first[17] or '').strip(),
                     )
                     procurement.save()
 
@@ -115,28 +123,29 @@ class SealProcurementAdmin(admin.ModelAdmin):
                     created_count += 1
 
                     for row in items:
-                        raw_seal = str(row[9] or '').strip()
+                        raw_movement = str(row[9] or '').strip()
+                        # Accept code (purchase) or label (採購); blank → purchase
+                        movement_type = MOVEMENT_TYPE_CODE_MAP.get(raw_movement, raw_movement) or 'purchase'
+                        raw_seal = str(row[10] or '').strip()
                         # Accept both code (large_self) and label (大章(自留))
                         seal_type = SEAL_TYPE_CODE_MAP.get(raw_seal, raw_seal)
                         try:
-                            quantity = int(row[10] or 1)
+                            quantity = int(row[11] or 1)
                         except (ValueError, TypeError):
                             quantity = 1
                         try:
-                            unit_price = Decimal(str(row[12] or 0))
+                            unit_price = Decimal(str(row[13] or 0))
                         except InvalidOperation:
                             unit_price = Decimal(0)
-                        absorbed_raw = str(row[13] or '').strip()
-                        is_absorbed = absorbed_raw in ('是', 'Y', 'y', 'True', 'true', '1')
 
                         SealProcurementItem.objects.create(
                             procurement=procurement,
-                            movement_type='purchase',
+                            movement_type=movement_type,
                             seal_type=seal_type,
                             quantity=quantity,
-                            name_or_address=str(row[11] or '').strip(),
+                            name_or_address=str(row[12] or '').strip(),
                             unit_price=unit_price,
-                            is_absorbed_by_customer=is_absorbed,
+                            is_absorbed_by_customer=_truthy(row[14]),
                         )
                         item_count += 1
 
@@ -153,21 +162,25 @@ class SealProcurementAdmin(admin.ModelAdmin):
         context['title'] = '匯入印章採購資料'
         context['opts'] = self.model._meta
         context['seal_type_choices'] = SealProcurementItem.SEAL_TYPE_CHOICES
+        context['movement_type_choices'] = SealProcurementItem.MOVEMENT_TYPE_CHOICES
         context['column_info'] = [
             {'name': '統一編號', 'note': '公司統一編號，與採購日期合併決定一張採購單', 'example': '12345678'},
-            {'name': '公司名稱', 'note': '', 'example': '測試公司有限公司'},
-            {'name': '主要聯絡人', 'note': '', 'example': '王小明'},
-            {'name': '手機', 'note': '', 'example': '0912345678'},
-            {'name': '電話', 'note': '', 'example': '02-12345678'},
-            {'name': '通訊地址', 'note': '', 'example': '台北市中正區...'},
+            {'name': '公司名稱', 'note': '同一採購單只取第一列', 'example': '測試公司有限公司'},
+            {'name': '主要聯絡人', 'note': '同一採購單只取第一列', 'example': '王小明'},
+            {'name': '手機', 'note': '同一採購單只取第一列', 'example': '0912345678'},
+            {'name': '電話', 'note': '同一採購單只取第一列', 'example': '02-12345678'},
+            {'name': '通訊地址', 'note': '同一採購單只取第一列', 'example': '台北市中正區...'},
             {'name': 'Line ID', 'note': '可留空', 'example': ''},
             {'name': 'Room ID', 'note': '可留空', 'example': ''},
             {'name': '採購日期', 'note': '格式 YYYY-MM-DD', 'example': '2025-01-15'},
+            {'name': '異動種類', 'note': '填入代碼，見下表；留空視為採購', 'example': 'purchase'},
             {'name': '印章種類', 'note': '填入代碼，見下表', 'example': 'large_self'},
-            {'name': '數量', 'note': '整數', 'example': '2'},
+            {'name': '數量', 'note': '整數；非採購類的「出庫」(歸還/借出/盤虧)請填負數', 'example': '2'},
             {'name': '名稱/地址', 'note': '印章上的文字，可留空', 'example': '公司大章'},
-            {'name': '單價', 'note': '數字', 'example': '150'},
+            {'name': '單價', 'note': '數字；只有採購類會計入金額，其餘自動歸 0', 'example': '150'},
             {'name': '客戶吸收', 'note': '是 / 否', 'example': '否'},
+            {'name': '轉為代墊款', 'note': '是 / 否，同一採購單只取第一列', 'example': '否'},
+            {'name': '已拋轉代墊款', 'note': '是 / 否，同一採購單只取第一列；歷史已拋轉請填「是」避免重複拋轉', 'example': '否'},
             {'name': '備註', 'note': '可留空，同一採購單只取第一列', 'example': ''},
         ]
         return render(request, 'admin/administrative/sealprocurement/import.html', context)
@@ -179,8 +192,9 @@ class SealProcurementAdmin(admin.ModelAdmin):
 
         headers = [
             '統一編號', '公司名稱', '主要聯絡人', '手機', '電話', '通訊地址',
-            'Line ID', 'Room ID', '採購日期(YYYY-MM-DD)', '印章種類',
-            '數量', '名稱/地址', '單價', '客戶吸收(是/否)', '備註',
+            'Line ID', 'Room ID', '採購日期(YYYY-MM-DD)', '異動種類', '印章種類',
+            '數量', '名稱/地址', '單價', '客戶吸收(是/否)',
+            '轉為代墊款(是/否)', '已拋轉代墊款(是/否)', '備註',
         ]
         ws.append(headers)
 
@@ -214,11 +228,14 @@ class SealProcurementAdmin(admin.ModelAdmin):
                         proc.line_id,
                         proc.room_id,
                         proc.created_at.strftime('%Y-%m-%d') if proc.created_at else '',
+                        item.movement_type,
                         item.seal_type,
                         item.quantity,
                         item.name_or_address,
                         int(item.unit_price),
                         '是' if item.is_absorbed_by_customer else '否',
+                        '是' if proc.transfer_to_advance else '否',
+                        '是' if proc.is_advance_transferred else '否',
                         proc.note,
                     ])
             else:
@@ -233,7 +250,10 @@ class SealProcurementAdmin(admin.ModelAdmin):
                     proc.line_id,
                     proc.room_id,
                     proc.created_at.strftime('%Y-%m-%d') if proc.created_at else '',
-                    '', '', '', '', '', proc.note,
+                    '', '', '', '', '',
+                    '是' if proc.transfer_to_advance else '否',
+                    '是' if proc.is_advance_transferred else '否',
+                    proc.note,
                 ])
 
         # Auto-fit column widths
@@ -259,25 +279,39 @@ class SealProcurementAdmin(admin.ModelAdmin):
         ws.title = '印章採購匯入範本'
         headers = [
             '統一編號', '公司名稱', '主要聯絡人', '手機', '電話', '通訊地址',
-            'Line ID', 'Room ID', '採購日期(YYYY-MM-DD)', '印章種類',
-            '數量', '名稱/地址', '單價', '客戶吸收(是/否)', '備註',
+            'Line ID', 'Room ID', '採購日期(YYYY-MM-DD)', '異動種類', '印章種類',
+            '數量', '名稱/地址', '單價', '客戶吸收(是/否)',
+            '轉為代墊款(是/否)', '已拋轉代墊款(是/否)', '備註',
         ]
         ws.append(headers)
         ws.append([
             '12345678', '測試公司有限公司', '王小明', '0912345678', '02-12345678',
             '台北市中正區重慶南路一段1號', '', '', '2025-01-15',
-            'large_self', 2, '公司大章', 150, '否', '',
+            'purchase', 'large_self', 2, '公司大章', 150, '否', '是', '是', '',
         ])
         ws.append([
             '12345678', '測試公司有限公司', '王小明', '0912345678', '02-12345678',
             '台北市中正區重慶南路一段1號', '', '', '2025-01-15',
-            'small_self', 1, '公司小章', 50, '否', '',
+            'purchase', 'small_self', 1, '公司小章', 50, '否', '是', '是', '',
+        ])
+        ws.append([
+            '12345678', '測試公司有限公司', '王小明', '0912345678', '02-12345678',
+            '台北市中正區重慶南路一段1號', '', '', '2025-03-20',
+            'lend_out', 'large_self', -1, '公司大章(借出)', 0, '否', '否', '否', '出庫請填負數',
         ])
 
         ws2 = wb.create_sheet('印章種類說明')
         ws2.append(['代碼(填入主表)', '顯示名稱'])
         for code, label in SealProcurementItem.SEAL_TYPE_CHOICES:
             ws2.append([code, label])
+
+        ws3 = wb.create_sheet('異動種類說明')
+        ws3.append(['代碼(填入主表)', '顯示名稱', '數量正負', '是否計入金額'])
+        _inflow = {'purchase', 'customer_provided', 'borrow_in', 'surplus'}
+        for code, label in SealProcurementItem.MOVEMENT_TYPE_CHOICES:
+            sign = '正數(入庫)' if code in _inflow else '負數(出庫)'
+            has_amount = '是' if code == 'purchase' else '否(金額0)'
+            ws3.append([code, label, sign, has_amount])
 
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
