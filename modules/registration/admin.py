@@ -6,6 +6,7 @@ from .models import (
     EquityTransaction, CompanyFiling, Progress, VATEntityChange,
     RegistrationDocument, BeneficialOwnerDeclaration,
 )
+from .resources import EquityTransactionResource
 
 
 def restore_deleted(_modeladmin, _request, queryset):
@@ -78,7 +79,8 @@ class ShareholderRegisterAdmin(ImportExportModelAdmin):
 
 
 @admin.register(EquityTransaction)
-class EquityTransactionAdmin(admin.ModelAdmin):
+class EquityTransactionAdmin(ImportExportModelAdmin):
+    resource_classes = [EquityTransactionResource]
     list_display = ['shareholder_name', 'shareholder_register', 'transaction_date', 'transaction_reason', 'is_completed', 'is_deleted', 'created_at']
     list_filter = ['organization_type', 'transaction_reason', 'is_completed', 'is_deleted']
     search_fields = ['shareholder_name', 'shareholder_id_number', 'shareholder_register__company_name', 'registration_no']
@@ -87,6 +89,9 @@ class EquityTransactionAdmin(admin.ModelAdmin):
 
     def get_queryset(self, _request):
         return self.model._default_manager.all()
+
+    def get_export_queryset(self, request):
+        return super().get_export_queryset(request).filter(is_deleted=False)
 
 
 @admin.register(Progress)
