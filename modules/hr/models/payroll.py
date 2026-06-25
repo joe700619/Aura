@@ -380,14 +380,21 @@ class PayrollRecord(BaseModel):
         else:
             month_end = make_aware(datetime(year, month + 1, 1))
 
+        # 依「給薪比例」加權：全薪(1.0)扣0、半薪(0.5)扣半、無薪(0.0)全扣
         unpaid_hours = LeaveRequest.objects.filter(
             employee=self.employee,
             status='approved',
             start_datetime__gte=month_start,
             start_datetime__lt=month_end,
-            leave_type__is_paid=False,
             is_deleted=False,
-        ).aggregate(total=models.Sum('total_hours'))['total'] or Decimal('0')
+        ).aggregate(
+            total=models.Sum(
+                models.ExpressionWrapper(
+                    models.F('total_hours') * (1 - models.F('leave_type__pay_rate')),
+                    output_field=models.DecimalField(max_digits=10, decimal_places=2),
+                )
+            )
+        )['total'] or Decimal('0')
 
         self.leave_deduction = round(hourly_rate * unpaid_hours)
         

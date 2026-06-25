@@ -81,8 +81,8 @@ class LeaveBalanceAdmin(admin.ModelAdmin):
 
 @admin.register(LeaveType)
 class LeaveTypeAdmin(ImportExportModelAdmin):
-    list_display = ['code', 'name', 'is_paid', 'max_hours_per_year', 'requires_doc', 'sort_order', 'is_deleted', 'created_at']
-    list_filter = ['is_paid', 'requires_doc', 'is_deleted']
+    list_display = ['code', 'name', 'pay_rate', 'max_hours_per_year', 'requires_doc', 'sort_order', 'is_deleted', 'created_at']
+    list_filter = ['pay_rate', 'requires_doc', 'is_deleted']
     search_fields = ['code', 'name']
     readonly_fields = ['created_at', 'updated_at']
     actions = [restore_deleted]

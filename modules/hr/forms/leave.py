@@ -5,7 +5,7 @@ from ..models import LeaveType, LeaveBalance, LeaveRequest
 class LeaveTypeForm(forms.ModelForm):
     class Meta:
         model = LeaveType
-        fields = ['code', 'name', 'is_paid', 'max_hours_per_year', 'requires_doc', 'description', 'sort_order']
+        fields = ['code', 'name', 'pay_rate', 'max_hours_per_year', 'requires_doc', 'description', 'sort_order']
         widgets = {
             'code': forms.TextInput(attrs={
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
@@ -15,7 +15,7 @@ class LeaveTypeForm(forms.ModelForm):
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
                 'placeholder': '例如：特休、病假、事假',
             }),
-            'is_paid': forms.Select(choices=[(True, '是'), (False, '否')], attrs={
+            'pay_rate': forms.Select(choices=[('1.00', '全薪'), ('0.50', '半薪'), ('0.00', '無薪')], attrs={
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
             }),
             'max_hours_per_year': forms.NumberInput(attrs={
@@ -112,11 +112,22 @@ class LeaveRequestForm(forms.ModelForm):
 
         if employee and leave_type and total_hours and start_datetime:
             # Check balance
+            # 特休為週年制，餘額期間不等於曆年，必須用區間判斷（比照 LeaveRequest.cancel()）
+            start_date = start_datetime.date()
             balance = LeaveBalance.objects.filter(
                 employee=employee,
                 leave_type=leave_type,
-                year=start_datetime.year,
+                period_start__lte=start_date,
+                period_end__gt=start_date,
             ).first()
+
+            if not balance:
+                # Fallback：舊資料可能未填 period 區間
+                balance = LeaveBalance.objects.filter(
+                    employee=employee,
+                    leave_type=leave_type,
+                    year=start_datetime.year,
+                ).first()
 
             if balance:
                 if balance.remaining_hours < total_hours:

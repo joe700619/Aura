@@ -11,6 +11,11 @@ class Command(BaseCommand):
         types = LeaveType.objects.order_by('sort_order')
         self.stdout.write(self.style.SUCCESS(f'共 {types.count()} 種假別：'))
         for t in types:
-            paid = '有薪' if t.is_paid else '無薪'
+            if t.pay_rate >= 1:
+                paid = '全薪'
+            elif t.pay_rate > 0:
+                paid = '半薪'
+            else:
+                paid = '無薪'
             limit = f'上限 {int(t.max_hours_per_year)}h' if t.max_hours_per_year else '無上限'
             self.stdout.write(f'  [{t.sort_order:2d}] {t.code:<15} {t.name:<8} {paid}  {limit}')

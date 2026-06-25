@@ -132,7 +132,7 @@ def _ensure_leave_types():
         code='annual',
         defaults={
             'name': '特休',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': False,
             'description': '依勞基法第38條（週年制）',
@@ -143,7 +143,7 @@ def _ensure_leave_types():
         code='deferred_annual',
         defaults={
             'name': '遞延特休',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': False,
             'description': '上年度未休畢之特休遞延（期效一年）',
@@ -154,7 +154,7 @@ def _ensure_leave_types():
         code='sick',
         defaults={
             'name': '病假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': Decimal(str(get_sick_leave_days() * HOURS_PER_DAY)),
             'requires_doc': True,
             'description': '每年30天（曆年制），需附醫療證明（超過3天）',
@@ -164,11 +164,11 @@ def _ensure_leave_types():
 
     # ── 手動給假假別（sort_order 10 起）─────────────────────────────────
     # 事假：勞基法第43條，每年14天，無薪
-    LeaveType.objects.get_or_create(
+    personal_type, _ = LeaveType.objects.get_or_create(
         code='personal',
         defaults={
             'name': '事假',
-            'is_paid': False,
+            'pay_rate': Decimal('0.00'),
             'max_hours_per_year': Decimal('112'),  # 14天 × 8h
             'requires_doc': False,
             'description': '勞基法第43條，每年14天，無薪',
@@ -180,7 +180,7 @@ def _ensure_leave_types():
         code='marriage',
         defaults={
             'name': '婚假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': Decimal('64'),  # 8天 × 8h
             'requires_doc': True,
             'description': '勞工請假規則第2條，8天，有薪',
@@ -192,7 +192,7 @@ def _ensure_leave_types():
         code='bereavement',
         defaults={
             'name': '喪假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': True,
             'description': '勞工請假規則第3條：父母/配偶/子女8天；祖父母/配偶父母/兄弟姊妹3~6天',
@@ -204,7 +204,7 @@ def _ensure_leave_types():
         code='work_injury',
         defaults={
             'name': '公傷病假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': True,
             'description': '勞基法第59條，因公受傷或患職業病，有薪',
@@ -212,11 +212,11 @@ def _ensure_leave_types():
         },
     )
     # 生理假：勞工請假規則第4條，每月1天/全年3天，半薪
-    LeaveType.objects.get_or_create(
+    menstrual_type, _ = LeaveType.objects.get_or_create(
         code='menstrual',
         defaults={
             'name': '生理假',
-            'is_paid': True,  # 半薪（薪資計算時另行處理）
+            'pay_rate': Decimal('0.50'),  # 生理假半薪
             'max_hours_per_year': Decimal('24'),  # 3天 × 8h
             'requires_doc': False,
             'description': '勞工請假規則第4條，每月1天每年3天，半薪（超出3天併計病假）',
@@ -228,7 +228,7 @@ def _ensure_leave_types():
         code='maternity',
         defaults={
             'name': '產假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': True,
             'description': '勞基法第50條，分娩前後8週有薪，滿6個月以下工作者4週',
@@ -240,7 +240,7 @@ def _ensure_leave_types():
         code='paternity',
         defaults={
             'name': '陪產假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': Decimal('56'),  # 7天 × 8h
             'requires_doc': True,
             'description': '性別工作平等法第15條，7天有薪（含陪產檢假）',
@@ -252,7 +252,7 @@ def _ensure_leave_types():
         code='parental',
         defaults={
             'name': '育嬰留停',
-            'is_paid': False,
+            'pay_rate': Decimal('0.00'),
             'max_hours_per_year': None,
             'requires_doc': True,
             'description': '性別工作平等法第16條，最長2年，無薪',
@@ -264,7 +264,7 @@ def _ensure_leave_types():
         code='family_care',
         defaults={
             'name': '家庭照顧假',
-            'is_paid': False,
+            'pay_rate': Decimal('0.00'),
             'max_hours_per_year': Decimal('56'),  # 7天 × 8h
             'requires_doc': False,
             'description': '性別工作平等法第20條，每年7天無薪，併計入事假天數',
@@ -276,7 +276,7 @@ def _ensure_leave_types():
         code='official',
         defaults={
             'name': '公假',
-            'is_paid': True,
+            'pay_rate': Decimal('1.00'),
             'max_hours_per_year': None,
             'requires_doc': False,
             'description': '勞工請假規則第7條，依法令或公務需要，有薪',
@@ -284,28 +284,6 @@ def _ensure_leave_types():
         },
     )
 
-    personal_type, _ = LeaveType.objects.get_or_create(
-        code='personal',
-        defaults={
-            'name': '事假',
-            'is_paid': False,
-            'max_hours_per_year': Decimal('112'),
-            'requires_doc': False,
-            'description': '勞基法第43條，每年14天，無薪',
-            'sort_order': 10,
-        },
-    )
-    menstrual_type, _ = LeaveType.objects.get_or_create(
-        code='menstrual',
-        defaults={
-            'name': '生理假',
-            'is_paid': True,
-            'max_hours_per_year': Decimal('24'),
-            'requires_doc': False,
-            'description': '勞工請假規則第4條，每月1天每年3天，半薪（超出3天併計病假）',
-            'sort_order': 14,
-        },
-    )
     return annual_type, deferred_annual_type, sick_type, personal_type, menstrual_type
 
 
