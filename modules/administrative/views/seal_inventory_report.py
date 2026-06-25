@@ -15,12 +15,15 @@ class SealInventoryReportView(BusinessRequiredMixin, TemplateView):
         q = self.request.GET.get('q', '')
         page_number = self.request.GET.get('page', 1)
 
-        procurements = SealProcurement.objects.filter(transfer_to_inventory=True)
+        procurements = SealProcurement.objects.filter(
+            transfer_to_inventory=True, is_deleted=False
+        )
         if q:
             procurements = procurements.filter(
                 company_name__icontains=q
             ) | SealProcurement.objects.filter(
                 transfer_to_inventory=True,
+                is_deleted=False,
                 unified_business_no__icontains=q
             )
 
@@ -34,7 +37,9 @@ class SealInventoryReportView(BusinessRequiredMixin, TemplateView):
         for company in companies:
             items_qs = SealProcurementItem.objects.filter(
                 procurement__transfer_to_inventory=True,
-                procurement__unified_business_no=company['unified_business_no']
+                procurement__unified_business_no=company['unified_business_no'],
+                is_deleted=False,
+                procurement__is_deleted=False,
             )
             type_summary = items_qs.values('seal_type').annotate(
                 total_qty=Sum('quantity'),
@@ -61,7 +66,9 @@ class SealInventoryReportView(BusinessRequiredMixin, TemplateView):
         for row in page_obj:
             row['details'] = SealProcurementItem.objects.filter(
                 procurement__transfer_to_inventory=True,
-                procurement__unified_business_no=row['unified_business_no']
+                procurement__unified_business_no=row['unified_business_no'],
+                is_deleted=False,
+                procurement__is_deleted=False,
             ).select_related('procurement').order_by('-procurement__created_at')
 
         context['page_obj'] = page_obj
