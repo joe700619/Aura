@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -12,7 +13,13 @@ class LeaveType(BaseModel):
 
     code = models.CharField(_('假別代碼'), max_length=30, unique=True)
     name = models.CharField(_('假別名稱'), max_length=50)
-    is_paid = models.BooleanField(_('有薪假'), default=True)
+    pay_rate = models.DecimalField(
+        _('給薪比例'),
+        max_digits=3,
+        decimal_places=2,
+        default=Decimal('1.00'),
+        help_text=_('1.00=全薪、0.50=半薪、0.00=無薪'),
+    )
     max_hours_per_year = models.DecimalField(
         _('年度上限(小時)'),
         max_digits=6,

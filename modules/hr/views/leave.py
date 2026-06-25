@@ -16,7 +16,7 @@ class LeaveTypeListView(SortMixin, ListActionMixin, HRRequiredMixin, ListView):
     context_object_name = 'items'
     paginate_by = 25
     create_button_label = '新增假別'
-    allowed_sort_fields = ['code', 'name', 'is_paid', 'max_hours_per_year', 'sort_order']
+    allowed_sort_fields = ['code', 'name', 'pay_rate', 'max_hours_per_year', 'sort_order']
     default_sort = ['sort_order']
 
     def get_queryset(self):
