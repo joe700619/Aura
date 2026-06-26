@@ -307,14 +307,16 @@ class LeaveRequest(BaseModel):
                 leave_type=self.leave_type,
                 period_start__lte=start_date,
                 period_end__gt=start_date,
+                is_deleted=False,
             ).first()
-            
+
             if not balance:
                 # Fallback
                 balance = LeaveBalance.objects.filter(
                     employee=self.employee,
                     leave_type=self.leave_type,
                     year=self.start_datetime.year,
+                    is_deleted=False,
                 ).first()
                 
             if balance:
