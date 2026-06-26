@@ -167,7 +167,7 @@ class OvertimeListView(OwnEmployeeDataMixin, SortMixin, FilterMixin, SearchMixin
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     create_button_label = '新增加班'
     search_fields = ['employee__name']
-    allowed_sort_fields = ['employee__name', 'date', 'hours', 'rate']
+    allowed_sort_fields = ['employee__name', 'date', 'minutes']
     default_sort = ['-date']
     filter_choices = {
         'pending':  {'is_approved': False},

@@ -176,8 +176,8 @@ class SalaryStructureAdmin(ImportExportModelAdmin):
 
 @admin.register(OvertimeRecord)
 class OvertimeRecordAdmin(admin.ModelAdmin):
-    list_display = ['employee', 'date', 'hours', 'rate', 'is_approved', 'is_deleted', 'created_at']
-    list_filter = ['is_approved', 'rate', 'is_deleted']
+    list_display = ['employee', 'date', 'minutes', 'day_type_label', 'is_approved', 'is_deleted', 'created_at']
+    list_filter = ['is_approved', 'is_deleted']
     search_fields = ['employee__name', 'employee__employee_number']
     readonly_fields = ['created_at', 'updated_at']
     actions = [restore_deleted]

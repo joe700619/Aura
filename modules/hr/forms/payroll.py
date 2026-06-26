@@ -56,12 +56,11 @@ class InsuranceBracketForm(forms.ModelForm):
 class OvertimeRecordForm(forms.ModelForm):
     class Meta:
         model = OvertimeRecord
-        fields = ['employee', 'date', 'hours', 'rate', 'reason']
+        fields = ['employee', 'date', 'minutes', 'reason']
         widgets = {
             'employee': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
-            'hours': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'step': '0.5', 'min': '0.5'}),
-            'rate': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'minutes': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'step': '1', 'min': '1', 'placeholder': '例如：90'}),
             'reason': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 2}),
         }
 
