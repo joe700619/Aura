@@ -251,16 +251,25 @@ class LeaveRequestCreateView(HRRequiredMixin, CreateView):
             leave_type=self.object.leave_type,
             period_start__lte=start_date,
             period_end__gt=start_date,
+            is_deleted=False,
         ).first()
 
         if not balance:
-            # Fallback for leaves that might not have strict periods generated yet
-            balance, _ = LeaveBalance.objects.get_or_create(
+            # Fallback：尚未產生嚴格 period 區間的餘額，改用年度找；
+            # 排除軟刪除，避免扣到已刪除的舊餘額
+            balance = LeaveBalance.objects.filter(
                 employee=self.object.employee,
                 leave_type=self.object.leave_type,
                 year=self.object.start_datetime.year,
-                defaults={'entitled_hours': 0},
-            )
+                is_deleted=False,
+            ).first()
+            if balance is None:
+                balance = LeaveBalance.objects.create(
+                    employee=self.object.employee,
+                    leave_type=self.object.leave_type,
+                    year=self.object.start_datetime.year,
+                    entitled_hours=0,
+                )
 
         balance.used_hours += self.object.total_hours
         balance.save(update_fields=['used_hours'])

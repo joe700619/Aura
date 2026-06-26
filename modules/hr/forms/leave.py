@@ -141,6 +141,7 @@ class LeaveRequestForm(forms.ModelForm):
                 leave_type=leave_type,
                 period_start__lte=start_date,
                 period_end__gt=start_date,
+                is_deleted=False,
             ).first()
 
             if not balance:
@@ -149,6 +150,7 @@ class LeaveRequestForm(forms.ModelForm):
                     employee=employee,
                     leave_type=leave_type,
                     year=start_datetime.year,
+                    is_deleted=False,
                 ).first()
 
             if balance:
