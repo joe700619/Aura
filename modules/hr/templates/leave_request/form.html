@@ -65,7 +65,7 @@
         <label for="{{ form.total_hours.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">請假時數</label>
         {{ form.total_hours }}
         {{ form.total_hours.errors }}
-        <p id="auto-calc-hint" class="mt-1 text-xs text-slate-500">以 0.5 小時為單位，由系統自動計算</p>
+        <p id="auto-calc-hint" class="mt-1 text-xs text-slate-500">由系統自動計算（上班 08:30–17:30、午休 12:00–13:00 不計，全天以 8 小時計，週末與國定假日不計），以 0.5 小時為單位</p>
     </div>
 
     <div>
@@ -133,6 +133,27 @@
     var hoursField = document.getElementById('{{ form.total_hours.id_for_label }}');
 
     if (startField && endField && hoursField) {
+        // 與後端 leave_duration.py 對齊的上班時段（分鐘）
+        var WORK_START = 8 * 60 + 30;   // 08:30
+        var WORK_END   = 17 * 60 + 30;  // 17:30
+        var LUNCH_START = 12 * 60;      // 12:00
+        var LUNCH_END   = 13 * 60;      // 13:00
+
+        function overlap(s, e, ws, we) {
+            return Math.max(0, Math.min(e, we) - Math.max(s, ws));
+        }
+        function workingMinutes(segStart, segEnd) {
+            var work  = overlap(segStart, segEnd, WORK_START, WORK_END);
+            var lunch = overlap(segStart, segEnd, LUNCH_START, LUNCH_END);
+            return Math.max(0, work - lunch);
+        }
+        function minutesOf(d) { return d.getHours() * 60 + d.getMinutes(); }
+        function sameDay(a, b) {
+            return a.getFullYear() === b.getFullYear()
+                && a.getMonth() === b.getMonth()
+                && a.getDate() === b.getDate();
+        }
+
         function calcHours() {
             var startVal = startField.value;
             var endVal   = endField.value;
@@ -140,11 +161,24 @@
             var startDate = new Date(startVal);
             var endDate   = new Date(endVal);
             if (isNaN(startDate) || isNaN(endDate)) return;
-            var diffMs = endDate - startDate;
-            if (diffMs < 0) { hoursField.value = '0'; return; }
-            var diffHours = Math.round(diffMs / (1000 * 60 * 60) * 2) / 2;
-            if (diffHours < 0) diffHours = 0;
-            hoursField.value = diffHours.toFixed(1);
+            if (endDate <= startDate) { hoursField.value = '0.0'; return; }
+
+            // 逐日累計：只計平日（前端無國定假日資料，由後端最終校正）、
+            // 每日只計上班時段並扣午休
+            var totalMinutes = 0;
+            var cur = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            var last = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+            while (cur <= last) {
+                var dow = cur.getDay(); // 0=日, 6=六
+                if (dow !== 0 && dow !== 6) {
+                    var segStart = sameDay(cur, startDate) ? minutesOf(startDate) : WORK_START;
+                    var segEnd   = sameDay(cur, endDate)   ? minutesOf(endDate)   : WORK_END;
+                    totalMinutes += workingMinutes(segStart, segEnd);
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+            var hours = Math.round(totalMinutes / 60 * 2) / 2;
+            hoursField.value = hours.toFixed(1);
         }
         startField.addEventListener('change', calcHours);
         endField.addEventListener('change', calcHours);

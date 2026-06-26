@@ -1,5 +1,6 @@
 from django import forms
 from ..models import LeaveType, LeaveBalance, LeaveRequest
+from ..services.leave_duration import calculate_leave_hours
 
 
 class LeaveTypeForm(forms.ModelForm):
@@ -85,9 +86,10 @@ class LeaveRequestForm(forms.ModelForm):
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
             }),
             'total_hours': forms.NumberInput(attrs={
-                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
+                'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-slate-50',
                 'step': '0.5',
                 'min': '0.5',
+                'readonly': 'readonly',
             }),
             'reason': forms.Textarea(attrs={
                 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm',
@@ -103,12 +105,32 @@ class LeaveRequestForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 時數由後端依上下班時段自動計算，前端僅作預覽，故表單層不必填
+        self.fields['total_hours'].required = False
+
     def clean(self):
         cleaned_data = super().clean()
         employee = cleaned_data.get('employee')
         leave_type = cleaned_data.get('leave_type')
-        total_hours = cleaned_data.get('total_hours')
         start_datetime = cleaned_data.get('start_datetime')
+        end_datetime = cleaned_data.get('end_datetime')
+
+        # 後端權威重算時數：不信任前端送來的 total_hours，
+        # 依固定上班時段（扣午休）逐工作日計算（跳過週末/國定假日）
+        if start_datetime and end_datetime:
+            if end_datetime <= start_datetime:
+                self.add_error('end_datetime', '結束時間必須晚於開始時間。')
+            else:
+                total_hours = calculate_leave_hours(start_datetime, end_datetime)
+                cleaned_data['total_hours'] = total_hours
+                if total_hours <= 0:
+                    self.add_error(
+                        'start_datetime',
+                        '此區間不含任何工作時段（可能整段落在午休、下班時間或假日），請重新選擇。'
+                    )
+        total_hours = cleaned_data.get('total_hours')
 
         if employee and leave_type and total_hours and start_datetime:
             # Check balance
