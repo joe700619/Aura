@@ -326,40 +326,54 @@ class PayrollRecord(BaseModel):
             
             is_full_day_leave = False
             has_morning_leave = False
-            
+            has_any_leave = False
+
             for leave in leaves:
+                has_any_leave = True
                 # 轉為本地時間比對
                 start_local = localtime(leave.start_datetime).time()
                 end_local = localtime(leave.end_datetime).time()
-                
+
                 # 簡單判斷：涵蓋 08:30~17:00 視為全天假
                 if start_local <= dt_time(8, 45) and end_local >= dt_time(17, 0):
                     is_full_day_leave = True
                 # 涵蓋 08:30~12:00 視為上午假
                 elif start_local <= dt_time(8, 45) and end_local >= dt_time(12, 0):
                     has_morning_leave = True
-            
+
             if is_full_day_leave:
                 # 全天假不檢查發卡與遲到
                 continue
-                
+
+            # 缺卡豁免規則（重要，勿刪）：
+            # 當天只要有「任何核准的請假」（含上午假/下午假/小時假等部分時段假），
+            # 就「不計缺卡扣款」。理由：員工部分時段在請假，漏打的那次卡多半落在
+            # 請假時段內，不應再扣 4 小時缺卡。
+            # 取捨：採「該日整天不計缺卡」的寬鬆作法（連完全沒打卡也豁免），
+            # 換取邏輯簡單、不會誤扣；遲到仍照算（實際有上班的時段該準時）。
+            # 全天假已於上方 continue，不會走到這裡。
+            count_missing = not has_any_leave
+
             attendance = AttendanceRecord.objects.filter(
                 employee=self.employee,
                 date=d,
                 is_deleted=False,
             ).first()
-            
+
             if not attendance:
                 # 完全沒打卡紀錄 => 缺 2 次卡 (視同曠職 1 天，扣 8 小時)
-                total_missing_punches += 2
+                if count_missing:
+                    total_missing_punches += 2
             else:
                 if attendance.clock_in and attendance.clock_out:
                     actual_days += 1
                 elif attendance.clock_in or attendance.clock_out:
                     actual_days += 1
-                    total_missing_punches += 1  # 缺 1 次卡
+                    if count_missing:
+                        total_missing_punches += 1  # 缺 1 次卡
                 else:
-                    total_missing_punches += 2  # 皆空值 (預防)
+                    if count_missing:
+                        total_missing_punches += 2  # 皆空值 (預防)
                     
                 # 檢查遲到
                 if attendance.clock_in:

@@ -1,6 +1,20 @@
 {% extends 'components/form_view.html' %}
 {% block page_title %}{{ page_title }}{% endblock %}
 
+{% block toolbar_nav %}
+{{ block.super }}
+{% if object and not object.is_finalized %}
+<form method="post" action="{% url 'hr:payroll_recalculate' object.pk %}" class="inline"
+      onsubmit="return confirm('將依最新的出勤／請假／加班資料重新計算此薪資單，目前手動調整的數值會被覆蓋。確定要重算嗎？');">
+    {% csrf_token %}
+    <button type="submit"
+        class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1.5 rounded-md text-sm font-bold border border-amber-300 transition-colors">
+        重新計算
+    </button>
+</form>
+{% endif %}
+{% endblock %}
+
 {% block form_card_1 %}
 <div class="space-y-4">
     <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">

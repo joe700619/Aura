@@ -350,6 +350,32 @@ class PayrollDeleteView(PayrollDataMixin, SoftDeleteMixin, HRRequiredMixin, Dele
     success_url = reverse_lazy('hr:payroll_list')
 
 
+class PayrollRecalculateView(HRRequiredMixin, View):
+    """
+    重新計算單張薪資單。
+
+    使用時機：薪資單已產生後，才補核准了請假單／加班單（或補登出勤），
+    需要依最新資料重算遲到、缺卡、請假扣款與加班費等。
+    已確認（is_finalized）的薪資單不允許重算，避免動到已發放的資料。
+    """
+    required_perms = 'hr.change_payrollrecord'
+
+    def post(self, request, pk):
+        record = PayrollRecord.objects.filter(pk=pk, is_deleted=False).first()
+        if not record:
+            messages.error(request, '找不到薪資單。')
+            return redirect('hr:payroll_list')
+
+        if record.is_finalized:
+            messages.warning(request, '此薪資單已確認，無法重算。如需修改請先取消確認。')
+            return redirect('hr:payroll_update', pk=pk)
+
+        record.calculate()
+        record.save()
+        messages.success(request, '已依最新出勤／請假／加班資料重新計算薪資單。')
+        return redirect('hr:payroll_update', pk=pk)
+
+
 class PayrollBatchGenerateView(HRRequiredMixin, View):
     """批次產生薪資單"""
     required_perms = 'hr.add_payrollrecord'   # 批次新增薪資單 → 需薪資單新增權
