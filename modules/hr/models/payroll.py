@@ -274,6 +274,195 @@ class PayrollRecord(BaseModel):
     def __str__(self):
         return f"{self.employee.name} - {self.year_month} (實發 {self.net_salary})"
 
+    def scan_attendance_days(self, year, month):
+        """
+        逐日掃描當月工作日，回傳每日出勤明細（遲到分鐘、缺卡次數、起算點等）。
+
+        calculate()（算總額）與「明細」頁（顯示逐日）共用此方法，
+        確保金額與明細出自同一套邏輯、不會兩邊各算各的對不起來。
+
+        回傳 list[dict]，每筆為一個工作日。
+        """
+        import calendar
+        from datetime import date as dt_date, time as dt_time, datetime
+        from django.utils.timezone import make_aware, localtime
+        from ..models import WorkCalendar, AttendanceRecord
+        from ..models.leave import LeaveRequest
+
+        _, days_in_month = calendar.monthrange(year, month)
+        details = []
+
+        for day in range(1, days_in_month + 1):
+            d = dt_date(year, month, day)
+            if not WorkCalendar.is_workday(d):
+                continue
+
+            day_start = make_aware(datetime.combine(d, dt_time.min))
+            day_end = make_aware(datetime.combine(d, dt_time.max))
+            leaves = LeaveRequest.objects.filter(
+                employee=self.employee, status='approved',
+                start_datetime__lt=day_end, end_datetime__gt=day_start,
+                is_deleted=False,
+            )
+
+            is_full_day_leave = False
+            has_any_leave = False
+            morning_leave_end = None
+            for leave in leaves:
+                has_any_leave = True
+                start_local = localtime(leave.start_datetime).time()
+                end_local = localtime(leave.end_datetime).time()
+                if start_local <= dt_time(8, 45) and end_local >= dt_time(17, 0):
+                    is_full_day_leave = True
+                if start_local <= dt_time(8, 45):
+                    if morning_leave_end is None or end_local > morning_leave_end:
+                        morning_leave_end = end_local
+
+            row = {
+                'date': d, 'weekday': d.weekday(),
+                'clock_in': None, 'clock_out': None,
+                'is_full_day_leave': is_full_day_leave,
+                'has_any_leave': has_any_leave,
+                'late_limit': None, 'late_minutes': 0,
+                'missing_punches': 0, 'missing_reason': '',
+                'counts_as_actual': False,
+            }
+
+            if is_full_day_leave:
+                # 全天假不檢查打卡與遲到
+                details.append(row)
+                continue
+
+            # 當天有任何核准請假 → 該日不計缺卡（部分時段假豁免）
+            count_missing = not has_any_leave
+            attendance = AttendanceRecord.objects.filter(
+                employee=self.employee, date=d, is_deleted=False,
+            ).first()
+
+            if not attendance:
+                if count_missing:
+                    row['missing_punches'] = 2
+                    row['missing_reason'] = '未出勤（視同曠職）'
+            else:
+                row['clock_in'] = attendance.clock_in
+                row['clock_out'] = attendance.clock_out
+                if attendance.clock_in and attendance.clock_out:
+                    row['counts_as_actual'] = True
+                elif attendance.clock_in or attendance.clock_out:
+                    row['counts_as_actual'] = True
+                    if count_missing:
+                        row['missing_punches'] = 1
+                        row['missing_reason'] = '漏打下班卡' if attendance.clock_in else '漏打上班卡'
+                else:
+                    if count_missing:
+                        row['missing_punches'] = 2
+                        row['missing_reason'] = '上下班卡皆無'
+
+                # 遲到（起算點依當天請假涵蓋時間動態決定）
+                if attendance.clock_in:
+                    if morning_leave_end is None:
+                        limit_time = dt_time(9, 0)
+                    else:
+                        limit_time = max(dt_time(9, 0), morning_leave_end)
+                        if dt_time(12, 0) <= limit_time < dt_time(13, 0):
+                            limit_time = dt_time(13, 0)
+                    row['late_limit'] = limit_time
+                    if attendance.clock_in > limit_time:
+                        late_delta = datetime.combine(d, attendance.clock_in) - datetime.combine(d, limit_time)
+                        row['late_minutes'] = int(late_delta.total_seconds() // 60)
+
+            details.append(row)
+
+        return details
+
+    def get_detail(self):
+        """
+        即時重算產生薪資明細（遲到/缺卡/請假/加班），供薪資單「明細」頁顯示。
+
+        與 calculate() 共用 scan_attendance_days，金額口徑一致（時薪=底薪/30/8）。
+        注意：明細依「目前」的出勤/請假/加班資料即時產生；若薪資單結算後
+        來源資料又有異動，明細的即時金額可能與已存的金額不同步（stale=True），
+        畫面上會提示可按「重新計算」。
+        """
+        from decimal import Decimal, ROUND_HALF_UP
+        from datetime import datetime
+        from django.utils.timezone import make_aware
+        from ..models import OvertimeRecord
+        from ..models.leave import LeaveRequest
+
+        year, month = int(self.year_month[:4]), int(self.year_month[5:7])
+        salary = SalaryStructure.objects.filter(employee=self.employee, is_current=True).first()
+        base = salary.base_salary if salary else Decimal('0')
+        hourly_rate = base / Decimal('30') / Decimal('8')
+        minute_rate = hourly_rate / Decimal('60')
+
+        def yuan(x):
+            return int(Decimal(x).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+
+        day_details = self.scan_attendance_days(year, month)
+        late_rows = [r for r in day_details if r['late_minutes'] > 0]
+        missing_rows = [r for r in day_details if r['missing_punches'] > 0]
+        late_minutes = sum(r['late_minutes'] for r in late_rows)
+        missing_count = sum(r['missing_punches'] for r in missing_rows)
+
+        # 請假明細
+        month_start = make_aware(datetime(year, month, 1))
+        month_end = make_aware(datetime(year + (month // 12), (month % 12) + 1, 1))
+        leaves = LeaveRequest.objects.filter(
+            employee=self.employee, status='approved',
+            start_datetime__gte=month_start, start_datetime__lt=month_end,
+            is_deleted=False,
+        ).select_related('leave_type').order_by('start_datetime')
+        leave_rows = []
+        unpaid_total = Decimal('0')
+        for l in leaves:
+            unpaid = (l.total_hours or Decimal('0')) * (Decimal('1') - l.leave_type.pay_rate)
+            unpaid_total += unpaid
+            leave_rows.append({'leave': l, 'unpaid_hours': unpaid})
+
+        # 加班明細
+        overtime_rows = list(OvertimeRecord.objects.filter(
+            employee=self.employee, date__year=year, date__month=month,
+            is_approved=True, is_deleted=False,
+        ).order_by('date'))
+
+        # 即時重算金額
+        late_total = yuan(Decimal(late_minutes) * minute_rate)
+        missing_total = yuan(Decimal(missing_count) * Decimal('4') * hourly_rate)
+        leave_total = yuan(hourly_rate * unpaid_total)
+        overtime_total = sum((o.overtime_pay for o in overtime_rows), 0)
+
+        # 與已存金額比對，判斷是否已過時（結算後來源資料有變動）
+        stale = (
+            late_total != self.late_deduction
+            or missing_total != self.missing_punch_deduction
+            or leave_total != self.leave_deduction
+            or overtime_total != self.overtime_pay
+        )
+
+        return {
+            'hourly_rate': hourly_rate,
+            'minute_rate': minute_rate,
+            'late_rows': late_rows,
+            'late_minutes': late_minutes,
+            'late_total': late_total,
+            'missing_rows': missing_rows,
+            'missing_count': missing_count,
+            'missing_total': missing_total,
+            'leave_rows': leave_rows,
+            'unpaid_total': unpaid_total,
+            'leave_total': leave_total,
+            'overtime_rows': overtime_rows,
+            'overtime_total': overtime_total,
+            'stale': stale,
+            'stored': {
+                'late': self.late_deduction,
+                'missing': self.missing_punch_deduction,
+                'leave': self.leave_deduction,
+                'overtime': self.overtime_pay,
+            },
+        }
+
     def calculate(self):
         """
         依據薪資結構、出勤、請假、加班計算薪資
@@ -316,101 +505,11 @@ class PayrollRecord(BaseModel):
         minute_rate = hourly_rate / Decimal('60')
 
         # 3. 逐日計算出勤、遲到與缺卡
-        _, days_in_month = calendar.monthrange(year, month)
-        actual_days = 0
-        total_late_minutes = 0
-        total_missing_punches = 0
-        
-        for day in range(1, days_in_month + 1):
-            d = dt_date(year, month, day)
-            if not WorkCalendar.is_workday(d):
-                continue
-                
-            # 檢查當日請假狀況
-            day_start = make_aware(datetime.combine(d, dt_time.min))
-            day_end = make_aware(datetime.combine(d, dt_time.max))
-            
-            leaves = LeaveRequest.objects.filter(
-                employee=self.employee,
-                status='approved',
-                start_datetime__lt=day_end,
-                end_datetime__gt=day_start,
-                is_deleted=False
-            )
-            
-            is_full_day_leave = False
-            has_any_leave = False
-            # 「從上班時間(08:30)開始的請假」涵蓋到的最晚結束時間，
-            # 用來動態決定遲到起算點（請假結束前不算遲到）。None 表示無此類請假。
-            morning_leave_end = None
-
-            for leave in leaves:
-                has_any_leave = True
-                # 轉為本地時間比對
-                start_local = localtime(leave.start_datetime).time()
-                end_local = localtime(leave.end_datetime).time()
-
-                # 涵蓋 08:30~17:00 視為全天假
-                if start_local <= dt_time(8, 45) and end_local >= dt_time(17, 0):
-                    is_full_day_leave = True
-                # 從上班時間開始的請假：記錄涵蓋到的最晚時間
-                if start_local <= dt_time(8, 45):
-                    if morning_leave_end is None or end_local > morning_leave_end:
-                        morning_leave_end = end_local
-
-            if is_full_day_leave:
-                # 全天假不檢查發卡與遲到
-                continue
-
-            # 缺卡豁免規則（重要，勿刪）：
-            # 當天只要有「任何核准的請假」（含上午假/下午假/小時假等部分時段假），
-            # 就「不計缺卡扣款」。理由：員工部分時段在請假，漏打的那次卡多半落在
-            # 請假時段內，不應再扣 4 小時缺卡。
-            # 取捨：採「該日整天不計缺卡」的寬鬆作法（連完全沒打卡也豁免），
-            # 換取邏輯簡單、不會誤扣；遲到仍照算（實際有上班的時段該準時）。
-            # 全天假已於上方 continue，不會走到這裡。
-            count_missing = not has_any_leave
-
-            attendance = AttendanceRecord.objects.filter(
-                employee=self.employee,
-                date=d,
-                is_deleted=False,
-            ).first()
-
-            if not attendance:
-                # 完全沒打卡紀錄 => 缺 2 次卡 (視同曠職 1 天，扣 8 小時)
-                if count_missing:
-                    total_missing_punches += 2
-            else:
-                if attendance.clock_in and attendance.clock_out:
-                    actual_days += 1
-                elif attendance.clock_in or attendance.clock_out:
-                    actual_days += 1
-                    if count_missing:
-                        total_missing_punches += 1  # 缺 1 次卡
-                else:
-                    if count_missing:
-                        total_missing_punches += 2  # 皆空值 (預防)
-                    
-                # 檢查遲到
-                if attendance.clock_in:
-                    clock_in_time = attendance.clock_in
-                    # 遲到起算點（依當天請假涵蓋時間動態決定）：
-                    # - 無「從上班開始的請假」    → 09:00（含 30 分緩衝）
-                    # - 請假結束落在午休(12~13)內 → 13:00（午休後才上班）
-                    # - 其他                      → max(09:00, 請假結束時間)
-                    #   （保留 9:00 下限，請很短的假不會比平常更嚴格；
-                    #    請假結束後不再額外給緩衝，與上午假請到中午→13:00 一致）
-                    if morning_leave_end is None:
-                        limit_time = dt_time(9, 0)
-                    else:
-                        limit_time = max(dt_time(9, 0), morning_leave_end)
-                        if dt_time(12, 0) <= limit_time < dt_time(13, 0):
-                            limit_time = dt_time(13, 0)
-
-                    if clock_in_time > limit_time:
-                        late_delta = datetime.combine(d, clock_in_time) - datetime.combine(d, limit_time)
-                        total_late_minutes += int(late_delta.total_seconds() // 60)
+        # 逐日掃描邏輯抽到 scan_attendance_days()，與「明細」頁共用同一套規則。
+        day_details = self.scan_attendance_days(year, month)
+        actual_days = sum(1 for r in day_details if r['counts_as_actual'])
+        total_late_minutes = sum(r['late_minutes'] for r in day_details)
+        total_missing_punches = sum(r['missing_punches'] for r in day_details)
 
         self.work_days_actual = actual_days
 
