@@ -305,15 +305,15 @@ class PayrollRecord(BaseModel):
         self.health_insurance = salary.health_insurance
 
         # 2. 計算應出勤天數與薪資費率
+        # work_days_required 仍計算並保存（顯示用：當月應出勤天數）。
         self.work_days_required = WorkCalendar.get_workdays_in_month(year, month)
-        
-        daily_rate = Decimal('0')
-        hourly_rate = Decimal('0')
-        minute_rate = Decimal('0')
-        if self.work_days_required > 0:
-            daily_rate = self.base_salary / Decimal(self.work_days_required)
-            hourly_rate = daily_rate / Decimal('8')
-            minute_rate = hourly_rate / Decimal('60')
+
+        # 時薪/分薪基準統一為「月薪 / 30 / 8」(= 月薪/240，法定平日每小時工資額)，
+        # 與加班費同一口徑（見 overtime_calculator）。
+        # 不再用「當月應出勤天數」換算，避免同一人「請假/遲到/缺卡扣款時薪」
+        # 與「加班時薪」基準不一致。請假扣款、遲到、缺卡均依此基準。
+        hourly_rate = self.base_salary / Decimal('30') / Decimal('8')
+        minute_rate = hourly_rate / Decimal('60')
 
         # 3. 逐日計算出勤、遲到與缺卡
         _, days_in_month = calendar.monthrange(year, month)
