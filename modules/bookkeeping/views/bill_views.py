@@ -87,8 +87,13 @@ def _get_clients_for_batch(month):
     return result
 
 
-def _build_quotation_data(active_fee, year, month, is_annual):
-    """依服務費資料組建 quotation_data（list of row dicts）。"""
+def _build_quotation_data(active_fee, year, month, is_annual, client=None):
+    """依服務費資料組建 quotation_data（list of row dicts）。
+
+    若為年度發單月、且該記帳客戶有勾選「公司法22-1由本所申報」，
+    自動加一行 3.40 服務費 500（每年隨年度帳單收一次，由 get_or_create
+    保證一張年度帳單只進一次，不會重複收）。
+    """
     qty          = _CYCLE_QTY.get(active_fee.billing_cycle, 1)
     service_fee  = active_fee.service_fee
     ledger_fee   = active_fee.ledger_fee
@@ -115,6 +120,17 @@ def _build_quotation_data(active_fee, year, month, is_annual):
             'amount': ledger_fee,
             'remark': f'{year}年{month}月帳簿費',
             'is_company_law_22_1': False,
+            'is_money_laundering_check': False,
+            'is_business_entity_change': False,
+            'is_shareholder_list_change': False,
+        })
+    if is_annual and client is not None and client.company_act_22_1_filing:
+        rows.append({
+            'service_code': '',
+            'service_name': '3.40公司法22-1申報服務費',
+            'amount': 500,
+            'remark': f'{year}年度公司法22-1申報',
+            'is_company_law_22_1': True,
             'is_money_laundering_check': False,
             'is_business_entity_change': False,
             'is_shareholder_list_change': False,
@@ -150,6 +166,7 @@ class BookkeepingClientSearchView(BusinessRequiredMixin, View):
                 'id': client.pk,
                 'name': client.name,
                 'tax_id': client.tax_id or '',
+                'company_act_22_1_filing': client.company_act_22_1_filing,
                 'cost_sharing_data': client.cost_sharing_data or [],
                 'bookkeeping_assistant_name': (
                     client.bookkeeping_assistant.name if client.bookkeeping_assistant else ''
@@ -238,7 +255,7 @@ class BillBatchPreviewView(BusinessRequiredMixin, View):
         for c in candidates:
             active_fee = c['active_fee']
             is_annual  = c['is_annual']
-            rows       = _build_quotation_data(active_fee, year, month, is_annual)
+            rows       = _build_quotation_data(active_fee, year, month, is_annual, c['client'])
             total      = sum(r['amount'] for r in rows)
             items.append({
                 'client_id':      c['client'].pk,

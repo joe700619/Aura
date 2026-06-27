@@ -55,6 +55,10 @@ from modules.bookkeeping.views.bill_views import (
     GenerateBillPaymentLinkView,
     BillBatchPreviewView, BillBatchGenerateView,
 )
+from modules.bookkeeping.views.company_law_22_1 import (
+    CompanyLaw221ListView,
+    CompanyLaw221BatchGenerateView,
+)
 from modules.bookkeeping.views.corporate_tax import CorporateTaxDraftAPIView, ImportCorporateTaxExcelAPIView
 from modules.bookkeeping.views.api_rates import FetchIndustryRatesApiView
 from modules.bookkeeping.views.api_progress_summary import ProgressSummaryAPIView
@@ -161,6 +165,10 @@ urlpatterns = [
     path('service-remuneration-tax-rates/<int:pk>/edit/', ServiceRemunerationTaxRateUpdateView.as_view(), name='service_remuneration_tax_rate_update'),
     path('service-remuneration-tax-rates/<int:pk>/delete/', ServiceRemunerationTaxRateDeleteView.as_view(), name='service_remuneration_tax_rate_delete'),
     path('service-remuneration-tax-rates/nhi-config/', NHIConfigUpdateView.as_view(), name='nhi_config_update'),
+
+    # 公司法22-1申報
+    path('company-law-22-1/', CompanyLaw221ListView.as_view(), name='company_law_22_1_list'),
+    path('company-law-22-1/batch-generate/', CompanyLaw221BatchGenerateView.as_view(), name='company_law_22_1_batch'),
 
     # 客戶帳單系統
     path('bills/', ClientBillListView.as_view(), name='bill_list'),
