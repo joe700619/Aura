@@ -298,6 +298,13 @@
                 
                 {% block extra_errors %}{% endblock %}
 
+                {% if payroll_locked %}
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
+                    <p class="text-sm text-amber-800 font-bold">🔒 此單據已鎖定</p>
+                    <p class="text-sm text-amber-700 mt-1">{{ payroll_locked_message }}</p>
+                </div>
+                {% endif %}
+
                 <!-- Main Container -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <!-- 唯讀模式（只有 view 權限沒有 change/add）：disabled fieldset 一次停用所有欄位，後端 POST 仍會擋 403 -->

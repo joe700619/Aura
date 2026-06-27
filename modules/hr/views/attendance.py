@@ -6,6 +6,7 @@ from django.utils import timezone
 from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS
 from ..models import AttendanceRecord
 from ..forms import AttendanceRecordForm, ClockInOutForm
+from ..services.payroll_lock import PayrollLockUpdateDeleteMixin, PayrollLockCreateMixin
 
 
 class AttendanceListView(OwnEmployeeDataMixin, SearchMixin, ListActionMixin, HRRequiredMixin, ListView):
@@ -36,10 +37,11 @@ class AttendanceListView(OwnEmployeeDataMixin, SearchMixin, ListActionMixin, HRR
         return context
 
 
-class AttendanceCreateView(CopyMixin, HRRequiredMixin, CreateView):
+class AttendanceCreateView(PayrollLockCreateMixin, CopyMixin, HRRequiredMixin, CreateView):
     model = AttendanceRecord
     form_class = AttendanceRecordForm
     template_name = 'attendance/form.html'
+    lock_date_field = 'date'
 
     def get_success_url(self):
         return reverse_lazy('hr:attendance_update', kwargs={'pk': self.object.pk})
@@ -55,7 +57,7 @@ class AttendanceCreateView(CopyMixin, HRRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class AttendanceUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+class AttendanceUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AttendanceRecord
     form_class = AttendanceRecordForm
@@ -83,7 +85,7 @@ class AttendanceUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin,
         return redirect('hr:attendance_update', pk=self.object.pk)
 
 
-class AttendanceDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class AttendanceDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AttendanceRecord
     success_url = reverse_lazy('hr:attendance_list')
