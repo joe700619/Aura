@@ -145,3 +145,62 @@ def create_beneficial_owner_declaration(*, progress, company_name, transaction_d
         rendered_document=document,
     )
     return document
+
+
+# ── 公司法22-1申報：供記帳側年度批次下推建立（idempotent）─────────────────
+# 記帳客戶勾選「由本所申報 22-1」為唯一真相，每年由記帳模組批次呼叫，
+# 依統編 get_or_create CompanyFiling 主檔 + 當年度 ANNUAL FilingHistory 子檔。
+# 帳單不在此處理——500 服務費由 5 月年度帳單批次自動帶入。
+
+def create_or_refresh_annual_filing(year, *, unified_business_no, company_name,
+                                    line_id='', room_id='', main_contact='',
+                                    mobile='', phone='', address=''):
+    """依統編建/取 CompanyFiling 主檔，並確保當年度有一筆「年度申報」歷程。
+
+    idempotent：同統編、同年度重跑只會 get、不會重建。
+    回傳 (filing_history, created)；無統編則回傳 (None, False)。
+
+    註：CompanyFiling.unified_business_no 非 unique，這裡用 filter().first()
+    而非 get_or_create，避免歷史重複資料造成 MultipleObjectsReturned 中斷批次。
+    """
+    from django.utils import timezone
+    from .models import CompanyFiling, FilingHistory
+
+    ubn = (unified_business_no or '').strip()
+    if not ubn:
+        return None, False
+
+    filing_parent = CompanyFiling.objects.filter(unified_business_no=ubn).first()
+    if filing_parent is None:
+        filing_parent = CompanyFiling.objects.create(
+            unified_business_no=ubn,
+            company_name=company_name or '',
+            line_id=line_id or '',
+            room_id=room_id or '',
+            main_contact=main_contact or '',
+            mobile=mobile or '',
+            phone=phone or '',
+            address=address or '',
+            note='由記帳客戶年度22-1批次自動建立基本資料',
+        )
+
+    history, created = FilingHistory.objects.get_or_create(
+        company_filing=filing_parent,
+        year=year,
+        category=FilingHistory.FilingCategory.ANNUAL,
+        defaults={'filing_date': timezone.now().date()},
+    )
+    return history, created
+
+
+def get_ubns_with_annual_filing(year):
+    """回傳「該年度已建年度申報歷程」的統編集合。
+
+    一條 query，給記帳側 22-1 清單頁標示「今年已建記錄」狀態用，避免 N+1。
+    """
+    from .models import FilingHistory
+    return set(
+        FilingHistory.objects
+        .filter(year=year, category=FilingHistory.FilingCategory.ANNUAL)
+        .values_list('company_filing__unified_business_no', flat=True)
+    )

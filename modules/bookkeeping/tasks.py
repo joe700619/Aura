@@ -59,7 +59,7 @@ def generate_bills_batch(year: int, month: int,
         for c in candidates:
             active_fee = c['active_fee']
             is_annual = c['is_annual']
-            quotation_data = _build_quotation_data(active_fee, year, month, is_annual)
+            quotation_data = _build_quotation_data(active_fee, year, month, is_annual, c['client'])
             total = sum(r['amount'] for r in quotation_data)
 
             _, created = ClientBill.objects.get_or_create(
@@ -83,6 +83,54 @@ def generate_bills_batch(year: int, month: int,
     msg = f'批次產帳完成：新建 {created_count} 筆，跳過 {skipped_count} 筆（已存在）'
     logger.info(msg)
     return {'created': created_count, 'skipped': skipped_count, 'message': msg}
+
+
+@shared_task(name='bookkeeping.generate_22_1_filings_batch')
+def generate_22_1_filings_batch(year: int) -> dict:
+    """年度批次：為所有勾選「公司法22-1由本所申報」的記帳客戶，
+    下推建立當年度「年度申報」歷程（idempotent）。
+
+    - 帳單不在此處理：500 服務費由 5 月年度帳單批次自動帶入。
+    - 媒體檔（未來）：補齊資料後，掛在本 task 建完歷程之後的下一步。
+    跨模組寫入一律經 registration service，不直接操作登記 model。
+    """
+    from modules.bookkeeping.models import BookkeepingClient
+    from modules.registration.services import create_or_refresh_annual_filing
+
+    clients = BookkeepingClient.objects.filter(
+        is_deleted=False, company_act_22_1_filing=True,
+    )
+    created_count = skipped_count = no_ubn_count = 0
+    with transaction.atomic():
+        for client in clients:
+            if not client.tax_id:
+                no_ubn_count += 1
+                continue
+            _, was_created = create_or_refresh_annual_filing(
+                year,
+                unified_business_no=client.tax_id,
+                company_name=client.name,
+                line_id=client.line_id or '',
+                room_id=client.room_id or '',
+                main_contact=client.contact_person or '',
+                mobile=client.mobile or '',
+                phone=client.phone or '',
+                address=client.correspondence_address or '',
+            )
+            if was_created:
+                created_count += 1
+            else:
+                skipped_count += 1
+
+    msg = (f'{year} 年度 22-1 批次完成：新建 {created_count} 筆，'
+           f'跳過 {skipped_count} 筆（已建），略過 {no_ubn_count} 筆（無統編）')
+    logger.info(msg)
+    return {
+        'created': created_count,
+        'skipped': skipped_count,
+        'no_ubn': no_ubn_count,
+        'message': msg,
+    }
 
 
 @shared_task(name='bookkeeping.send_remuneration_reminders')

@@ -100,13 +100,14 @@
         <h4 class="font-bold text-slate-800 text-sm">其他資料</h4>
     </div>
 
-    <div>
+    {# 費用固定 500、由記帳年度帳單收取；申報方式真相改以記帳客戶旗標為準，此處隱藏但仍提交原值 #}
+    <div style="display:none">
         <label for="{{ form.fee.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">費用</label>
         {{ form.fee }}
         {{ form.fee.errors }}
     </div>
 
-    <div>
+    <div style="display:none">
         <label for="{{ form.filing_method.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">申報方式</label>
         {{ form.filing_method }}
         {{ form.filing_method.errors }}
