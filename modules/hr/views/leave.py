@@ -6,6 +6,7 @@ from django.contrib import messages
 from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SortMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS
 from ..models import LeaveType, LeaveBalance, LeaveRequest
 from ..forms import LeaveTypeForm, LeaveBalanceForm, LeaveRequestForm
+from ..services.payroll_lock import PayrollLockUpdateDeleteMixin, PayrollLockCreateMixin, block_if_locked
 
 
 # ==================== LeaveType ====================
@@ -214,10 +215,11 @@ def _is_hr_staff(user):
     return user.is_superuser or user.groups.filter(name__in=_HR_STAFF_GROUPS).exists()
 
 
-class LeaveRequestCreateView(HRRequiredMixin, CreateView):
+class LeaveRequestCreateView(PayrollLockCreateMixin, HRRequiredMixin, CreateView):
     model = LeaveRequest
     form_class = LeaveRequestForm
     template_name = 'leave_request/form.html'
+    lock_date_field = 'start_datetime'
 
     def get_success_url(self):
         return reverse_lazy('hr:leave_request_update', kwargs={'pk': self.object.pk})
@@ -277,7 +279,7 @@ class LeaveRequestCreateView(HRRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class LeaveRequestUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+class LeaveRequestUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveRequest
     form_class = LeaveRequestForm
@@ -321,7 +323,7 @@ class LeaveRequestUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixi
         return redirect('hr:leave_request_update', pk=self.object.pk)
 
 
-class LeaveRequestDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class LeaveRequestDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     """Cancel (soft delete) a leave request and rollback balance"""
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = LeaveRequest
@@ -350,6 +352,7 @@ from modules.workflow.services import (
 
 
 @login_required
+@block_if_locked(LeaveRequest, 'hr:leave_request_update')
 def leave_request_submit_approval(request, pk):
     """送出請假單核准"""
     leave_req = get_object_or_404(LeaveRequest, pk=pk)
@@ -372,6 +375,7 @@ def leave_request_submit_approval(request, pk):
 
 
 @login_required
+@block_if_locked(LeaveRequest, 'hr:leave_request_update')
 def leave_request_approve(request, pk):
     """核准請假單"""
     leave_req = get_object_or_404(LeaveRequest, pk=pk)
@@ -404,6 +408,7 @@ def leave_request_approve(request, pk):
 
 
 @login_required
+@block_if_locked(LeaveRequest, 'hr:leave_request_update')
 def leave_request_reject(request, pk):
     """拒絕請假單"""
     leave_req = get_object_or_404(LeaveRequest, pk=pk)
@@ -433,6 +438,7 @@ def leave_request_reject(request, pk):
 
 
 @login_required
+@block_if_locked(LeaveRequest, 'hr:leave_request_update')
 def leave_request_return(request, pk):
     """退回請假單"""
     leave_req = get_object_or_404(LeaveRequest, pk=pk)
@@ -460,6 +466,7 @@ def leave_request_return(request, pk):
 
 
 @login_required
+@block_if_locked(LeaveRequest, 'hr:leave_request_update')
 def leave_request_cancel_approval(request, pk):
     """撤回請假單核准"""
     leave_req = get_object_or_404(LeaveRequest, pk=pk)

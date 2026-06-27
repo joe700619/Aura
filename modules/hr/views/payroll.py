@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from core.mixins import HRRequiredMixin, OwnEmployeeDataMixin, PayrollDataMixin, CopyMixin, PrevNextMixin, ListActionMixin, SearchMixin, SortMixin, FilterMixin, SoftDeleteMixin, _HR_ATTENDANCE_ACCESS_GROUPS  # noqa: F401
 from ..models import SalaryStructure, OvertimeRecord, PayrollRecord, Employee, InsuranceBracket, AdvancePayment
 from ..forms import SalaryStructureForm, OvertimeRecordForm, PayrollRecordForm, InsuranceBracketForm, AdvancePaymentForm
+from ..services.payroll_lock import PayrollLockUpdateDeleteMixin, PayrollLockCreateMixin, block_if_locked
 from modules.workflow.services import (
     initiate_approval,
     submit_for_approval,
@@ -185,10 +186,11 @@ class OvertimeListView(OwnEmployeeDataMixin, SortMixin, FilterMixin, SearchMixin
         return context
 
 
-class OvertimeCreateView(CopyMixin, HRRequiredMixin, CreateView):
+class OvertimeCreateView(PayrollLockCreateMixin, CopyMixin, HRRequiredMixin, CreateView):
     model = OvertimeRecord
     form_class = OvertimeRecordForm
     template_name = 'overtime/form.html'
+    lock_date_field = 'date'
 
     def get_success_url(self):
         return reverse_lazy('hr:overtime_update', kwargs={'pk': self.object.pk})
@@ -204,7 +206,7 @@ class OvertimeCreateView(CopyMixin, HRRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class OvertimeUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+class OvertimeUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = OvertimeRecord
     form_class = OvertimeRecordForm
@@ -238,7 +240,7 @@ class OvertimeUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, U
         return redirect('hr:overtime_update', pk=self.object.pk)
 
 
-class OvertimeDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class OvertimeDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = OvertimeRecord
     success_url = reverse_lazy('hr:overtime_list')
@@ -326,9 +328,9 @@ class PayrollUpdateView(PayrollDataMixin, PrevNextMixin, HRRequiredMixin, Update
 
     def form_valid(self, form):
         self.object = form.save()
-        
-        # 當薪資單從草稿轉為已確認時，將關聯的代墊款標記為已發放
+
         if self.object.is_finalized:
+            # 確認發放：將已核准的代墊款標記為已發放（依附此薪資單）
             approved_advances = AdvancePayment.objects.filter(
                 employee=self.object.employee,
                 status='approved',
@@ -342,7 +344,24 @@ class PayrollUpdateView(PayrollDataMixin, PrevNextMixin, HRRequiredMixin, Update
                 updated_count += 1
             if updated_count:
                 messages.info(self.request, f'已將 {updated_count} 筆代墊款標記為已發放 (依附此薪資單)。')
-        
+        else:
+            # 取消發放（逃生門）：把當初依附此薪資單而標記為已發放的代墊款還原，
+            # 解除綁定 → 變回待還款，之後會在下一張發放的薪資單再還。
+            # （否則代墊款會卡在「已還款」但薪資單又變回草稿的不一致狀態）
+            reverted = AdvancePayment.objects.filter(
+                payroll_record=self.object,
+                status='deducted',
+                is_deleted=False,
+            )
+            reverted_count = 0
+            for ap in reverted:
+                ap.status = 'approved'
+                ap.payroll_record = None
+                ap.save(update_fields=['status', 'payroll_record'])
+                reverted_count += 1
+            if reverted_count:
+                messages.info(self.request, f'已取消發放，{reverted_count} 筆代墊款還原為待還款，該月單據已解鎖。')
+
         messages.success(self.request, '薪資單已更新。')
         return redirect('hr:payroll_update', pk=self.object.pk)
 
@@ -466,7 +485,7 @@ class AdvancePaymentCreateView(HRRequiredMixin, CreateView):
         return redirect(self.get_success_url())
 
 
-class AdvancePaymentUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
+class AdvancePaymentUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMixin, UpdateView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AdvancePayment
     form_class = AdvancePaymentForm
@@ -507,7 +526,7 @@ class AdvancePaymentUpdateView(OwnEmployeeDataMixin, PrevNextMixin, HRRequiredMi
         return redirect(self.get_success_url())
 
 
-class AdvancePaymentDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class AdvancePaymentDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AdvancePayment
     success_url = reverse_lazy('hr:advance_payment_list')
@@ -516,6 +535,7 @@ class AdvancePaymentDeleteView(OwnEmployeeDataMixin, SoftDeleteMixin, HRRequired
 # ========== Advance Payment Approval Action Views ==========
 
 @login_required
+@block_if_locked(AdvancePayment, 'hr:advance_payment_update')
 def advancepayment_submit_approval(request, pk):
     """送出代墊款核准"""
     obj = get_object_or_404(AdvancePayment, pk=pk)
@@ -538,6 +558,7 @@ def advancepayment_submit_approval(request, pk):
 
 
 @login_required
+@block_if_locked(AdvancePayment, 'hr:advance_payment_update')
 def advancepayment_approve(request, pk):
     """核准代墊款"""
     obj = get_object_or_404(AdvancePayment, pk=pk)
@@ -571,6 +592,7 @@ def advancepayment_approve(request, pk):
 
 
 @login_required
+@block_if_locked(AdvancePayment, 'hr:advance_payment_update')
 def advancepayment_reject(request, pk):
     """駁回代墊款"""
     obj = get_object_or_404(AdvancePayment, pk=pk)
@@ -600,6 +622,7 @@ def advancepayment_reject(request, pk):
 
 
 @login_required
+@block_if_locked(AdvancePayment, 'hr:advance_payment_update')
 def advancepayment_return(request, pk):
     """退回代墊款"""
     obj = get_object_or_404(AdvancePayment, pk=pk)
@@ -627,6 +650,7 @@ def advancepayment_return(request, pk):
 
 
 @login_required
+@block_if_locked(AdvancePayment, 'hr:advance_payment_update')
 def advancepayment_cancel_approval(request, pk):
     """撤回代墊款核准"""
     obj = get_object_or_404(AdvancePayment, pk=pk)
@@ -653,6 +677,7 @@ def advancepayment_cancel_approval(request, pk):
 
 
 @login_required
+@block_if_locked(OvertimeRecord, 'hr:overtime_update')
 def overtime_submit_approval(request, pk):
     """送出加班單核准"""
     ot = get_object_or_404(OvertimeRecord, pk=pk)
@@ -675,6 +700,7 @@ def overtime_submit_approval(request, pk):
 
 
 @login_required
+@block_if_locked(OvertimeRecord, 'hr:overtime_update')
 def overtime_approve(request, pk):
     """核准加班單"""
     ot = get_object_or_404(OvertimeRecord, pk=pk)
@@ -706,6 +732,7 @@ def overtime_approve(request, pk):
 
 
 @login_required
+@block_if_locked(OvertimeRecord, 'hr:overtime_update')
 def overtime_reject(request, pk):
     """拒絕加班單"""
     ot = get_object_or_404(OvertimeRecord, pk=pk)
@@ -733,6 +760,7 @@ def overtime_reject(request, pk):
 
 
 @login_required
+@block_if_locked(OvertimeRecord, 'hr:overtime_update')
 def overtime_return(request, pk):
     """退回加班單"""
     ot = get_object_or_404(OvertimeRecord, pk=pk)
@@ -760,6 +788,7 @@ def overtime_return(request, pk):
 
 
 @login_required
+@block_if_locked(OvertimeRecord, 'hr:overtime_update')
 def overtime_cancel_approval(request, pk):
     """撤回加班單核准"""
     ot = get_object_or_404(OvertimeRecord, pk=pk)
