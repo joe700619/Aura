@@ -4,7 +4,8 @@
 {% block toolbar_nav %}
 {{ block.super }}
 <a href="{% url 'hr:payroll_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md text-sm font-bold border border-slate-300 transition-colors">回列表</a>
-{% if object and not object.is_finalized %}
+{# 重新計算屬編輯動作：僅有 change 權限者顯示（view-only 不顯示）#}
+{% if object and not object.is_finalized and can_save|default_if_none:True %}
 <form method="post" action="{% url 'hr:payroll_recalculate' object.pk %}" class="inline"
       onsubmit="return confirm('將依最新的出勤／請假／加班資料重新計算此薪資單，目前手動調整的數值會被覆蓋。確定要重算嗎？');">
     {% csrf_token %}
