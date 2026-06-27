@@ -310,6 +310,8 @@ class PayrollUpdateView(PayrollDataMixin, PrevNextMixin, HRRequiredMixin, Update
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = f'薪資單 - {self.object.employee.name} ({self.object.year_month})'
+        # 即時重算明細（遲到/缺卡/請假/加班），供「明細」頁顯示
+        context['detail'] = self.object.get_detail()
         if hasattr(self.object, 'history'):
             history_list = []
             for record in self.object.history.all().select_related('history_user').order_by('-history_date')[:10]:
