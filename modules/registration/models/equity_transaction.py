@@ -7,6 +7,7 @@ class EquityTransaction(BaseModel):
     class OrganizationType(models.TextChoices):
         LTD = 'LTD', _('有限公司')
         CORP = 'CORP', _('股份有限公司')
+        NON_CORP = 'NON_CORP', _('非公司組織')
 
     class TransactionReason(models.TextChoices):
         SETUP = 'SETUP', _('設立')
