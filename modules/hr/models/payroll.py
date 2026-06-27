@@ -339,8 +339,10 @@ class PayrollRecord(BaseModel):
             )
             
             is_full_day_leave = False
-            has_morning_leave = False
             has_any_leave = False
+            # 「從上班時間(08:30)開始的請假」涵蓋到的最晚結束時間，
+            # 用來動態決定遲到起算點（請假結束前不算遲到）。None 表示無此類請假。
+            morning_leave_end = None
 
             for leave in leaves:
                 has_any_leave = True
@@ -348,12 +350,13 @@ class PayrollRecord(BaseModel):
                 start_local = localtime(leave.start_datetime).time()
                 end_local = localtime(leave.end_datetime).time()
 
-                # 簡單判斷：涵蓋 08:30~17:00 視為全天假
+                # 涵蓋 08:30~17:00 視為全天假
                 if start_local <= dt_time(8, 45) and end_local >= dt_time(17, 0):
                     is_full_day_leave = True
-                # 涵蓋 08:30~12:00 視為上午假
-                elif start_local <= dt_time(8, 45) and end_local >= dt_time(12, 0):
-                    has_morning_leave = True
+                # 從上班時間開始的請假：記錄涵蓋到的最晚時間
+                if start_local <= dt_time(8, 45):
+                    if morning_leave_end is None or end_local > morning_leave_end:
+                        morning_leave_end = end_local
 
             if is_full_day_leave:
                 # 全天假不檢查發卡與遲到
@@ -392,9 +395,19 @@ class PayrollRecord(BaseModel):
                 # 檢查遲到
                 if attendance.clock_in:
                     clock_in_time = attendance.clock_in
-                    # 判斷起算標準：若有請上午假，改從 13:00 起算遲到；否則 09:00
-                    limit_time = dt_time(13, 0) if has_morning_leave else dt_time(9, 0)
-                    
+                    # 遲到起算點（依當天請假涵蓋時間動態決定）：
+                    # - 無「從上班開始的請假」    → 09:00（含 30 分緩衝）
+                    # - 請假結束落在午休(12~13)內 → 13:00（午休後才上班）
+                    # - 其他                      → max(09:00, 請假結束時間)
+                    #   （保留 9:00 下限，請很短的假不會比平常更嚴格；
+                    #    請假結束後不再額外給緩衝，與上午假請到中午→13:00 一致）
+                    if morning_leave_end is None:
+                        limit_time = dt_time(9, 0)
+                    else:
+                        limit_time = max(dt_time(9, 0), morning_leave_end)
+                        if dt_time(12, 0) <= limit_time < dt_time(13, 0):
+                            limit_time = dt_time(13, 0)
+
                     if clock_in_time > limit_time:
                         late_delta = datetime.combine(d, clock_in_time) - datetime.combine(d, limit_time)
                         total_late_minutes += int(late_delta.total_seconds() // 60)
