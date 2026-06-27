@@ -95,15 +95,9 @@ class SalaryStructure(BaseModel):
 class OvertimeRecord(BaseModel):
     """
     加班紀錄
-    記錄員工的加班時數與倍率。
+    記錄員工某日的加班分鐘數；加班費依加班日期自動判定類別、
+    並依勞基法級距加權計算（見 services/overtime_calculator.py）。
     """
-
-    RATE_CHOICES = [
-        ('1.34', '平日加班 (前2小時) 1.34倍'),
-        ('1.67', '平日加班 (後2小時) 1.67倍'),
-        ('2.00', '休息日加班 2倍'),
-        ('2.67', '國定假日加班 2.67倍'),
-    ]
 
     employee = models.ForeignKey(
         'hr.Employee',
@@ -112,12 +106,10 @@ class OvertimeRecord(BaseModel):
         verbose_name=_('員工'),
     )
     date = models.DateField(_('加班日期'))
-    hours = models.DecimalField(_('加班時數'), max_digits=4, decimal_places=1)
-    rate = models.CharField(
-        _('加班倍率'),
-        max_length=10,
-        choices=RATE_CHOICES,
-        default='1.34',
+    minutes = models.PositiveIntegerField(
+        _('加班分鐘'),
+        default=0,
+        help_text=_('當日加班總分鐘數，系統會依日期自動分類並依級距加權計算加班費'),
     )
     reason = models.TextField(_('加班事由'), blank=True, default='')
     is_approved = models.BooleanField(_('是否已核准'), default=False)
@@ -136,7 +128,25 @@ class OvertimeRecord(BaseModel):
         verbose_name_plural = _('加班紀錄')
 
     def __str__(self):
-        return f"{self.employee.name} - {self.date} ({self.hours}h @ {self.rate}x)"
+        return f"{self.employee.name} - {self.date} ({self.minutes}分 / {self.day_type_label})"
+
+    @property
+    def hours_display(self):
+        """加班時數（小時，供顯示用）。"""
+        from decimal import Decimal
+        return (Decimal(self.minutes) / Decimal('60')).quantize(Decimal('0.1'))
+
+    @property
+    def day_type(self):
+        """依加班日期自動判定的加班類別代碼。"""
+        from ..services.overtime_calculator import classify_overtime_day
+        return classify_overtime_day(self.date)
+
+    @property
+    def day_type_label(self):
+        """加班類別中文（平日/休息日/國定假日/例假）。"""
+        from ..services.overtime_calculator import DAY_TYPE_LABELS
+        return DAY_TYPE_LABELS.get(self.day_type, self.day_type)
 
     def get_absolute_url(self):
         from django.urls import reverse
@@ -190,17 +200,21 @@ class OvertimeRecord(BaseModel):
 
     @property
     def overtime_pay(self):
-        """計算加班費: 時薪 × 加班時數 × 倍率"""
+        """
+        計算加班費：時薪 × 加權分鐘 / 60。
+        依加班日期自動判定類別（平日/休息日/國定假日/例假），
+        再依勞基法級距把加班分鐘加權（跨級距自動拆算）。
+        """
+        from ..services.overtime_calculator import calculate_overtime_pay
         # 時薪需從 SalaryStructure 取得
         salary = SalaryStructure.objects.filter(
             employee=self.employee, is_current=True
         ).first()
         if not salary:
             return 0
-        # 月薪制時薪 = 底薪 / 30 / 8
+        # 月薪制平日每小時工資額 = 底薪 / 30 / 8（法定 月薪/240，僅採底薪）
         hourly_rate = salary.base_salary / 30 / 8
-        from decimal import Decimal
-        return round(hourly_rate * self.hours * Decimal(self.rate))
+        return calculate_overtime_pay(hourly_rate, self.day_type, self.minutes)
 
 
 class PayrollRecord(BaseModel):
@@ -326,40 +340,54 @@ class PayrollRecord(BaseModel):
             
             is_full_day_leave = False
             has_morning_leave = False
-            
+            has_any_leave = False
+
             for leave in leaves:
+                has_any_leave = True
                 # 轉為本地時間比對
                 start_local = localtime(leave.start_datetime).time()
                 end_local = localtime(leave.end_datetime).time()
-                
+
                 # 簡單判斷：涵蓋 08:30~17:00 視為全天假
                 if start_local <= dt_time(8, 45) and end_local >= dt_time(17, 0):
                     is_full_day_leave = True
                 # 涵蓋 08:30~12:00 視為上午假
                 elif start_local <= dt_time(8, 45) and end_local >= dt_time(12, 0):
                     has_morning_leave = True
-            
+
             if is_full_day_leave:
                 # 全天假不檢查發卡與遲到
                 continue
-                
+
+            # 缺卡豁免規則（重要，勿刪）：
+            # 當天只要有「任何核准的請假」（含上午假/下午假/小時假等部分時段假），
+            # 就「不計缺卡扣款」。理由：員工部分時段在請假，漏打的那次卡多半落在
+            # 請假時段內，不應再扣 4 小時缺卡。
+            # 取捨：採「該日整天不計缺卡」的寬鬆作法（連完全沒打卡也豁免），
+            # 換取邏輯簡單、不會誤扣；遲到仍照算（實際有上班的時段該準時）。
+            # 全天假已於上方 continue，不會走到這裡。
+            count_missing = not has_any_leave
+
             attendance = AttendanceRecord.objects.filter(
                 employee=self.employee,
                 date=d,
                 is_deleted=False,
             ).first()
-            
+
             if not attendance:
                 # 完全沒打卡紀錄 => 缺 2 次卡 (視同曠職 1 天，扣 8 小時)
-                total_missing_punches += 2
+                if count_missing:
+                    total_missing_punches += 2
             else:
                 if attendance.clock_in and attendance.clock_out:
                     actual_days += 1
                 elif attendance.clock_in or attendance.clock_out:
                     actual_days += 1
-                    total_missing_punches += 1  # 缺 1 次卡
+                    if count_missing:
+                        total_missing_punches += 1  # 缺 1 次卡
                 else:
-                    total_missing_punches += 2  # 皆空值 (預防)
+                    if count_missing:
+                        total_missing_punches += 2  # 皆空值 (預防)
                     
                 # 檢查遲到
                 if attendance.clock_in:

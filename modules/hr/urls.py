@@ -26,7 +26,7 @@ from .views.payroll import (
     InsuranceBracketListView, InsuranceBracketCreateView, InsuranceBracketUpdateView, InsuranceBracketDeleteView,
     SalaryStructureListView, SalaryStructureCreateView, SalaryStructureUpdateView, SalaryStructureDeleteView,
     OvertimeListView, OvertimeCreateView, OvertimeUpdateView, OvertimeDeleteView,
-    PayrollListView, PayrollCreateView, PayrollUpdateView, PayrollDeleteView, PayrollBatchGenerateView,
+    PayrollListView, PayrollCreateView, PayrollUpdateView, PayrollDeleteView, PayrollBatchGenerateView, PayrollRecalculateView,
     AdvancePaymentListView, AdvancePaymentCreateView, AdvancePaymentUpdateView, AdvancePaymentDeleteView,
     advancepayment_submit_approval, advancepayment_approve,
     advancepayment_reject, advancepayment_return, advancepayment_cancel_approval,
@@ -116,6 +116,7 @@ urlpatterns = [
     path('payroll/add/', PayrollCreateView.as_view(), name='payroll_create'),
     path('payroll/<int:pk>/edit/', PayrollUpdateView.as_view(), name='payroll_update'),
     path('payroll/<int:pk>/delete/', PayrollDeleteView.as_view(), name='payroll_delete'),
+    path('payroll/<int:pk>/recalculate/', PayrollRecalculateView.as_view(), name='payroll_recalculate'),
     path('payroll/batch-generate/', PayrollBatchGenerateView.as_view(), name='payroll_batch_generate'),
 
     # Advance Payment (代墊款)
