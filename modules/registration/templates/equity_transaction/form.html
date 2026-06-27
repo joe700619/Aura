@@ -172,6 +172,21 @@
         const shareCountInput = document.getElementById('id_share_count');
         const unitPriceInput = document.getElementById('id_unit_price');
         const totalAmountInput = document.getElementById('id_total_amount');
+        const reasonSelect = document.getElementById('id_transaction_reason');
+
+        // 會減少持股的交易事由（需與 model 的 DECREASE_REASONS 一致）
+        const DECREASE_REASONS = ['CAPITAL_REDUCTION', 'SELL', 'GIFT', 'MERGER_DECREASE', 'SPLIT_DECREASE', 'OTHER_DECREASE'];
+        function isDecreaseReason() {
+            return !!reasonSelect && DECREASE_REASONS.includes(reasonSelect.value);
+        }
+        // 依事由把已填的股數套上正/負號
+        function applyShareCountSign() {
+            if (!shareCountInput) return;
+            const raw = parseFloat(shareCountInput.value);
+            if (isNaN(raw) || raw === 0) return;
+            const magnitude = Math.abs(raw);
+            shareCountInput.value = isDecreaseReason() ? -magnitude : magnitude;
+        }
 
         // Auto-determine Organization Type
         function updateOrganizationType() {
@@ -186,12 +201,12 @@
             }
         }
 
-        // Auto-calculate Total Amount
+        // Auto-calculate Total Amount（股數已帶號 → 合計同號）
         function calculateTotal() {
             if (!shareCountInput || !unitPriceInput || !totalAmountInput) return;
             const count = parseFloat(shareCountInput.value) || 0;
             const price = parseFloat(unitPriceInput.value) || 0;
-            if (count > 0 && price > 0) {
+            if (count !== 0 && price > 0) {
                 totalAmountInput.value = (count * price).toFixed(0);
             } else {
                 totalAmountInput.value = '';
@@ -200,8 +215,20 @@
 
         if (shareCountInput && unitPriceInput && totalAmountInput) {
             shareCountInput.addEventListener('input', calculateTotal);
+            // 離開股數欄位時才套號，避免邊打字邊跳負號
+            shareCountInput.addEventListener('change', function () {
+                applyShareCountSign();
+                calculateTotal();
+            });
             unitPriceInput.addEventListener('input', calculateTotal);
             calculateTotal(); // Run on load
+        }
+        // 切換交易事由時，立即套用對應正負號並重算合計
+        if (reasonSelect) {
+            reasonSelect.addEventListener('change', function () {
+                applyShareCountSign();
+                calculateTotal();
+            });
         }
 
         // Listen changes on display name for organization type

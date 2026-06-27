@@ -28,6 +28,16 @@ class EquityTransaction(BaseModel):
         COMMON = 'COMMON', _('普通股')
         PREFERRED = 'PREFERRED', _('特別股')
 
+    # 會「減少」持股的交易事由 → share_count / total_amount 存負數
+    DECREASE_REASONS = frozenset({
+        TransactionReason.CAPITAL_REDUCTION,
+        TransactionReason.SELL,
+        TransactionReason.GIFT,
+        TransactionReason.MERGER_DECREASE,
+        TransactionReason.SPLIT_DECREASE,
+        TransactionReason.OTHER_DECREASE,
+    })
+
     shareholder_register = models.ForeignKey('registration.ShareholderRegister', on_delete=models.CASCADE, related_name='equity_transactions', verbose_name=_('股東名簿查詢'), null=True, blank=True)
 
     # Card 2: Shareholder Info
@@ -56,6 +66,18 @@ class EquityTransaction(BaseModel):
         verbose_name = _('股權交易')
         verbose_name_plural = _('股權交易')
         ordering = ['-transaction_date', '-created_at']
+
+    def save(self, *args, **kwargs):
+        # 依交易事由正規化正負號：減少類存負數，其餘存正數。
+        # 用 abs() 先取絕對值再套號 → 重複儲存安全（idempotent）。
+        is_decrease = self.transaction_reason in self.DECREASE_REASONS
+        if self.share_count is not None:
+            magnitude = abs(self.share_count)
+            self.share_count = -magnitude if is_decrease else magnitude
+        if self.total_amount is not None:
+            amount = abs(self.total_amount)
+            self.total_amount = -amount if is_decrease else amount
+        super().save(*args, **kwargs)
 
     def __str__(self):
         company = self.shareholder_register.company_name if self.shareholder_register else "Unknown Company"
