@@ -8,8 +8,9 @@
   ②簽署即凍結：EngagementLetter 簽成那刻把當下渲染內容存進 rendered_snapshot，
     絕不用「當前範本」事後重生（否則改範本會竄改歷史簽署內容）。
 
-委任書是網頁版＋按同意（不像 AML 聲明書要手寫簽名）。
+委任書是網頁版＋手寫簽名確認（留歸屬證據：證明是對方本人簽署，非僅點同意鈕）。
 """
+import os
 import uuid
 
 from django.db import models
@@ -20,6 +21,11 @@ from core.models import BaseModel
 
 from .billing import ServiceFee
 from .bookkeeping_client import BookkeepingClient
+
+
+def get_engagement_signature_path(instance, filename):
+    ext = os.path.splitext(filename)[1] or '.png'
+    return f'engagement_letter_signatures/{uuid.uuid4().hex}{ext}'
 
 
 class EngagementLetterTemplate(BaseModel):
@@ -158,6 +164,13 @@ class EngagementLetter(BaseModel):
     signed_at = models.DateTimeField(_('簽署時間'), blank=True, null=True)
     signer_ip = models.GenericIPAddressField(_('簽署 IP'), blank=True, null=True)
     decline_reason = models.TextField(_('婉拒原因'), blank=True)
+
+    # ── 簽署歸屬證據（證明是對方本人簽署）──
+    signature_image = models.ImageField(
+        _('客戶手寫簽名'), upload_to=get_engagement_signature_path, blank=True,
+    )
+    signer_name = models.CharField(_('簽署人姓名'), max_length=100, blank=True)
+    signer_email = models.EmailField(_('簽署人 Email'), blank=True)
 
     # ── 投影產物（idempotency 護欄）──
     created_client = models.ForeignKey(

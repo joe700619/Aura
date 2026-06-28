@@ -37,6 +37,25 @@ EMAIL_BODY = """\
 """
 
 
+# ── 簽署完成後寄給客戶的「確認回執」（留證據：對方信箱也有一份）──────
+RECEIPT_EMAIL_SUBJECT = '【{{ company_name }}】記帳服務委任書 — 確認完成通知'
+
+RECEIPT_EMAIL_BODY = """\
+<html><body style="font-family:'Microsoft JhengHei',Arial,sans-serif;color:#333;line-height:1.7;">
+<p>{{ signer_name }} 您好，</p>
+<p>本所已收到您對 <strong>{{ company_name }}</strong> 記帳服務委任書的線上簽署確認，委任關係已成立。</p>
+<ul>
+  <li>確認時間：{{ signed_at|date:"Y-m-d H:i" }}</li>
+  <li>受任事務所：{{ firm_name }}</li>
+</ul>
+<p>本所將據以承接後續記帳作業。如需檢視您已確認的委任書內容：</p>
+<p style="margin:16px 0;"><a href="{{ public_url }}" style="color:#2563eb;">檢視委任書</a></p>
+<p style="color:#a0332a;font-size:13px;">※ 若這不是您本人的操作，請立即與本所聯繫。</p>
+<p style="color:#888;font-size:12px;">本通知為系統自動發送，請勿直接回覆。</p>
+</body></html>
+"""
+
+
 class Command(BaseCommand):
     help = '初始化記帳委任書 v1 範本與邀請 Email 範本（不覆寫已存在的）'
 
@@ -68,4 +87,17 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(
             f"Email 範本：{'建立' if e_created else '已存在 — 略過'}：{email_tpl.code}"
+        ))
+
+        receipt_tpl, r_created = EmailTemplate.objects.get_or_create(
+            code='bookkeeping_engagement_letter_receipt',
+            defaults={
+                'name': '記帳委任書確認回執',
+                'subject': RECEIPT_EMAIL_SUBJECT,
+                'body_html': RECEIPT_EMAIL_BODY,
+                'is_active': True,
+            },
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f"Email 回執範本：{'建立' if r_created else '已存在 — 略過'}：{receipt_tpl.code}"
         ))

@@ -37,8 +37,15 @@ def render_letter_html(letter: EngagementLetter) -> str:
 
 
 @transaction.atomic
-def sign_letter(letter: EngagementLetter, ip=None) -> BookkeepingClient:
-    """客戶按同意時呼叫。idempotent：已簽則直接回傳已建客戶。"""
+def sign_letter(letter: EngagementLetter, ip=None, *, signature_file=None,
+                signer_name='', signer_email='') -> BookkeepingClient:
+    """客戶手寫簽名確認時呼叫。idempotent：已簽則直接回傳已建客戶。
+
+    留歸屬證據：凍結內容快照 + 手寫簽名圖 + 簽署人自填姓名/Email + IP，
+    證明是對方本人簽署（非僅持有連結點同意鈕）。
+    """
+    from django.core.files.base import ContentFile
+
     if letter.status == EngagementLetter.Status.SIGNED:
         return letter.created_client
 
@@ -47,6 +54,11 @@ def sign_letter(letter: EngagementLetter, ip=None) -> BookkeepingClient:
     letter.status = EngagementLetter.Status.SIGNED
     letter.signed_at = timezone.now()
     letter.signer_ip = ip
+    letter.signer_name = signer_name or ''
+    letter.signer_email = signer_email or ''
+    if signature_file is not None:
+        sig_bytes = signature_file.read() if hasattr(signature_file, 'read') else signature_file
+        letter.signature_image = ContentFile(sig_bytes, name='signature.png')
 
     # ② 建 / 連記帳客戶。有統編則 get_or_create（避免重複建檔）；無統編直接建。
     client_defaults = {
