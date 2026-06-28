@@ -214,8 +214,22 @@
               {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">已作廢</span>{% endif %}
             </td>
             <td class="px-4 py-2.5 text-slate-600">
-              {% if r.recipient_line_id %}<span class="inline-flex items-center gap-1 mr-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>LINE</span>{% endif %}
-              {% if r.recipient_email %}<span class="inline-flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>{{ r.recipient_email }}</span>{% endif %}
+              {% if r.recipient_line_id %}
+              <div class="flex items-center gap-1">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>LINE
+                {% if r.line_status == 'sent' %}<span class="text-xs text-green-600">· 已送達</span>
+                {% elif r.line_status == 'failed' %}<span class="text-xs text-red-600">· 寄送失敗</span>
+                {% elif r.line_status %}<span class="text-xs text-slate-400">· 處理中</span>{% endif %}
+              </div>
+              {% endif %}
+              {% if r.recipient_email %}
+              <div class="flex items-center gap-1">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>{{ r.recipient_email }}
+                {% if r.email_status == 'sent' %}<span class="text-xs text-green-600">· 已送達</span>
+                {% elif r.email_status == 'failed' %}<span class="text-xs text-red-600">· 寄送失敗</span>
+                {% elif r.email_status %}<span class="text-xs text-slate-400">· 處理中</span>{% endif %}
+              </div>
+              {% endif %}
               {% if not r.recipient_line_id and not r.recipient_email %}<span class="text-slate-300">—（手動轉發）</span>{% endif %}
             </td>
             <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">{{ r.sent_at|date:"Y-m-d H:i"|default:"—" }}</td>
