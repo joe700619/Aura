@@ -4,7 +4,7 @@ from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     ClientAssessment, CaseAssessment, Shareholder, ShareholderRegister,
     EquityTransaction, CompanyFiling, Progress, VATEntityChange,
-    RegistrationDocument, BeneficialOwnerDeclaration,
+    RegistrationDocument, BeneficialOwnerDeclaration, DraftConfirmation,
 )
 from .resources import EquityTransactionResource
 
@@ -40,6 +40,15 @@ class BeneficialOwnerDeclarationAdmin(SimpleHistoryAdmin):
     list_display = ['company_name', 'representative_title', 'signed_at', 'signer_email', 'progress']
     search_fields = ['company_name', 'signer_email']
     readonly_fields = ['created_at', 'updated_at', 'signed_at']
+
+
+@admin.register(DraftConfirmation)
+class DraftConfirmationAdmin(SimpleHistoryAdmin):
+    list_display = ['progress', 'status', 'seal_authorized', 'signer_name', 'signed_at', 'sent_at', 'created_at']
+    list_filter = ['status', 'seal_authorization', 'seal_authorized']
+    search_fields = ['progress__company_name', 'progress__registration_no', 'signer_name', 'signer_email']
+    readonly_fields = ['token', 'created_at', 'updated_at', 'signed_at']
+    filter_horizontal = ['documents']
 
 
 @admin.register(CaseAssessment)

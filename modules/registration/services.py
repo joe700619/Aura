@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from io import BytesIO
 
-from .models import RegistrationDocument, BeneficialOwnerDeclaration
+from .models import RegistrationDocument, BeneficialOwnerDeclaration, DraftConfirmation
 
 
 def create_collected_document(*, doc_type, progress, file,
@@ -191,6 +191,140 @@ def create_or_refresh_annual_filing(year, *, unified_business_no, company_name,
         defaults={'filing_date': timezone.now().date()},
     )
     return history, created
+
+
+# ── 商工登記稿本確認：正式送件前給客戶線上校對 + 手寫簽名 ──────────────
+# 承辦上傳稿本（doc_type=draft）→ 發送 token 連結（LINE/Email）→ 客戶唯讀檢視 + 手寫簽名 →
+# 簽署即凍結快照。一個 Progress 同時只一筆 active(sent)；重傳/重發舊筆自動 voided。
+
+DRAFT_CONFIRMATION_VALID_DAYS = 7
+
+# 用印授權標準文字的後備預設：實際以 SystemParameter 'SEAL_AUTHORIZATION_TEXT' 為準
+# （admin 可改）。發送當下會把當時文字凍進 authorization_text_snapshot。
+DEFAULT_SEAL_AUTHORIZATION_TEXT = (
+    '本人/本公司茲此授權 貴所就上列經本人確認無誤之登記稿本，'
+    '於辦理本案商工登記期間，代為使用本人/本公司之印鑑章（大、小章）'
+    '用印於各項登記申請書件，並據以向主管機關提出申請。'
+    '本授權之效力以辦竣本案登記為限。'
+)
+
+
+def get_seal_authorization_text():
+    """取得用印授權標準文字（SystemParameter 優先，未設則用後備預設）。"""
+    from modules.system_config.helpers import get_system_param
+    return get_system_param('SEAL_AUTHORIZATION_TEXT', default=DEFAULT_SEAL_AUTHORIZATION_TEXT)
+
+
+def list_draft_documents(progress):
+    """回傳某登記案目前的稿本清單（未刪除），給工作台與發送時取用。"""
+    return RegistrationDocument.objects.filter(
+        progress=progress,
+        doc_type=RegistrationDocument.DocType.DRAFT,
+        is_deleted=False,
+    ).order_by('created_at')
+
+
+def _void_active_draft_confirmations(progress):
+    """把該登記案目前 active(sent) 的確認單轉為 voided（重傳/重發時呼叫）。
+
+    已確認(confirmed)的歷史紀錄不動，保留留痕。
+    """
+    from django.utils import timezone
+    DraftConfirmation.objects.filter(
+        progress=progress, status=DraftConfirmation.Status.SENT,
+    ).update(status=DraftConfirmation.Status.VOIDED, updated_at=timezone.now())
+
+
+def create_draft_document(*, progress, file, note='', uploaded_by=None):
+    """承辦上傳一份稿本（doc_type=draft）。
+
+    上傳新稿本代表內容有變，會把該案目前 active 的確認單自動作廢（客戶須就新版重新確認）。
+    回傳建立的 RegistrationDocument。
+    """
+    _void_active_draft_confirmations(progress)
+    return RegistrationDocument.objects.create(
+        doc_type=RegistrationDocument.DocType.DRAFT,
+        progress=progress,
+        file=file,
+        owner_name=progress.company_name,
+        source=RegistrationDocument.Source.STAFF_UPLOAD,
+        uploaded_by_user=uploaded_by,
+        note=note,
+    )
+
+
+def remove_draft_document(progress, document_id):
+    """承辦移除一份稿本（軟刪）。移除也代表稿本集有變，連帶作廢 active 確認單。
+
+    回傳被刪的文件（找不到/非本案則回 None）。
+    """
+    doc = RegistrationDocument.objects.filter(
+        pk=document_id, progress=progress,
+        doc_type=RegistrationDocument.DocType.DRAFT, is_deleted=False,
+    ).first()
+    if doc:
+        _void_active_draft_confirmations(progress)
+        doc.is_deleted = True
+        doc.save(update_fields=['is_deleted', 'updated_at'])
+    return doc
+
+
+def create_draft_confirmation(*, progress, documents, seal_authorization,
+                              recipient_email='', recipient_line_id=''):
+    """建立並寄發一筆稿本確認單（status=sent），凍結要確認的文件清單。
+
+    先作廢該案既有 active 確認單（保證同時只一筆），再建新單：
+    - documents：凍結進 M2M 的稿本文件 queryset/list
+    - seal_authorization：含用印授權時，把標準文字凍進 authorization_text_snapshot
+    - recipient_*：留痕「寄給誰」（實際發送由 view 處理）
+
+    回傳建立的 DraftConfirmation。連結到期 = 現在 + 7 天。
+    """
+    from django.utils import timezone
+
+    _void_active_draft_confirmations(progress)
+
+    now = timezone.now()
+    confirmation = DraftConfirmation.objects.create(
+        progress=progress,
+        status=DraftConfirmation.Status.SENT,
+        seal_authorization=bool(seal_authorization),
+        authorization_text_snapshot=get_seal_authorization_text() if seal_authorization else '',
+        sent_at=now,
+        expires_at=now + timezone.timedelta(days=DRAFT_CONFIRMATION_VALID_DAYS),
+        recipient_email=recipient_email or '',
+        recipient_line_id=recipient_line_id or '',
+    )
+    confirmation.documents.set(documents)
+    return confirmation
+
+
+def confirm_draft_confirmation(confirmation, *, signature_file, signer_name,
+                               signer_email='', signer_ip=None):
+    """客戶按「確認並簽署」時呼叫：凍結手寫簽名 + 留痕，狀態轉 confirmed。
+
+    idempotent：已確認則直接回傳，不重複寫入（防重複送出）。
+    用印授權旗標 seal_authorized 依當初是否含授權一併落定。
+    """
+    from django.core.files.base import ContentFile
+    from django.db import transaction
+    from django.utils import timezone
+
+    with transaction.atomic():
+        if confirmation.status == DraftConfirmation.Status.CONFIRMED:
+            return confirmation
+
+        sig_bytes = signature_file.read() if hasattr(signature_file, 'read') else signature_file
+        confirmation.signature_image = ContentFile(sig_bytes, name='signature.png')
+        confirmation.signed_at = timezone.now()
+        confirmation.signer_name = signer_name or ''
+        confirmation.signer_email = signer_email or ''
+        confirmation.signer_line_id = confirmation.recipient_line_id
+        confirmation.signer_ip = signer_ip
+        confirmation.seal_authorized = confirmation.seal_authorization
+        confirmation.status = DraftConfirmation.Status.CONFIRMED
+        confirmation.save()
+    return confirmation
 
 
 def get_ubns_with_annual_filing(year):
