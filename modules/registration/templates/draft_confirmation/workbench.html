@@ -187,5 +187,46 @@
     </form>
   </div>
 
+  <!-- 發送與確認紀錄 -->
+  {% if send_records %}
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm mt-6">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-700 text-sm">發送與確認紀錄</h3>
+      <p class="text-xs text-slate-400 mt-0.5">每次發送都留一筆，記錄走的通道、對象與時間；重新發送會作廢舊連結但紀錄保留。</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500 text-xs">
+            <th class="px-4 py-2 text-left font-semibold">狀態</th>
+            <th class="px-4 py-2 text-left font-semibold">發送通道 / 對象</th>
+            <th class="px-4 py-2 text-left font-semibold">發送時間</th>
+            <th class="px-4 py-2 text-left font-semibold">確認時間</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in send_records %}
+          <tr>
+            <td class="px-4 py-2.5 whitespace-nowrap">
+              {% if r.status == 'confirmed' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">已確認</span>
+              {% elif r.status == 'sent' and r.is_expired %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">已過期</span>
+              {% elif r.status == 'sent' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">待確認</span>
+              {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">已作廢</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-slate-600">
+              {% if r.recipient_line_id %}<span class="inline-flex items-center gap-1 mr-2"><span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>LINE</span>{% endif %}
+              {% if r.recipient_email %}<span class="inline-flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>{{ r.recipient_email }}</span>{% endif %}
+              {% if not r.recipient_line_id and not r.recipient_email %}<span class="text-slate-300">—（手動轉發）</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">{{ r.sent_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">{% if r.signed_at %}{{ r.signed_at|date:"Y-m-d H:i" }}（{{ r.signer_name }}）{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

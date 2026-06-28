@@ -44,11 +44,22 @@ class BeneficialOwnerDeclarationAdmin(SimpleHistoryAdmin):
 
 @admin.register(DraftConfirmation)
 class DraftConfirmationAdmin(SimpleHistoryAdmin):
-    list_display = ['progress', 'status', 'seal_authorized', 'signer_name', 'signed_at', 'sent_at', 'created_at']
+    list_display = ['progress', 'status', 'sent_channels', 'recipient_email', 'recipient_line_id',
+                    'sent_at', 'seal_authorized', 'signer_name', 'signed_at']
     list_filter = ['status', 'seal_authorization', 'seal_authorized']
-    search_fields = ['progress__company_name', 'progress__registration_no', 'signer_name', 'signer_email']
+    search_fields = ['progress__company_name', 'progress__registration_no',
+                     'signer_name', 'signer_email', 'recipient_email', 'recipient_line_id']
     readonly_fields = ['token', 'created_at', 'updated_at', 'signed_at']
     filter_horizontal = ['documents']
+
+    @admin.display(description='發送通道')
+    def sent_channels(self, obj):
+        ch = []
+        if obj.recipient_line_id:
+            ch.append('LINE')
+        if obj.recipient_email:
+            ch.append('Email')
+        return ' + '.join(ch) or '—'
 
 
 @admin.register(CaseAssessment)
