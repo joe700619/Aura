@@ -57,6 +57,13 @@ from .views.vat_entity_change import (
     VATEntityChangeUpdateView,
     VATEntityChangeDeleteView,
 )
+from .views.draft_confirmation import (
+    DraftConfirmationWorkbenchView,
+    DraftDocumentUploadView,
+    DraftDocumentDeleteView,
+    DraftConfirmationSendView,
+    DraftConfirmationPublicView,
+)
 
 app_name = 'registration'
 
@@ -135,4 +142,16 @@ urlpatterns = [
     path('vat-entity-change/add/', VATEntityChangeCreateView.as_view(), name='vat_entity_change_create'),
     path('vat-entity-change/<int:pk>/edit/', VATEntityChangeUpdateView.as_view(), name='vat_entity_change_update'),
     path('vat-entity-change/<int:pk>/delete/', VATEntityChangeDeleteView.as_view(), name='vat_entity_change_delete'),
+
+    # 稿本確認（承辦工作台 + 客戶端免登入確認頁）
+    path('progress/<int:progress_pk>/draft-confirmation/',
+         DraftConfirmationWorkbenchView.as_view(), name='draft_confirmation_workbench'),
+    path('progress/<int:progress_pk>/draft-confirmation/upload/',
+         DraftDocumentUploadView.as_view(), name='draft_document_upload'),
+    path('progress/<int:progress_pk>/draft-confirmation/documents/<int:document_id>/delete/',
+         DraftDocumentDeleteView.as_view(), name='draft_document_delete'),
+    path('progress/<int:progress_pk>/draft-confirmation/send/',
+         DraftConfirmationSendView.as_view(), name='draft_confirmation_send'),
+    path('draft-confirm/<uuid:token>/',
+         DraftConfirmationPublicView.as_view(), name='draft_confirm_public'),
 ]

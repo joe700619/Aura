@@ -118,8 +118,30 @@ class ProgressUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
             source_id=self.object.pk,
         ).order_by('-date')
 
-        from ..models import FilingHistory, CaseAssessment, EquityTransaction, VATEntityChange
-        
+        from ..models import (
+            FilingHistory, CaseAssessment, EquityTransaction, VATEntityChange,
+            DraftConfirmation, RegistrationDocument,
+        )
+
+        # 稿本確認分頁狀態徽章
+        dc_qs = self.object.draft_confirmations
+        dc_confirmed = dc_qs.filter(status=DraftConfirmation.Status.CONFIRMED).order_by('-signed_at').first()
+        dc_active = dc_qs.filter(status=DraftConfirmation.Status.SENT).order_by('-created_at').first()
+        has_drafts = RegistrationDocument.objects.filter(
+            progress=self.object, doc_type=RegistrationDocument.DocType.DRAFT, is_deleted=False,
+        ).exists()
+        if dc_confirmed:
+            draft_status = {'label': '已確認', 'date': dc_confirmed.signed_at, 'cls': 'bg-green-100 text-green-800'}
+        elif dc_active and dc_active.is_expired:
+            draft_status = {'label': '連結已過期', 'date': None, 'cls': 'bg-red-100 text-red-700'}
+        elif dc_active:
+            draft_status = {'label': '待客戶確認', 'date': None, 'cls': 'bg-amber-100 text-amber-800'}
+        elif has_drafts:
+            draft_status = {'label': '已上傳待發送', 'date': None, 'cls': 'bg-blue-100 text-blue-700'}
+        else:
+            draft_status = {'label': '未上傳', 'date': None, 'cls': 'bg-slate-100 text-slate-500'}
+        context['draft_status'] = draft_status
+
         # Check if 22-1 is required based on quotation_data
         quotation_data = self.object.quotation_data
         should_have_22_1 = any(

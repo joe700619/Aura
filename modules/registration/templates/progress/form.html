@@ -304,6 +304,16 @@
         : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
     收料
 </button>
+
+<button type="button" @click="activeTab = 'tab_draft'"
+    class="whitespace-nowrap px-4 py-3 border-b-2 font-semibold text-base transition-all duration-200" :class="activeTab === 'tab_draft'
+        ? 'border-blue-600 text-blue-600 bg-blue-50'
+        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'">
+    稿本確認
+    {% if object.pk and draft_status %}
+    <span class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ draft_status.cls }}">{{ draft_status.label }}</span>
+    {% endif %}
+</button>
 {% endblock %}
 
 {% block tabs_content %}
@@ -741,6 +751,35 @@
     </div>
     {% else %}
     <div class="text-center text-sm text-slate-400 py-10">請先儲存此登記案，才能開始收料。</div>
+    {% endif %}
+</div>
+
+<!-- Tab 6: 稿本確認 -->
+<div x-show="activeTab === 'tab_draft'" x-cloak class="py-4">
+    {% if object.pk %}
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+                <h3 class="font-bold text-slate-700 text-sm">送件前稿本確認</h3>
+                {% if draft_status %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ draft_status.cls }}">
+                    {{ draft_status.label }}{% if draft_status.date %}（{{ draft_status.date|date:"Y-m-d" }}）{% endif %}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">上傳稿本（會議紀錄、股東同意書等）→ 發送確認連結（LINE / Email）給客戶 → 客戶唯讀檢視 + 手寫簽名確認，並可附用印授權 → 留下紀錄後再正式送件。</p>
+        </div>
+        <div class="p-5">
+            <a href="{% url 'registration:draft_confirmation_workbench' progress_pk=object.pk %}"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                開啟稿本確認工作台
+            </a>
+            <p class="text-xs text-slate-400 mt-3">稿本上傳、發送連結、簽署狀態都在工作台操作。</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center text-sm text-slate-400 py-10">請先儲存此登記案，才能使用稿本確認。</div>
     {% endif %}
 </div>
 {% endblock %}

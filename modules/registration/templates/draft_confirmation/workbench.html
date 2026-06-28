@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block page_title %}稿本確認工作台{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto pb-16">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-slate-800">稿本確認工作台</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        {{ progress.registration_no }} · {{ progress.company_name }}
+      </p>
+    </div>
+    <a href="{% url 'registration:progress_edit' pk=progress.pk %}"
+       class="text-sm text-slate-500 hover:text-slate-800">← 返回進度表</a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+    <div class="mb-4 px-4 py-3 rounded-lg text-sm
+        {% if m.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+        {% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+      {{ m }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+    流程：上傳稿本（會議紀錄、股東同意書等，每份可多檔）→ 選通道發送確認連結給客戶 →
+    客戶免登入「唯讀檢視/下載」+ 手寫簽名 → 確認後留下紀錄，你再正式送件。
+    <br>注意：上傳或移除稿本會自動作廢目前已寄出但尚未確認的連結，須重新發送。
+  </p>
+
+  <!-- 目前確認狀態 -->
+  {% if active %}
+  <div class="bg-white border border-amber-200 rounded-lg overflow-hidden shadow-sm mb-6"
+       x-data="{ copied: false }">
+    <div class="bg-amber-50 px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">已寄送 · 等待客戶確認</span>
+      <span class="text-xs text-slate-500">到期：{{ active.expires_at|date:"Y-m-d H:i" }}</span>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-center gap-2">
+        <input type="text" readonly :value="$refs.link.value" x-ref="link"
+               value="{{ active_public_url }}"
+               class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded bg-slate-50 text-slate-600">
+        <button type="button"
+                @click="navigator.clipboard.writeText($refs.link.value); copied = true; setTimeout(() => copied = false, 1500)"
+                class="px-3 py-2 text-xs font-bold rounded bg-slate-700 text-white hover:bg-slate-800 whitespace-nowrap">
+          <span x-show="!copied">複製連結</span>
+          <span x-show="copied" x-cloak>已複製 ✓</span>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">
+        含 {{ active.documents.count }} 份稿本{% if active.seal_authorization %} · <span class="text-amber-700 font-semibold">含用印授權</span>{% endif %}
+        {% if active.recipient_email %} · 已寄 {{ active.recipient_email }}{% endif %}
+        {% if active.recipient_line_id %} · 已推 LINE{% endif %}
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 最近一筆已確認 -->
+  {% if latest_confirmed %}
+  <div class="bg-white border border-green-200 rounded-lg overflow-hidden shadow-sm mb-6">
+    <div class="bg-green-50 px-4 py-3 border-b border-green-200 flex items-center justify-between">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">✓ 客戶已確認</span>
+      <a href="{{ confirmed_url }}" target="_blank"
+         class="text-xs font-bold text-green-700 hover:text-green-900">檢視完整確認文件 ↗</a>
+    </div>
+    <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+      <div><span class="text-slate-400 text-xs block">簽署人</span>{{ latest_confirmed.signer_name|default:"—" }}</div>
+      <div><span class="text-slate-400 text-xs block">確認時間</span>{{ latest_confirmed.signed_at|date:"Y-m-d H:i" }}</div>
+      <div><span class="text-slate-400 text-xs block">用印授權</span>{% if latest_confirmed.seal_authorized %}<span class="text-amber-700 font-semibold">已授權</span>{% else %}無{% endif %}</div>
+      <div><span class="text-slate-400 text-xs block">來源 IP</span>{{ latest_confirmed.signer_ip|default:"—" }}</div>
+      <div class="col-span-2"><span class="text-slate-400 text-xs block">已確認文件</span>{{ latest_confirmed.documents.count }} 份</div>
+      {% if latest_confirmed.signature_image %}
+      <div class="col-span-2">
+        <span class="text-slate-400 text-xs block mb-1">手寫簽名</span>
+        <img src="{{ latest_confirmed.signature_image.url }}" alt="簽名" class="h-20 border border-slate-200 rounded bg-white">
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 上傳稿本 -->
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm mb-6">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-700 text-sm">步驟 1 · 上傳稿本文件</h3>
+    </div>
+    <div class="p-4">
+      {% if documents %}
+      <ul class="divide-y divide-slate-100 mb-4">
+        {% for doc in documents %}
+        <li class="flex items-center justify-between py-2.5">
+          <div class="min-w-0">
+            <a href="{{ doc.file.url }}" target="_blank"
+               class="text-sm text-blue-600 hover:underline truncate block">
+              {{ doc.original_filename|default:doc.file.name }}
+            </a>
+            {% if doc.note %}<span class="text-xs text-slate-400">{{ doc.note }}</span>{% endif %}
+          </div>
+          <form method="post" action="{% url 'registration:draft_document_delete' progress_pk=progress.pk document_id=doc.pk %}"
+                onsubmit="return confirm('確定移除這份稿本？已寄出的確認連結會一併作廢。');">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-slate-400 hover:text-red-600 ml-3">移除</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-slate-400 mb-4 text-center py-4">尚未上傳任何稿本。</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'registration:draft_document_upload' progress_pk=progress.pk %}"
+            enctype="multipart/form-data" class="border-t border-slate-100 pt-4 space-y-3">
+        {% csrf_token %}
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">選擇檔案（可一次多檔）</label>
+          <input type="file" name="files" multiple required
+                 class="block w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">說明（選填，例：會議紀錄、股東同意書）</label>
+          <input type="text" name="note" maxlength="255"
+                 class="w-full text-sm px-3 py-2 border border-slate-300 rounded">
+        </div>
+        <button type="submit"
+                class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          上傳此稿本（先按這裡，檔案才會進清單）
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 發送確認連結 -->
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-700 text-sm">步驟 2 · 產生並發送確認連結</h3>
+    </div>
+    <form method="post" action="{% url 'registration:draft_confirmation_send' progress_pk=progress.pk %}"
+          class="p-4 space-y-4">
+      {% csrf_token %}
+
+      <label class="flex items-start gap-2 cursor-pointer">
+        <input type="checkbox" name="seal_authorization" class="mt-0.5">
+        <span class="text-sm text-slate-700">
+          <span class="font-semibold">包含用印授權</span>
+          <span class="block text-xs text-slate-400 mt-0.5">勾選後，客戶確認頁會多顯示一段用印授權條款，客戶簽署即同時授權本所用印。</span>
+        </span>
+      </label>
+
+      <div class="border-t border-slate-100 pt-3">
+        <p class="text-xs font-semibold text-slate-600 mb-2">通知方式（至少一種）</p>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="channel_line" {% if progress.line_id or progress.room_id %}checked{% endif %}>
+            <span class="text-sm text-slate-700">LINE 推播
+              {% if progress.line_id or progress.room_id %}
+              <span class="text-xs text-green-600">（已綁定）</span>
+              {% else %}
+              <span class="text-xs text-slate-400">（此案未綁定 LINE，無法使用）</span>
+              {% endif %}
+            </span>
+          </label>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+              <input type="checkbox" name="channel_email">
+              <span class="text-sm text-slate-700">Email</span>
+            </label>
+            <input type="email" name="recipient_email" placeholder="客戶 Email"
+                   class="flex-1 text-sm px-3 py-1.5 border border-slate-300 rounded">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" {% if not documents %}disabled{% endif %}
+              class="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg">
+        {% if active %}重新發送確認連結（作廢舊連結）{% else %}發送確認連結{% endif %}
+      </button>
+      {% if not documents %}
+      <p class="text-xs text-slate-400 text-center">請先上傳至少一份稿本。</p>
+      {% endif %}
+    </form>
+  </div>
+
+</div>
+{% endblock %}

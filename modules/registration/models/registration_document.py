@@ -40,6 +40,8 @@ class RegistrationDocument(BaseModel):
         PHOTO = 'photo', _('大頭照')
         # 系統產出：客戶簽署的所有權人/實質受益人聲明書 PDF（由聲明書流程投影進倉庫）
         AML_DECLARATION = 'aml_declaration', _('所有權人/實質受益人聲明書')
+        # 承辦上傳、正式送件前給客戶確認的商工登記稿本（會議紀錄、股東同意書等）
+        DRAFT = 'draft', _('登記稿本（待客戶確認）')
         OTHER = 'other', _('其他')
 
     class Source(models.TextChoices):
