@@ -56,10 +56,9 @@ class DraftConfirmationWorkbenchView(BusinessRequiredMixin, View):
             .prefetch_related('documents')
             .first()
         )
-        history = (
-            progress.draft_confirmations
-            .exclude(status=DraftConfirmation.Status.SENT)
-            .order_by('-created_at')[:20]
+        # 完整發送與確認紀錄：每次發送＝一筆（重發是作廢舊單建新單，故每筆都保留通道/對象/時間）
+        send_records = list(
+            progress.draft_confirmations.order_by('-created_at')[:50]
         )
         latest_confirmed = (
             progress.draft_confirmations
@@ -84,7 +83,7 @@ class DraftConfirmationWorkbenchView(BusinessRequiredMixin, View):
             'active_public_url': public_url,
             'latest_confirmed': latest_confirmed,
             'confirmed_url': confirmed_url,
-            'history': history,
+            'send_records': send_records,
         })
 
 
