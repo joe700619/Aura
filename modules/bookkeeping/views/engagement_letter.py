@@ -1,5 +1,8 @@
 """記帳委任書 views：承辦端（清單/草稿/詳情/發送）+ 客戶端公開同意頁。"""
+import base64
+
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -18,12 +21,24 @@ from ..services.engagement_letter import (
     decline_letter, render_letter_html, sign_letter,
 )
 
+INVITE_TEMPLATE_CODE = 'bookkeeping_engagement_letter_invite'
+
 
 def _client_ip(request):
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
     if xff:
         return xff.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
+
+
+def _decode_signature(data_url):
+    """把前端 signature_pad 的 dataURL（data:image/png;base64,xxx）解成 bytes。"""
+    if not data_url or ',' not in data_url:
+        return None
+    try:
+        return base64.b64decode(data_url.split(',', 1)[1])
+    except (ValueError, TypeError):
+        return None
 
 
 class EngagementLetterListView(FilterMixin, ListActionMixin, SearchMixin,
@@ -98,7 +113,24 @@ class EngagementLetterDetailView(BusinessRequiredMixin, DetailView):
         ctx['public_url'] = self.request.build_absolute_uri(
             reverse('bookkeeping:engagement_public', kwargs={'token': letter.token})
         )
+        ctx['send_records'] = self._delivery_records(letter)
         return ctx
+
+    @staticmethod
+    def _delivery_records(letter):
+        """撈這封委任書寄給客戶的 EmailLog（送達/失敗），作為「已送達」證據。
+
+        以收件人 + 邀請範本就近比對既有 EmailLog，依時間新到舊；重發會有多筆。
+        """
+        if not letter.contact_email:
+            return []
+        from core.notifications.models import EmailLog
+        return list(
+            EmailLog.objects.filter(
+                recipient=letter.contact_email,
+                template__code=INVITE_TEMPLATE_CODE,
+            ).order_by('-created_at').values('recipient', 'status', 'created_at')[:20]
+        )
 
 
 class EngagementLetterSendView(BusinessRequiredMixin, View):
@@ -180,10 +212,53 @@ class EngagementLetterPublicView(View):
     def post(self, request, token):
         letter = get_object_or_404(EngagementLetter, token=token)
         action = request.POST.get('action')
-        if letter.status not in (EngagementLetter.Status.SIGNED,
-                                 EngagementLetter.Status.DECLINED):
-            if action == 'agree':
-                sign_letter(letter, ip=_client_ip(request))
-            elif action == 'decline':
-                decline_letter(letter, reason=request.POST.get('reason', ''))
+        if letter.status in (EngagementLetter.Status.SIGNED,
+                             EngagementLetter.Status.DECLINED):
+            return self._render(request, letter)
+
+        if action == 'decline':
+            decline_letter(letter, reason=request.POST.get('reason', ''))
+            return self._render(request, letter)
+
+        if action == 'agree':
+            signer_name = request.POST.get('signer_name', '').strip()
+            signer_email = request.POST.get('signer_email', '').strip()
+            sig_bytes = _decode_signature(request.POST.get('signature', ''))
+            if not signer_name:
+                messages.error(request, '請填寫簽署人姓名。')
+                return self._render(request, letter)
+            if not sig_bytes:
+                messages.error(request, '請先手寫簽名後再送出。')
+                return self._render(request, letter)
+            sign_letter(
+                letter, ip=_client_ip(request),
+                signature_file=sig_bytes,
+                signer_name=signer_name,
+                signer_email=signer_email,
+            )
+            letter.refresh_from_db()
+            self._send_receipt(request, letter)
+
         return self._render(request, letter)
+
+    def _send_receipt(self, request, letter):
+        """簽署完成後寄確認回執到客戶信箱：對方信箱也留一份『已於 X 同意委任』，
+        強化歸屬證據並提示「若非本人請聯繫」。"""
+        email_to = letter.signer_email or letter.contact_email
+        if not email_to:
+            return
+        public_url = request.build_absolute_uri(
+            reverse('bookkeeping:engagement_public', kwargs={'token': letter.token})
+        )
+        ctx = {
+            'company_name': letter.company_name,
+            'signer_name': letter.signer_name,
+            'signed_at': letter.signed_at,
+            'firm_name': letter.get_firm_name_display(),
+            'public_url': public_url,
+        }
+        from core.notifications.services import EmailService
+        transaction.on_commit(
+            lambda: EmailService.send_email(
+                'bookkeeping_engagement_letter_receipt', [email_to], ctx)
+        )
