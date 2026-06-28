@@ -6,6 +6,7 @@
 避免塞進進度表主表單造成 nested form。
 """
 import base64
+from datetime import timedelta
 
 from django.contrib import messages
 from django.db import transaction
@@ -47,6 +48,47 @@ class DraftConfirmationWorkbenchView(BusinessRequiredMixin, View):
 
     template_name = 'draft_confirmation/workbench.html'
 
+    @staticmethod
+    def _match_log(logs, key, value, sent_at):
+        """從（依 created_at 升冪的）log 清單挑出對應此次發送的那筆，回傳狀態字串。
+
+        每次發送各建一筆 invite log（created_at ≈ sent_at），故取「recipient 相符且
+        created_at 不早於 sent_at（含 3 秒誤差）」的最早一筆即為這次發送的 log。
+        """
+        if not value or not sent_at:
+            return None
+        for lg in logs:
+            if lg[key] == value and lg['created_at'] >= sent_at - timedelta(seconds=3):
+                return lg['status']
+        return None
+
+    def _attach_delivery_status(self, records):
+        """把通知系統的寄送狀態（已送達/失敗/處理中）掛到每筆發送紀錄上。
+
+        以 recipient + invite 範本 + 時間就近比對既有 EmailLog/LineMessageLog，
+        不動資料結構、批次兩條 query 比對，避免 N+1。
+        """
+        from core.notifications.models import EmailLog, LineMessageLog
+
+        emails = [r.recipient_email for r in records if r.recipient_email]
+        line_ids = [r.recipient_line_id for r in records if r.recipient_line_id]
+        email_logs = list(
+            EmailLog.objects.filter(
+                recipient__in=emails,
+                template__code='registration_draft_confirmation_invite',
+            ).order_by('created_at').values('recipient', 'status', 'created_at')
+        ) if emails else []
+        line_logs = list(
+            LineMessageLog.objects.filter(
+                recipient_line_id__in=line_ids,
+                template__code='registration_draft_confirmation_invite',
+            ).order_by('created_at').values('recipient_line_id', 'status', 'created_at')
+        ) if line_ids else []
+
+        for r in records:
+            r.email_status = self._match_log(email_logs, 'recipient', r.recipient_email, r.sent_at)
+            r.line_status = self._match_log(line_logs, 'recipient_line_id', r.recipient_line_id, r.sent_at)
+
     def get(self, request, progress_pk):
         progress = get_object_or_404(Progress, pk=progress_pk, is_deleted=False)
         documents = list_draft_documents(progress)
@@ -60,6 +102,7 @@ class DraftConfirmationWorkbenchView(BusinessRequiredMixin, View):
         send_records = list(
             progress.draft_confirmations.order_by('-created_at')[:50]
         )
+        self._attach_delivery_status(send_records)
         latest_confirmed = (
             progress.draft_confirmations
             .filter(status=DraftConfirmation.Status.CONFIRMED)
@@ -226,4 +269,35 @@ class DraftConfirmationPublicView(View):
             signer_ip=_client_ip(request),
         )
         confirmation.refresh_from_db()
+        self._send_receipt(request, confirmation)
         return self._render(request, confirmation)
+
+    def _send_receipt(self, request, confirmation):
+        """簽署完成後，把確認回執寄回客戶原本收到連結的管道（Email / LINE）。
+
+        讓對方自己的信箱/LINE 也留下一份『已於 X 確認』的紀錄——紀錄不只在我方 DB，
+        強化『確實為對方本人簽署』的歸屬證據；回執也提示「若非本人請聯繫」。
+        """
+        public_url = request.build_absolute_uri(
+            reverse('registration:draft_confirm_public', kwargs={'token': confirmation.token})
+        )
+        ctx = {
+            'company_name': confirmation.progress.company_name,
+            'signer_name': confirmation.signer_name,
+            'signed_at': confirmation.signed_at,
+            'doc_count': confirmation.documents.count(),
+            'seal_authorized': confirmation.seal_authorized,
+            'public_url': public_url,
+        }
+        email_to = confirmation.recipient_email or confirmation.signer_email
+        if email_to:
+            from core.notifications.services import EmailService
+            EmailService.send_email(
+                'registration_draft_confirmation_receipt', [email_to], ctx)
+        if confirmation.recipient_line_id:
+            from core.notifications.services import LineService
+            line_id = confirmation.recipient_line_id
+            transaction.on_commit(
+                lambda: LineService.send_message(
+                    'registration_draft_confirmation_receipt', line_id, ctx)
+            )
