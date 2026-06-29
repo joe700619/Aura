@@ -85,6 +85,56 @@
         </div>
     </div>
 
+    <!-- 身分證照片 -->
+    <div class="mt-8 space-y-4">
+        <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+            <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
+            <h4 class="font-bold text-slate-800 text-sm">身分證照片</h4>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 身分證正面 -->
+            <div x-data="{ preview: '{% if form.instance.id_card_front %}{{ form.instance.id_card_front.url }}{% endif %}' }">
+                <label for="{{ form.id_card_front.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                    {{ form.id_card_front.label }}
+                </label>
+                <div class="mb-2" x-show="preview" x-cloak>
+                    <a :href="preview" target="_blank" class="inline-block">
+                        <img :src="preview" alt="身分證正面"
+                            class="h-40 w-auto rounded-md border border-slate-200 object-contain bg-slate-50">
+                    </a>
+                </div>
+                <input type="file" name="{{ form.id_card_front.html_name }}" id="{{ form.id_card_front.id_for_label }}"
+                    accept="image/*"
+                    class="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    @change="const f = $event.target.files[0]; if (f) preview = URL.createObjectURL(f);">
+                {% if form.id_card_front.errors %}
+                <div class="text-red-500 text-xs mt-1">{{ form.id_card_front.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 身分證背面 -->
+            <div x-data="{ preview: '{% if form.instance.id_card_back %}{{ form.instance.id_card_back.url }}{% endif %}' }">
+                <label for="{{ form.id_card_back.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                    {{ form.id_card_back.label }}
+                </label>
+                <div class="mb-2" x-show="preview" x-cloak>
+                    <a :href="preview" target="_blank" class="inline-block">
+                        <img :src="preview" alt="身分證背面"
+                            class="h-40 w-auto rounded-md border border-slate-200 object-contain bg-slate-50">
+                    </a>
+                </div>
+                <input type="file" name="{{ form.id_card_back.html_name }}" id="{{ form.id_card_back.id_for_label }}"
+                    accept="image/*"
+                    class="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    @change="const f = $event.target.files[0]; if (f) preview = URL.createObjectURL(f);">
+                {% if form.id_card_back.errors %}
+                <div class="text-red-500 text-xs mt-1">{{ form.id_card_back.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- 備註 -->
     <div class="mt-6">
         <label for="{{ form.note.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">

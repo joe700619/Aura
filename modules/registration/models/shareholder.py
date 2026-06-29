@@ -1,6 +1,15 @@
+import os
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from core.models import BaseModel
+
+
+def get_id_card_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower() or '.jpg'
+    return f'shareholder_id_cards/{uuid.uuid4().hex}{ext}'
+
 
 class Shareholder(BaseModel):
     class Nationality(models.TextChoices):
@@ -15,6 +24,8 @@ class Shareholder(BaseModel):
     birthday = models.DateField(_('生日'), null=True, blank=True)
     address = models.CharField(_('地址'), max_length=255, blank=True, null=True)
     is_active = models.BooleanField(_('狀態'), default=True, choices=[(True, '使用中'), (False, '未使用')])
+    id_card_front = models.ImageField(_('身分證正面'), upload_to=get_id_card_path, blank=True, null=True)
+    id_card_back = models.ImageField(_('身分證背面'), upload_to=get_id_card_path, blank=True, null=True)
     note = models.TextField(_('備註'), blank=True, null=True)
 
     class Meta:

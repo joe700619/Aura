@@ -268,7 +268,7 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
 class ShareholderForm(forms.ModelForm):
     class Meta:
         model = Shareholder
-        fields = ['name', 'id_number', 'nationality', 'birthday', 'address', 'is_active', 'note']
+        fields = ['name', 'id_number', 'nationality', 'birthday', 'address', 'is_active', 'id_card_front', 'id_card_back', 'note']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'id_number': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
@@ -276,6 +276,8 @@ class ShareholderForm(forms.ModelForm):
             'birthday': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'is_active': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'id_card_front': forms.ClearableFileInput(attrs={'class': 'w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100', 'accept': 'image/*'}),
+            'id_card_back': forms.ClearableFileInput(attrs={'class': 'w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100', 'accept': 'image/*'}),
             'note': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'rows': 3}),
         }
 
