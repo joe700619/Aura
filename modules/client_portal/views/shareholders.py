@@ -23,7 +23,7 @@ class ShareholderManagementView(ClientRequiredMixin, TemplateView):
 
         if register:
             transactions = list(
-                register.equity_transactions.all().order_by('transaction_date', 'created_at')
+                register.equity_transactions.filter(is_deleted=False).order_by('transaction_date', 'created_at')
             )
 
             timeline_dict = defaultdict(list)
