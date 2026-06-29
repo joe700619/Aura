@@ -137,9 +137,11 @@
                         </td>
                         <td class="px-2 py-2 text-right">
                             <!-- 此欄無 name、僅作為 row.ratio 的 UI proxy（資料另存進 id_cost_sharing_data 的 JSON）。
-                                 不可掛 min/max/step 等原生驗證：此欄常處於隱藏頁籤(display:none)，一旦驗證不過，
-                                 requestSubmit() 會因「無法聚焦的無效欄位」而靜默中止，導致整張表單無法儲存。 -->
-                            <input type="number" x-model="row.ratio" @input="recalculateAmounts()"
+                                 刻意用 type="text"（inputmode 給數字鍵盤）而非 type="number"，也不掛 min/max/step：
+                                 此欄常處於隱藏頁籤(display:none)，只要原生驗證不過——包含 type="number" 在值無法解析成
+                                 數字時的 badInput——requestSubmit() 就會因「無法聚焦的無效欄位」而靜默中止，
+                                 導致整張表單無法儲存。ratio 由 recalculateAmounts() 以 parseFloat 解析，存字串不影響。 -->
+                            <input type="text" inputmode="decimal" x-model="row.ratio" @input="recalculateAmounts()"
                                 class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-right">
                         </td>
                         <td class="px-2 py-2 text-center align-middle relative">
