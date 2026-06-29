@@ -28,6 +28,7 @@ from .views.shareholder import (
     ShareholderCreateView,
     ShareholderUpdateView,
     ShareholderDeleteView,
+    ShareholderIdCardExtractView,
 )
 from .views.equity_transaction import (
     EquityTransactionListView,
@@ -114,6 +115,7 @@ urlpatterns = [
     path('shareholders/add/', ShareholderCreateView.as_view(), name='shareholder_create'),
     path('shareholders/<int:pk>/edit/', ShareholderUpdateView.as_view(), name='shareholder_update'),
     path('shareholders/<int:pk>/delete/', ShareholderDeleteView.as_view(), name='shareholder_delete'),
+    path('shareholders/extract-id-card/', ShareholderIdCardExtractView.as_view(), name='shareholder_extract_id_card'),
 
     # Equity Transaction
     path('equity-transactions/', EquityTransactionListView.as_view(), name='equity_transaction_list'),

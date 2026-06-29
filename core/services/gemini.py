@@ -1,6 +1,7 @@
 """Gemini 生成式 AI 服務 - 用於文字摘要、Q&A 萃取等任務"""
 from __future__ import annotations
 
+import json
 import logging
 
 from modules.system_config.helpers import get_system_param
@@ -16,6 +17,70 @@ def _get_client():
     if not api_key:
         raise RuntimeError('GEMINI_API_KEY 未設定')
     return genai.Client(api_key=api_key)
+
+
+def extract_taiwan_id_card(front=None, back=None) -> dict:
+    """從台灣身分證正反面照片擷取基本資料。
+
+    正面提供：姓名、身分證字號、出生年月日；背面提供：戶籍住址。
+    至少要給一張圖；兩張都給時資料最完整。
+
+    Args:
+        front: (bytes, mime_type) tuple，身分證正面，沒有則 None
+        back:  (bytes, mime_type) tuple，身分證背面，沒有則 None
+
+    Returns:
+        {'name': str, 'id_number': str, 'birthday': 'YYYY-MM-DD' or '', 'address': str}
+        擷取不到的欄位回傳空字串，由前端帶入後交使用者確認。
+    """
+    from google.genai import types
+
+    if not front and not back:
+        raise ValueError('至少需要一張身分證照片')
+
+    prompt = """你是台灣身分證的資料擷取助理。請從附上的身分證照片中，擷取下列欄位並輸出 JSON：
+- name：姓名（正面）
+- id_number：身分證統一編號，1 個英文字母 + 9 位數字（正面）
+- birthday：出生年月日。身分證上是「民國年」，請換算成西元年（民國年 + 1911），輸出格式 YYYY-MM-DD
+- address：戶籍住址（背面）
+
+規則：
+- 只輸出實際看得到的內容，看不清楚或該張照片沒有的欄位一律回傳空字串 ""
+- 不要臆測或自行補齊
+- 直接輸出 JSON，不要加任何說明文字或 markdown 標記"""
+
+    contents = []
+    if front:
+        contents.append(types.Part.from_bytes(data=front[0], mime_type=front[1]))
+    if back:
+        contents.append(types.Part.from_bytes(data=back[0], mime_type=back[1]))
+    contents.append(prompt)
+
+    client = _get_client()
+    response = client.models.generate_content(
+        model=GENERATION_MODEL,
+        contents=contents,
+        config=types.GenerateContentConfig(response_mime_type='application/json'),
+    )
+
+    data = json.loads(response.text)
+
+    birthday = (data.get('birthday') or '').strip()
+    # 防呆：若模型沒換算、仍輸出民國年（西元年 < 1911），自行 +1911 修正
+    if birthday:
+        try:
+            year, rest = birthday.split('-', 1)
+            if int(year) < 1911:
+                birthday = f'{int(year) + 1911:04d}-{rest}'
+        except (ValueError, AttributeError):
+            birthday = ''
+
+    return {
+        'name': (data.get('name') or '').strip(),
+        'id_number': (data.get('id_number') or '').strip().upper(),
+        'birthday': birthday,
+        'address': (data.get('address') or '').strip(),
+    }
 
 
 def summarize_case_for_kb(case) -> dict:
