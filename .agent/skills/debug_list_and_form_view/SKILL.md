@@ -187,10 +187,14 @@ Console 會直接指出是哪一個 `<input>`。
 - 多頁籤表單中，藏在非 active 頁籤（`display:none`）裡、值不合 `min`/`max`/`step` 的 number/date 欄位
 
 **修正原則：**
-> **只作為 x-model 代理、沒有 `name`、又可能藏在隱藏頁籤裡的欄位，不要掛 `required`/`min`/`max`/`step` 等原生驗證。**
+> **只作為 x-model 代理、沒有 `name`、又可能藏在隱藏頁籤裡的欄位，一律用 `type="text"`（要數字鍵盤就加 `inputmode="decimal"`），不要掛 `required`/`min`/`max`/`step`。**
 > 這類欄位本來就不靠表單送出（而是序列化進 hidden 欄位交給後端），原生驗證對它沒有意義，卻會連累整張表單無法儲存。
+> ⚠️ 只移除 `min`/`max`/`step` **還不夠**：`type="number"` 本身在「值無法解析成合法數字」時會進入 **badInput** 狀態，照樣是 invalid、照樣靜默擋掉送出。所以要直接改成 `type="text"`。
 
-實例：`components/cost_sharing_table.html` 的「比例(%)」欄位曾因 `step="1" min="0" max="100"` 卡死整張記帳客戶表單，移除後即正常。
+實例：`components/cost_sharing_table.html` 的「比例(%)」欄位先因 `step/min/max` 卡死，移除後正式站仍卡——因為 `type="number"` 的 badInput（本機資料乾淨沒事、正式站某筆 ratio 值觸發）。最終改 `type="text" inputmode="decimal"` 才根治。
+
+> [!WARNING]
+> 這是「本機正常、正式環境不能存檔」的典型陷阱：同一份 template，差別只在**資料**。本機那筆數字乾淨、正式站那筆觸發 badInput，於是只有正式站靜默卡死。看到「本機好、線上壞」別只懷疑部署/快取，先用 Console 看是不是資料讓某欄位 invalid。
 
 > [!NOTE]
 > 若真的需要限制範圍，改用 JS（`@input` 內 clamp）或後端驗證，不要用會阻擋 submit 的原生 HTML 驗證。
