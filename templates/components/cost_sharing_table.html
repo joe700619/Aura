@@ -18,13 +18,11 @@
 
         // Listen for service fee changes from quotation table
         window.addEventListener('service-fee-changed', (e) => {
-            console.log('Service Fee Changed:', e.detail.total);
             this.serviceFeeTotal = e.detail.total;
             this.recalculateAmounts();
         });
-        
+
         // Request initial total from quotation table
-        console.log('Requesting initial service fee total...');
         window.dispatchEvent(new CustomEvent('request-service-fee'));
 
         // Listen for client selection to import cost-sharing data from client profile
