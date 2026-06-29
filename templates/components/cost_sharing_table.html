@@ -136,7 +136,10 @@
                                 class="block w-full rounded-md border-slate-200 bg-slate-50 text-slate-500 shadow-sm sm:text-sm text-right">
                         </td>
                         <td class="px-2 py-2 text-right">
-                            <input type="number" x-model="row.ratio" @input="recalculateAmounts()" step="1" min="0" max="100"
+                            <!-- 此欄無 name、僅作為 row.ratio 的 UI proxy（資料另存進 id_cost_sharing_data 的 JSON）。
+                                 不可掛 min/max/step 等原生驗證：此欄常處於隱藏頁籤(display:none)，一旦驗證不過，
+                                 requestSubmit() 會因「無法聚焦的無效欄位」而靜默中止，導致整張表單無法儲存。 -->
+                            <input type="number" x-model="row.ratio" @input="recalculateAmounts()"
                                 class="block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-right">
                         </td>
                         <td class="px-2 py-2 text-center align-middle relative">
