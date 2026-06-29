@@ -71,7 +71,7 @@ class ShareholderRegisterUpdateView(BusinessRequiredMixin, PrevNextMixin, Update
     def get_context_data(self, **kwargs):
         print("!!! DEBUG: ShareholderRegisterUpdateView EXECUTED !!!")
         context = super().get_context_data(**kwargs)
-        transactions = self.object.equity_transactions.all().order_by('-transaction_date', '-created_at')
+        transactions = self.object.equity_transactions.filter(is_deleted=False).order_by('-transaction_date', '-created_at')
         context['equity_transactions'] = transactions
         context['action'] = 'update'
 
