@@ -167,6 +167,36 @@ Base template 會自動根據 `{model_name}_create` 組成 URL。確認：
 
 ---
 
+### 症狀 1.5：按「儲存」完全沒反應（無 loading、無錯誤、頁面不動）
+
+**根本原因：隱藏頁籤裡有「不可聚焦的無效欄位」，導致 `requestSubmit()` 靜默中止。**
+
+toolbar 的儲存鈕執行的是 `document.getElementById('main-form').requestSubmit()`，
+而 `requestSubmit()` 會先跑**瀏覽器原生欄位驗證**。只要表單裡有任何一個欄位「驗證不過」
+**且當下無法被聚焦**（例如在 `x-show`/`display:none` 的隱藏頁籤、或 `name=''` 的純 UI 欄位），
+瀏覽器無法提示該欄位，就會**靜默取消送出、什麼都不做**。
+
+**診斷（決定性）：** 開 DevTools Console，按儲存，會看到：
+```
+An invalid form control with name='…' is not focusable. <input …>
+```
+Console 會直接指出是哪一個 `<input>`。
+
+**常見肇因欄位：**
+- 純 Alpine `x-model` 代理欄位（**沒有 `name`**，資料另存進 hidden 的 JSON 欄位），卻掛了 `min`/`max`/`step`/`required`
+- 多頁籤表單中，藏在非 active 頁籤（`display:none`）裡、值不合 `min`/`max`/`step` 的 number/date 欄位
+
+**修正原則：**
+> **只作為 x-model 代理、沒有 `name`、又可能藏在隱藏頁籤裡的欄位，不要掛 `required`/`min`/`max`/`step` 等原生驗證。**
+> 這類欄位本來就不靠表單送出（而是序列化進 hidden 欄位交給後端），原生驗證對它沒有意義，卻會連累整張表單無法儲存。
+
+實例：`components/cost_sharing_table.html` 的「比例(%)」欄位曾因 `step="1" min="0" max="100"` 卡死整張記帳客戶表單，移除後即正常。
+
+> [!NOTE]
+> 若真的需要限制範圍，改用 JS（`@input` 內 clamp）或後端驗證，不要用會阻擋 submit 的原生 HTML 驗證。
+
+---
+
 ### 症狀 2：欄位沒有樣式（輸入框很小或沒有邊框）
 
 **原因：** `forms.py` 的 widget 未設定 Tailwind class。
