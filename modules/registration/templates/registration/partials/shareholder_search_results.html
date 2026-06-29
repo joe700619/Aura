@@ -1,12 +1,12 @@
 {% for shareholder in shareholders %}
 <tr class="hover:bg-blue-50 cursor-pointer transition-colors"
-    @click="selectItem('{{ shareholder.name|escapejs }}', '{{ shareholder.name|escapejs }} ({{ shareholder.id_number|escapejs }})', { 
-        'shareholder_name': '{{ shareholder.name|escapejs }}', 
-        'shareholder_id_number': '{{ shareholder.id_number|escapejs }}', 
+    onclick="window.dispatchEvent(new CustomEvent('shareholder-selected', { detail: { data: {
+        'shareholder_name': '{{ shareholder.name|escapejs }}',
+        'shareholder_id_number': '{{ shareholder.id_number|escapejs }}',
         'shareholder_address': '{{ shareholder.address|default:""|escapejs }}',
         'shareholder_nationality': '{{ shareholder.get_nationality_display|escapejs }}',
         'shareholder_birthday': '{{ shareholder.birthday|date:"Y-m-d"|default:""|escapejs }}'
-    })">
+    } } }))">
     <td class="px-6 py-3 whitespace-nowrap">
         <div class="text-sm font-medium text-gray-900">{{ shareholder.name }}</div>
     </td>

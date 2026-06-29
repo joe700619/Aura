@@ -286,6 +286,62 @@ class MyUpdateView(PrevNextMixin, LoginRequiredMixin, UpdateView):
 
 ---
 
+### 症狀 7.5：彈窗 / 遮罩一打開「整個畫面變成不透明灰色」（背景沒有半透明）
+
+**根本原因：用了 Tailwind v3 的 `bg-opacity-*` / `*-opacity-*`，但本專案編出來的是 Tailwind v4，這些 utility 已被移除 → 透明度靜默失效，遮罩變成純色蓋滿全畫面。**
+
+本專案 `theme/static/css/dist/styles.css` 是 **Tailwind v4**。v4 已**移除** `bg-opacity-*`、`text-opacity-*`、`border-opacity-*`、`ring-opacity-*` 這些獨立的透明度 utility，改用「斜線語法」表達透明度。
+
+**錯誤寫法（v3，v4 編不出來 → 失效）：**
+```html
+<div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+<!-- bg-gray-500 生效=純灰、bg-opacity-75 是空 class → 整片不透明灰 -->
+```
+
+**正確寫法（v4 斜線透明度）：**
+```html
+<div class="fixed inset-0 bg-gray-500/75"></div>
+<!-- 或對齊專案既有彈窗 modal_select.html / document_modal.html 的 bg-slate-900/60 -->
+```
+
+**診斷（決定性）：** 直接 grep 編譯後 CSS 確認該 class 根本沒被編出來：
+```bash
+grep -c "bg-opacity-75" theme/static/css/dist/styles.css   # → 0 代表這個 class 不存在
+```
+
+> [!WARNING]
+> 這屬於「Tailwind 新/改的 class 靜默失效」家族雷：class 名稱沒報錯、頁面也不會壞，只是樣式默默不套用。新刻彈窗/遮罩時，透明度一律用 `顏色/數字`（如 `bg-slate-900/60`），**禁止再用 `bg-opacity-*` 等 v3 寫法**。實例：股東名簿「董監事名單」Tab 的搜尋彈窗 `shareholder_search_modal.html`，遮罩用 `bg-opacity-75` 導致一開彈窗整頁變不透明灰。
+
+---
+
+### 症狀 7.6：彈窗「看得到卻點不到 / 一點就關 / 內容被遮罩蓋住」
+
+**根本原因：遮罩（`position:fixed`）疊在面板（`position:static`）之上 —— 面板少了 `relative`。**
+
+CSS 疊放規則：**同一個 stacking context 裡，定位元素（`fixed`/`absolute`/`relative`）會畫在非定位元素（`static`）之上**。常見的錯誤結構是「遮罩與面板互為**兄弟**」：
+
+```html
+<div class="flex ...">
+    <div class="fixed inset-0 bg-slate-900/60" @click="open=false"></div>  <!-- 遮罩：fixed=定位 -->
+    <div class="inline-block bg-white ...">  <!-- 面板：static，沒有 relative → 被遮罩蓋住 -->
+```
+
+面板雖然 DOM 在後面，但因為它是 `static`、遮罩是 `fixed`，遮罩照樣畫在面板上面。結果：
+
+- 遮罩不透明 → 面板被整片蓋住（看起來像「整頁變色、沒跳出內容」）。
+- 遮罩半透明 → 面板**看得到**（自動 focus 還能打字），但**點擊全被上層遮罩吃掉** → 點按鈕沒反應、或點一下就觸發遮罩的 `@click` 關閉彈窗。
+
+**修正：給面板加 `relative z-10`**（讓它變定位元素並疊上去）：
+```html
+<div class="relative z-10 inline-block bg-white ...">
+```
+或改成「面板是遮罩的**子元素**」的結構（子元素天生畫在父層之上，如 `modal_select.html` / `document_modal.html`）。
+
+> [!WARNING]
+> 這雷的迷惑點：彈窗「明明有開、也看得到」，所以會誤判成 JS／事件／選擇器問題，一路往那邊修都修不好。判斷口訣：**「看得到卻點不到」八成是 stacking，先檢查面板有沒有 `relative z-10`、遮罩是不是 `fixed` 的兄弟。** 實例：`shareholder_search_modal.html` 面板缺 `relative`，點搜尋結果一律點到遮罩，事件從未觸發。
+
+---
+
 ### 症狀 8：表單儲存後跳轉離開 (希望停留在表單繼續編輯)
 
 **修正：**

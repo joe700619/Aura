@@ -543,30 +543,6 @@
         tbody.appendChild(tr);
         mgmt.value = idx + 1;
     });
-
-    // ── Handle row update from modal ───────────────────────────────────────
-    window.addEventListener('update-director-row', function(e) {
-        const index = e.detail.index;
-        const field = e.detail.field;
-        const data = e.detail.data;
-        const prefix = 'directors';
-
-        // Helper to safely set value if element exists
-        const setVal = (name, val) => {
-            const el = document.querySelector(`[name="${prefix}-${index}-${name}"]`);
-            if (el) el.value = val;
-        };
-
-        if (field === 'name') {
-            setVal('name', data.shareholder_name || '');
-            setVal('id_number', data.shareholder_id_number || '');
-            setVal('nationality', data.shareholder_nationality || '');
-            setVal('birth_date', data.shareholder_birthday || '');
-        } else if (field === 'entity') {
-             setVal('entity_name', data.shareholder_name || '');
-             setVal('entity_no', data.shareholder_id_number || '');
-        }
-    });
 }());
 </script>
 {% endblock %}

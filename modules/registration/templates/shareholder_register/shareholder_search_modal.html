@@ -14,7 +14,7 @@
             this.isShareholderSearchOpen = true;
             this.searchQuery = '';
             this.searchResults = '';
-            this.$nextTick(() => $refs.searchInput.focus());
+            this.$nextTick(() => this.$refs.searchInput.focus());
         },
         
         async search() {
@@ -29,16 +29,27 @@
             this.isSearching = false;
         },
         
-        selectItem(name, display, data) {
-            this.$dispatch('update-director-row', { 
-                index: this.targetRowIndex, 
-                field: this.targetField,
-                data: data 
-            });
+        selectItem(data) {
+            const prefix = 'directors';
+            const idx = this.targetRowIndex;
+            const setVal = (name, val) => {
+                const el = document.querySelector(`[name='${prefix}-${idx}-${name}']`);
+                if (el) { el.value = val; el.dispatchEvent(new Event('input')); }
+            };
+            if (this.targetField === 'name') {
+                setVal('name', data.shareholder_name || '');
+                setVal('id_number', data.shareholder_id_number || '');
+                setVal('nationality', data.shareholder_nationality || '');
+                setVal('birth_date', data.shareholder_birthday || '');
+            } else if (this.targetField === 'entity') {
+                setVal('entity_name', data.shareholder_name || '');
+                setVal('entity_no', data.shareholder_id_number || '');
+            }
             this.isShareholderSearchOpen = false;
         }
     }" 
-    @open-shareholder-modal.window="openModal($event)" 
+    @open-shareholder-modal.window="openModal($event)"
+    @shareholder-selected.window="selectItem($event.detail.data)"
     x-show="isShareholderSearchOpen" 
     style="display: none;"
     class="fixed inset-0 z-[100] overflow-y-auto" 
@@ -49,20 +60,20 @@
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Backdrop -->
         <div x-show="isShareholderSearchOpen" x-transition.opacity
-            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+            class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true"
             @click="isShareholderSearchOpen = false"></div>
 
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&nbsp;</span>
 
         <!-- Modal Panel -->
         <div x-show="isShareholderSearchOpen" x-transition.scale
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full mx-auto"
-            style="width: 90vw !important; max-width: 1200px !important;">
+            class="relative z-10 inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full mx-auto"
+            style="width: 90vw !important; max-width: 640px !important;">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">搜尋股東</h3>
                 <div class="mt-4">
                     <input type="text" x-model="searchQuery" @input.debounce.500ms="search()" x-ref="searchInput"
-                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         placeholder="輸入姓名或身分證字號搜尋...">
                 </div>
                 <div class="mt-4 max-h-60 overflow-y-auto">
