@@ -86,11 +86,32 @@
     </div>
 
     <!-- 身分證照片 -->
-    <div class="mt-8 space-y-4">
-        <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+    <div class="mt-8 space-y-4" x-data="idCardExtractor()">
+        <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-2 mb-2">
             <div class="w-1 h-4 bg-blue-600 rounded-full"></div>
             <h4 class="font-bold text-slate-800 text-sm">身分證照片</h4>
+
+            <button type="button" @click="extract()" :disabled="loading"
+                class="ml-auto inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-md text-sm font-bold transition-colors"
+                :style="loading ? 'opacity:0.6;cursor:not-allowed' : ''">
+                <svg x-show="!loading" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <svg x-show="loading" x-cloak class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-text="loading ? '辨識中…' : 'AI 辨識並帶入'"></span>
+            </button>
         </div>
+
+        <p class="text-xs text-slate-500 -mt-1">上傳正反面後按「AI 辨識並帶入」，系統會自動填入姓名、身分證字號、生日、地址，<span class="font-semibold text-slate-600">請務必核對後再儲存</span>。</p>
+
+        <template x-if="message">
+            <div class="text-sm rounded-md px-3 py-2"
+                :class="error ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'"
+                x-text="message"></div>
+        </template>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- 身分證正面 -->
@@ -146,4 +167,85 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+function idCardExtractor() {
+    return {
+        loading: false,
+        message: '',
+        error: false,
+        _setField(id, value) {
+            if (!value) return false;
+            const el = document.getElementById(id);
+            if (!el) return false;
+            el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            // 黃色高亮提示「AI 帶入，待確認」，3 秒後淡出
+            el.classList.add('ring-2', 'ring-amber-300', 'bg-amber-50');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-amber-300', 'bg-amber-50'), 3000);
+            return true;
+        },
+        async extract() {
+            const front = document.getElementById('{{ form.id_card_front.id_for_label }}').files[0];
+            const back = document.getElementById('{{ form.id_card_back.id_for_label }}').files[0];
+            // 編輯頁可能已有存好的照片，沒重選也能辨識
+            const shareholderId = '{{ form.instance.pk|default_if_none:"" }}';
+            const hasSavedFront = {% if form.instance.id_card_front %}true{% else %}false{% endif %};
+            const hasSavedBack = {% if form.instance.id_card_back %}true{% else %}false{% endif %};
+
+            if (!front && !back && !hasSavedFront && !hasSavedBack) {
+                this.error = true;
+                this.message = '請先在下方「選擇檔案」上傳身分證照片，再按辨識';
+                return;
+            }
+
+            this.loading = true;
+            this.error = false;
+            this.message = '';
+
+            const fd = new FormData();
+            if (front) fd.append('id_card_front', front);
+            if (back) fd.append('id_card_back', back);
+            if (shareholderId) fd.append('shareholder_id', shareholderId);
+            fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+            try {
+                const resp = await fetch('{% url "registration:shareholder_extract_id_card" %}', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const json = await resp.json();
+                if (!json.success) {
+                    this.error = true;
+                    this.message = json.error || 'AI 辨識失敗';
+                    return;
+                }
+                const d = json.data;
+                const filled = [];
+                if (this._setField('{{ form.name.id_for_label }}', d.name)) filled.push('姓名');
+                if (this._setField('{{ form.id_number.id_for_label }}', d.id_number)) filled.push('身分證字號');
+                if (this._setField('{{ form.birthday.id_for_label }}', d.birthday)) filled.push('生日');
+                if (this._setField('{{ form.address.id_for_label }}', d.address)) filled.push('地址');
+
+                if (filled.length) {
+                    this.error = false;
+                    this.message = '已帶入：' + filled.join('、') + '，請核對後再儲存。';
+                } else {
+                    this.error = true;
+                    this.message = '照片中讀不到可用欄位，請換清楚一點的照片或手動輸入。';
+                }
+            } catch (e) {
+                this.error = true;
+                this.message = '連線失敗，請稍後再試。';
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+}
+</script>
 {% endblock %}
