@@ -16,6 +16,7 @@ from modules.workflow.services import (
     cancel_approval,
     get_effective_approver,
 )
+from modules.workflow.mixins import AbortApprovalOnDeleteMixin
 
 
 # ==================== InsuranceBracket ====================
@@ -240,7 +241,7 @@ class OvertimeUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, Pre
         return redirect('hr:overtime_update', pk=self.object.pk)
 
 
-class OvertimeDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class OvertimeDeleteView(AbortApprovalOnDeleteMixin, PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = OvertimeRecord
     success_url = reverse_lazy('hr:overtime_list')
@@ -526,7 +527,7 @@ class AdvancePaymentUpdateView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixi
         return redirect(self.get_success_url())
 
 
-class AdvancePaymentDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
+class AdvancePaymentDeleteView(AbortApprovalOnDeleteMixin, PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin, SoftDeleteMixin, HRRequiredMixin, DeleteView):
     full_access_groups = _HR_ATTENDANCE_ACCESS_GROUPS
     model = AdvancePayment
     success_url = reverse_lazy('hr:advance_payment_list')

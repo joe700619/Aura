@@ -72,6 +72,33 @@ def reactivate_employees(_modeladmin, _request, queryset):
 reactivate_employees.short_description = '重新啟用（還原）員工'
 
 
+class SoftDeleteApprovalAdminMixin:
+    """
+    admin 刪除改為軟刪除（is_deleted=True）+ 撤銷進行中的核准請求。
+
+    適用於「BaseModel（有 is_deleted）且有核准流程（get_approval_request）」的單據，
+    例如加班、代墊款。避免 admin 預設硬刪繞過回收桶、並留下孤兒核准單。
+    （請假單因另需回沖餘額，由 LeaveRequestAdmin 自行處理，不套此 mixin。）
+    """
+
+    def _soft_delete_with_approval(self, obj):
+        if hasattr(obj, 'is_deleted') and not obj.is_deleted:
+            obj.is_deleted = True
+            obj.save(update_fields=['is_deleted', 'updated_at'])
+        if hasattr(obj, 'get_approval_request'):
+            from modules.workflow.services import abort_approval
+            approval = obj.get_approval_request()
+            if approval:
+                abort_approval(approval)
+
+    def delete_model(self, _request, obj):
+        self._soft_delete_with_approval(obj)
+
+    def delete_queryset(self, _request, queryset):
+        for obj in queryset:
+            self._soft_delete_with_approval(obj)
+
+
 @admin.register(Employee)
 class EmployeeAdmin(ImportExportModelAdmin):
     list_display = [
@@ -128,7 +155,7 @@ class EmployeeAdmin(ImportExportModelAdmin):
 
 
 @admin.register(AdvancePayment)
-class AdvancePaymentAdmin(admin.ModelAdmin):
+class AdvancePaymentAdmin(SoftDeleteApprovalAdminMixin, admin.ModelAdmin):
     list_display = ['employee', 'date_applied', 'amount', 'status', 'is_deleted', 'created_at']
     list_filter = ['status', 'is_deleted']
     search_fields = ['employee__name', 'reason']
@@ -222,7 +249,7 @@ class SalaryStructureAdmin(ImportExportModelAdmin):
 
 
 @admin.register(OvertimeRecord)
-class OvertimeRecordAdmin(admin.ModelAdmin):
+class OvertimeRecordAdmin(SoftDeleteApprovalAdminMixin, admin.ModelAdmin):
     list_display = ['employee', 'date', 'minutes', 'day_type_label', 'is_approved', 'is_deleted', 'created_at']
     list_filter = ['is_approved', 'is_deleted']
     search_fields = ['employee__name', 'employee__employee_number']
