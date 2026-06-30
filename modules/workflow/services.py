@@ -301,6 +301,38 @@ def cancel_approval(approval_request, requester, comments=''):
     return True
 
 
+def abort_approval(approval_request, comments='關聯資料已取消/刪除'):
+    """
+    系統性撤銷核准請求。
+
+    用於底層被核准的物件本身被取消/刪除時，連帶把仍在進行中的核准請求收掉，
+    避免留下指向已取消物件的孤兒核准單卡在審核清單。
+
+    與 cancel_approval 不同：不檢查操作者身分（沒有「申請人」可比對），
+    只有在仍可進行的狀態（DRAFT/PENDING/RETURNED）才動作。
+
+    Args:
+        approval_request: ApprovalRequest instance
+        comments: 撤銷原因（記錄於歷史）
+
+    Returns:
+        bool: 是否實際執行了撤銷
+    """
+    if approval_request.status not in ['DRAFT', 'PENDING', 'RETURNED']:
+        return False
+
+    ApprovalHistory.objects.create(
+        approval_request=approval_request,
+        action='CANCEL',
+        actor=approval_request.requester,
+        comments=comments,
+    )
+    approval_request.status = 'CANCELLED'
+    approval_request.current_step = None
+    approval_request.save(update_fields=['status', 'current_step'])
+    return True
+
+
 def get_effective_approver(user, approval_request, date=None):
     """
     取得有效的核准者（考慮代理人設定）

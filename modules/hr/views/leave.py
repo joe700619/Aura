@@ -331,8 +331,11 @@ class LeaveRequestDeleteView(PayrollLockUpdateDeleteMixin, OwnEmployeeDataMixin,
 
     def form_valid(self, _form):
         self.object = self.get_object()
-        self.object.cancel()  # This handles status + balance rollback
-        messages.success(self.request, '請假單已取消，餘額已回沖。')
+        self.object.cancel()  # status=cancelled + 回沖餘額 + 撤銷核准流程
+        if not self.object.is_deleted:
+            self.object.is_deleted = True
+            self.object.save(update_fields=['is_deleted', 'updated_at'])
+        messages.success(self.request, '請假單已刪除，餘額已回沖。')
         return redirect(self.success_url)
 
 
@@ -428,8 +431,7 @@ def leave_request_reject(request, pk):
                 comments=comments,
                 as_delegate_for=original,
             )
-            leave_req.status = 'rejected'
-            leave_req.save(update_fields=['status'])
+            leave_req.reject()  # status=rejected + 回沖已扣的餘額
             messages.success(request, '請假單已駁回。')
         except Exception as e:
             messages.error(request, f'駁回失敗：{str(e)}')
