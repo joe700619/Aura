@@ -118,3 +118,49 @@ class GcisProxyApiView(View):
 
         except Exception as e:
             return JsonResponse({'error': f'查詢失敗：{str(e)}'}, status=500)
+
+
+class GcisDirectorApiView(View):
+    """後端 Proxy：查詢政府商工登記「公司董監事」資料（dataset 4E5F7653），
+    供董監事名單 Tab 與系統資料核對一致性使用。
+
+    僅回傳董監事清單（董事長/董事/獨立董事/監察人），不含經理人——
+    經理人為另一支需「授權介接 IP」的 API（86E61A52），屬 Phase 2 範圍。
+    """
+
+    DATASET_ID = "4E5F7653-1B91-4DDC-99D5-468530FAE396"
+
+    def get(self, request, *args, **kwargs):
+        tax_id = request.GET.get('tax_id', '').strip()
+
+        if not tax_id or len(tax_id) != 8 or not tax_id.isdigit():
+            return JsonResponse({'error': '請提供正確的8位統一編號'}, status=400)
+
+        gcis_url = (
+            "https://data.gcis.nat.gov.tw/od/data/api/"
+            f"{self.DATASET_ID}"
+            f"?$format=json&$filter=Business_Accounting_NO%20eq%20{tax_id}&$skip=0&$top=200"
+        )
+
+        try:
+            req = urllib.request.Request(gcis_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json_lib.loads(resp.read().decode('utf-8'))
+
+            # 商工 API 在查無資料時回空陣列；非陣列代表被擋（如非授權 IP）或格式異常。
+            if not isinstance(data, list):
+                return JsonResponse({'error': '商工資料暫時無法取得，請稍後再試'}, status=502)
+
+            directors = [
+                {
+                    'name': (d.get('Person_Name') or '').strip(),
+                    'position': (d.get('Person_Position_Name') or '').strip(),
+                    'entity_name': (d.get('Juristic_Person_Name') or '').strip(),
+                }
+                for d in data
+                if (d.get('Person_Name') or '').strip()
+            ]
+            return JsonResponse({'success': True, 'directors': directors})
+
+        except Exception as e:
+            return JsonResponse({'error': f'查詢失敗：{str(e)}'}, status=500)

@@ -4,7 +4,7 @@ from .views import (
     ContactListView, ContactCreateView, ContactUpdateView, ContactDeleteView, ContactHistoryView,
     ServiceItemListView, ServiceItemCreateView, ServiceItemUpdateView, ServiceItemDeleteView
 )
-from .views.api import CustomerSearchApiView, CustomerSearchForProgressApiView, ContactSearchForProgressApiView, ServiceItemSearchApiView, CustomerInfoApiView, GcisProxyApiView
+from .views.api import CustomerSearchApiView, CustomerSearchForProgressApiView, ContactSearchForProgressApiView, ServiceItemSearchApiView, CustomerInfoApiView, GcisProxyApiView, GcisDirectorApiView
 
 app_name = 'basic_data'
 
@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/contacts/search/progress/', ContactSearchForProgressApiView.as_view(), name='contact_search_progress_api'),
     path('api/service-items/search/', ServiceItemSearchApiView.as_view(), name='service_item_search_api'),
     path('api/gcis-proxy/', GcisProxyApiView.as_view(), name='gcis_proxy_api'),
+    path('api/gcis-directors/', GcisDirectorApiView.as_view(), name='gcis_directors_api'),
 
     # Contacts
     path('contacts/', ContactListView.as_view(), name='contact_list'),

@@ -354,13 +354,114 @@
 {% if action == 'update' %}
 <div x-show="activeTab === 'directors'" class="py-2">
     {{ director_formset.management_form }}
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex justify-between items-center mb-4" x-data="directorReconcile()">
         <h3 class="text-base font-semibold text-slate-700">董監事名單</h3>
-        <button type="button" id="add-director-row"
-            class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-1.5 rounded-md transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            新增
-        </button>
+        <div class="flex items-center gap-2">
+            <button type="button" @click="run()" :disabled="loading"
+                class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-3 py-1.5 rounded-md transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span x-text="loading ? '查詢中…' : '與商工資料核對'"></span>
+            </button>
+            <button type="button" id="add-director-row"
+                class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3 py-1.5 rounded-md transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                新增
+            </button>
+        </div>
+
+        <!-- ── 商工核對結果 Modal ── -->
+        <div x-show="open" x-cloak style="display:none;"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            @click.self="open = false" @keydown.escape.window="open = false">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+                <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+                    <h3 class="text-base font-semibold text-slate-800">與商工登記資料核對（董監事）</h3>
+                    <button type="button" @click="open = false" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="px-5 py-4 overflow-y-auto text-sm">
+                    <!-- 錯誤訊息 -->
+                    <template x-if="error">
+                        <div class="rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2" x-text="error"></div>
+                    </template>
+
+                    <template x-if="!error">
+                        <div class="space-y-5">
+                            <p class="text-slate-500">
+                                資料來源：經濟部商業司公開董監事資料。本核對僅比對「姓名」，不會自動修改任何資料，請人工判斷後手動更正。
+                            </p>
+
+                            <!-- 系統有、商工沒有 -->
+                            <div>
+                                <h4 class="font-semibold text-amber-700 mb-1">
+                                    ⚠️ 系統有、商工沒有（<span x-text="onlySystem.length"></span>）
+                                </h4>
+                                <p class="text-xs text-slate-400 mb-2">可能已卸任、或姓名打錯字（請對照下方「商工有、系統沒有」是否為同一人）。</p>
+                                <template x-if="onlySystem.length === 0"><p class="text-slate-400">— 無 —</p></template>
+                                <ul class="divide-y divide-slate-100 border border-slate-200 rounded-md" x-show="onlySystem.length">
+                                    <template x-for="r in onlySystem" :key="'s'+r.name+r.title">
+                                        <li class="flex items-center gap-3 px-3 py-1.5">
+                                            <span class="inline-block w-16 text-xs text-slate-500" x-text="TITLE_ZH[r.title] || r.title"></span>
+                                            <span class="font-medium text-slate-800" x-text="r.name"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <!-- 商工有、系統沒有 -->
+                            <div>
+                                <h4 class="font-semibold text-amber-700 mb-1">
+                                    ⚠️ 商工有、系統沒有（<span x-text="onlyGcis.length"></span>）
+                                </h4>
+                                <p class="text-xs text-slate-400 mb-2">可能漏建、或已新任未更新。</p>
+                                <template x-if="onlyGcis.length === 0"><p class="text-slate-400">— 無 —</p></template>
+                                <ul class="divide-y divide-slate-100 border border-slate-200 rounded-md" x-show="onlyGcis.length">
+                                    <template x-for="d in onlyGcis" :key="'g'+d.name+d.position">
+                                        <li class="flex items-center gap-3 px-3 py-1.5">
+                                            <span class="inline-block w-16 text-xs text-slate-500" x-text="d.position"></span>
+                                            <span class="font-medium text-slate-800" x-text="d.name"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <!-- 相符 -->
+                            <div>
+                                <h4 class="font-semibold text-emerald-700 mb-1">
+                                    ✅ 姓名相符（<span x-text="matched.length"></span>）
+                                </h4>
+                                <template x-if="matched.length === 0"><p class="text-slate-400">— 無 —</p></template>
+                                <ul class="divide-y divide-slate-100 border border-slate-200 rounded-md" x-show="matched.length">
+                                    <template x-for="m in matched" :key="'m'+m.name">
+                                        <li class="flex items-center gap-3 px-3 py-1.5">
+                                            <span class="inline-block w-16 text-xs text-slate-500" x-text="TITLE_ZH[m.sysTitle] || m.sysTitle"></span>
+                                            <span class="font-medium text-slate-800" x-text="m.name"></span>
+                                            <template x-if="m.titleMismatch">
+                                                <span class="text-xs text-amber-600">（商工為「<span x-text="m.gcisPosition"></span>」，職稱不一致）</span>
+                                            </template>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <!-- 經理人提示 -->
+                            <template x-if="hasManager">
+                                <p class="text-xs text-slate-400 border-t border-slate-100 pt-3">
+                                    註：系統內的「經理人」不在本次核對範圍（商工經理人為另一支需授權的 API），已自動略過。
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="px-5 py-3 border-t border-slate-200 text-right">
+                    <button type="button" @click="open = false"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-1.5 rounded-md border border-slate-300">關閉</button>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="overflow-x-auto rounded-lg border border-slate-200">
         <table class="min-w-full divide-y divide-slate-200 text-sm" id="directors-table">
@@ -544,5 +645,102 @@
         mgmt.value = idx + 1;
     });
 }());
+</script>
+
+<script>
+// ── 與商工資料核對（董監事）─────────────────────────────────────────────
+function directorReconcile() {
+    return {
+        open: false,
+        loading: false,
+        error: '',
+        matched: [],
+        onlySystem: [],
+        onlyGcis: [],
+        hasManager: false,
+        TITLE_ZH: { CHAIRMAN: '董事長', DIRECTOR: '董事', SUPERVISOR: '監察人', MANAGER: '經理人' },
+
+        normName(s) { return (s || '').replace(/\s+/g, '').trim(); },
+
+        // 商工職稱 → 系統 title。獨立董事歸董事（依客戶群實務幾乎不會出現）。
+        normGcisTitle(p) {
+            if (!p) return 'DIRECTOR';
+            if (p.indexOf('董事長') >= 0) return 'CHAIRMAN';
+            if (p.indexOf('監察') >= 0) return 'SUPERVISOR';
+            if (p.indexOf('董事') >= 0) return 'DIRECTOR';   // 含「獨立董事」
+            return 'DIRECTOR';
+        },
+
+        // 讀取畫面上目前的董監事列（反映未存檔的編輯；跳過已勾選刪除的列）
+        readSystemRows() {
+            const rows = [];
+            document.querySelectorAll('#directors-tbody tr.director-row').forEach(tr => {
+                const del = tr.querySelector('input[name$="-DELETE"]');
+                if (del && del.checked) return;
+                const nameEl = tr.querySelector('input[name$="-name"]');
+                if (!nameEl) return;
+                const name = this.normName(nameEl.value);
+                if (!name) return;
+                const titleEl = tr.querySelector('select[name$="-title"]');
+                rows.push({ name, title: titleEl ? titleEl.value : '' });
+            });
+            return rows;
+        },
+
+        async run() {
+            this.error = '';
+            this.loading = true;
+            this.matched = []; this.onlySystem = []; this.onlyGcis = []; this.hasManager = false;
+            try {
+                const taxEl = document.getElementById('id_unified_business_no');
+                const taxId = taxEl ? taxEl.value.trim() : '';
+                if (!/^\d{8}$/.test(taxId)) {
+                    this.error = '統一編號需為 8 位數字，請先確認基本資料的統編欄位。';
+                    this.open = true; return;
+                }
+
+                const resp = await fetch(`/basic-data/api/gcis-directors/?tax_id=${taxId}`);
+                const data = await resp.json();
+                if (!resp.ok || data.error) {
+                    this.error = data.error || '查詢失敗，請稍後再試。';
+                    this.open = true; return;
+                }
+
+                const gcis = (data.directors || [])
+                    .map(d => ({ name: this.normName(d.name), title: this.normGcisTitle(d.position), position: d.position }))
+                    .filter(d => d.name);
+
+                const sysAll = this.readSystemRows();
+                this.hasManager = sysAll.some(r => r.title === 'MANAGER');
+                const sys = sysAll.filter(r => r.title !== 'MANAGER');   // Phase 1 不含經理人
+
+                const gcisByName = new Map(gcis.map(d => [d.name, d]));
+                const sysNames = new Set(sys.map(r => r.name));
+
+                sys.forEach(r => {
+                    const g = gcisByName.get(r.name);
+                    if (g) {
+                        this.matched.push({
+                            name: r.name, sysTitle: r.title,
+                            gcisPosition: g.position, titleMismatch: r.title !== g.title,
+                        });
+                    } else {
+                        this.onlySystem.push({ name: r.name, title: r.title });
+                    }
+                });
+                gcis.forEach(d => {
+                    if (!sysNames.has(d.name)) this.onlyGcis.push({ name: d.name, position: d.position });
+                });
+
+                this.open = true;
+            } catch (e) {
+                this.error = '查詢失敗：' + e.message;
+                this.open = true;
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+}
 </script>
 {% endblock %}
