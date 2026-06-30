@@ -301,7 +301,7 @@
 
                 <div class="p-4 flex-1 flex flex-col overflow-hidden">
                     <div class="relative mb-4">
-                        <input type="text" x-model="searchQuery" @input.debounce.500ms="search()" x-ref="searchInput"
+                        <input type="text" x-model="searchQuery" @input.debounce.500ms="if (!$event.isComposing) search()" @compositionend.debounce.500ms="search()" x-ref="searchInput"
                             class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm pl-10"
                             placeholder="輸入名稱搜尋...">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
