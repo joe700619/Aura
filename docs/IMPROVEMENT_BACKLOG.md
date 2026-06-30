@@ -16,12 +16,15 @@
 | 2 | CSS 樣式：格子太小、顏色過多 | 樣式 | 中 | 中 | 🔴 | 外觀問題，等系統穩定再慢慢調 |
 | 2b | Tailwind 編譯 CSS 是舊建置 | 樣式（地雷） | 中 | 中 | 🔴 | **非外觀、是地雷**：新 class 會靜默失效（元件隱形，已踩過兩次）。建議在做 #2 前先做一次乾淨的 Tailwind 重建（重建本身也有雷，需小心驗證） |
 | 1 | 整體 UX 零散問題 | 流程 | — | — | 🔴 | 持續把回報的問題往本清單加，分批處理 |
+| 5B | manager 想用「組員/承辦人姓名」排序 | 列表 UX | 中 | 小 | 🔴 | 點欄位排序底層已存在（SortMixin + list_view.html ↑↓）。只需把目標列表的 `allowed_sort_fields` 補上 `承辦人__name` 類欄位。逐表小調，需確認哪些列表/欄位 |
+| 5C | Ragic 式「每欄 ▼ 篩選下拉」 | 列表 UX | 中 | 大 | 🔴 | 現只有預設整列 tab 篩選（FilterMixin）。manager 真實痛點是「按承辦人篩出他的案子」。**選項1（推薦先做）**：常用列表加「承辦人」下拉篩選（小～中）。**選項2（全面 ▼ 框架）**：共用 mixin 通用化＝浩大，雷多（distinct 效能 / 關聯 N+1 / 多欄組合 / 每 model 設定），等前面穩了再評估。選項3：django-filter/tables2 但與現有 mixin 體系摩擦 |
 
 ## 已完成
 
 | # | 問題 | 完成日 | PR | 備註 |
 |---|------|--------|-----|------|
 | 3 | 搜尋框中文選字途中觸發，結果跳掉 | 2026-06-30 | #41 | 全站 7 個搜尋框加 IME composition 防護（HTMX `[!event.isComposing]` / Alpine `isComposing` 守衛 + `compositionend`） |
+| 5A | 從 form 回列表會丟失排序/篩選狀態 | 2026-06-30 | — | `ListStateMemoryMixin`（併入 `ListActionMixin`，零改 view 全站生效）：session 記住每個列表的篩選/排序/搜尋/每頁筆數，裸網址（回列表/選單）自動還原，`?reset=1` 清除。page 不記憶避免 404。自行覆寫 get() 未呼叫 super 的 5 個列表未涵蓋（後續再補） |
 
 ---
 

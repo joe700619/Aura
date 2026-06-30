@@ -278,11 +278,56 @@ class FilterMixin:
         return context
 
 
-class ListActionMixin:
+class ListStateMemoryMixin:
+    """記住每個列表頁最後一次的檢視狀態（篩選 / 排序 / 搜尋 / 每頁筆數），
+    讓使用者從表單「回列表」或從選單再次進入時，回到離開前的樣子
+    （類似 Ragic「記住上次檢視」）。
+
+    觸發時機：列表頁 GET。
+    副作用：寫入 / 讀取 request.session（key = 'liststate:<view_name>'，每個列表獨立）。
+
+    機制：
+    - 帶 querystring 進來（使用者主動篩選/排序/搜尋/換頁）→ 記住該狀態（不含 page）。
+    - 不帶 querystring 進來（不帶參數的「回列表」或從選單進入）→
+      session 有記住的狀態就 redirect 還原，沒有則照預設顯示。
+    - 帶 ?reset=1 → 清掉該列表記憶並回到預設。
+
+    page 不納入記憶：避免資料變動後頁碼失效（404），回列表回到第一頁也較直覺。
+    每個篩選 tab（含「全部」）都會帶 ?filter=，屬「有 querystring」，故切換篩選不會被困住。
+
+    已併入 ListActionMixin，凡走標準列表（含 ListActionMixin）者自動套用，不需個別掛載。
+    註：自行覆寫 get() 且未呼叫 super().get() 的列表不會記憶（可接受）。
+    """
+    list_state_session_prefix = 'liststate:'
+
+    def get(self, request, *args, **kwargs):
+        view_name = getattr(getattr(request, 'resolver_match', None), 'view_name', None)
+        if view_name:
+            key = f'{self.list_state_session_prefix}{view_name}'
+            if 'reset' in request.GET:
+                request.session.pop(key, None)
+                return HttpResponseRedirect(request.path)
+            params = request.GET.copy()
+            params.pop('page', None)
+            cleaned = params.urlencode()
+            if cleaned:
+                # 使用者主動操作 → 記住（值有變才寫，避免每次都標記 session dirty）
+                if request.session.get(key) != cleaned:
+                    request.session[key] = cleaned
+            else:
+                # 裸網址（回列表 / 選單）→ 有記憶就還原
+                saved = request.session.get(key)
+                if saved:
+                    return HttpResponseRedirect(f'{request.path}?{saved}')
+        return super().get(request, *args, **kwargs)
+
+
+class ListActionMixin(ListStateMemoryMixin):
     """
     Mixin for ListView to provide model metadata for list actions.
     Automatically adds model_app_label, model_name, and model_class to context.
     Supports ?per_page= query parameter to override paginate_by at runtime.
+    並透過 ListStateMemoryMixin 記住列表的檢視狀態（回列表/重進選單會還原）。
 
     Usage in ListView:
         class MyModelListView(ListActionMixin, ListView):
