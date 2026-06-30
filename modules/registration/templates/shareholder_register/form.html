@@ -405,6 +405,9 @@
                                         <li class="flex items-center gap-3 px-3 py-1.5">
                                             <span class="inline-block w-16 text-xs text-slate-500" x-text="TITLE_ZH[r.title] || r.title"></span>
                                             <span class="font-medium text-slate-800" x-text="r.name"></span>
+                                            <template x-if="r.entity">
+                                                <span class="text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5">法人代表 · <span x-text="r.entity"></span></span>
+                                            </template>
                                         </li>
                                     </template>
                                 </ul>
@@ -422,6 +425,9 @@
                                         <li class="flex items-center gap-3 px-3 py-1.5">
                                             <span class="inline-block w-16 text-xs text-slate-500" x-text="d.position"></span>
                                             <span class="font-medium text-slate-800" x-text="d.name"></span>
+                                            <template x-if="d.entity">
+                                                <span class="text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5">法人代表 · <span x-text="d.entity"></span></span>
+                                            </template>
                                         </li>
                                     </template>
                                 </ul>
@@ -438,6 +444,9 @@
                                         <li class="flex items-center gap-3 px-3 py-1.5">
                                             <span class="inline-block w-16 text-xs text-slate-500" x-text="TITLE_ZH[m.sysTitle] || m.sysTitle"></span>
                                             <span class="font-medium text-slate-800" x-text="m.name"></span>
+                                            <template x-if="m.entity">
+                                                <span class="text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded px-1.5 py-0.5">法人代表 · <span x-text="m.entity"></span></span>
+                                            </template>
                                             <template x-if="m.titleMismatch">
                                                 <span class="text-xs text-amber-600">（商工為「<span x-text="m.gcisPosition"></span>」，職稱不一致）</span>
                                             </template>
@@ -682,7 +691,12 @@ function directorReconcile() {
                 const name = this.normName(nameEl.value);
                 if (!name) return;
                 const titleEl = tr.querySelector('select[name$="-title"]');
-                rows.push({ name, title: titleEl ? titleEl.value : '' });
+                const entityEl = tr.querySelector('input[name$="-entity_name"]');
+                rows.push({
+                    name,
+                    title: titleEl ? titleEl.value : '',
+                    entity: entityEl ? entityEl.value.trim() : '',
+                });
             });
             return rows;
         },
@@ -707,7 +721,12 @@ function directorReconcile() {
                 }
 
                 const gcis = (data.directors || [])
-                    .map(d => ({ name: this.normName(d.name), title: this.normGcisTitle(d.position), position: d.position }))
+                    .map(d => ({
+                        name: this.normName(d.name),
+                        title: this.normGcisTitle(d.position),
+                        position: d.position,
+                        entity: (d.entity_name || '').trim(),
+                    }))
                     .filter(d => d.name);
 
                 const sysAll = this.readSystemRows();
@@ -723,13 +742,14 @@ function directorReconcile() {
                         this.matched.push({
                             name: r.name, sysTitle: r.title,
                             gcisPosition: g.position, titleMismatch: r.title !== g.title,
+                            entity: r.entity || g.entity,
                         });
                     } else {
-                        this.onlySystem.push({ name: r.name, title: r.title });
+                        this.onlySystem.push({ name: r.name, title: r.title, entity: r.entity });
                     }
                 });
                 gcis.forEach(d => {
-                    if (!sysNames.has(d.name)) this.onlyGcis.push({ name: d.name, position: d.position });
+                    if (!sysNames.has(d.name)) this.onlyGcis.push({ name: d.name, position: d.position, entity: d.entity });
                 });
 
                 this.open = true;
