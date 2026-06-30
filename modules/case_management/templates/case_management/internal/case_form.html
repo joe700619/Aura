@@ -160,7 +160,8 @@
         </div>
         <div class="p-4 border-b">
           <input type="text" x-model="clientQuery"
-                 @input.debounce.300ms="searchClients"
+                 @input.debounce.300ms="if (!$event.isComposing) searchClients()"
+                 @compositionend.debounce.300ms="searchClients()"
                  x-init="$watch('modal', v => v === 'client' && $nextTick(() => $el.focus()))"
                  placeholder="輸入客戶名稱或統編..."
                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
@@ -205,7 +206,8 @@
         </div>
         <div class="p-4 border-b">
           <input type="text" x-model="ownerQuery"
-                 @input.debounce.300ms="searchUsers"
+                 @input.debounce.300ms="if (!$event.isComposing) searchUsers()"
+                 @compositionend.debounce.300ms="searchUsers()"
                  placeholder="輸入姓名 / 帳號 / Email..."
                  class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
         </div>

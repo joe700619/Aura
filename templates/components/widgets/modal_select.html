@@ -73,7 +73,7 @@
             <!-- Search Bar -->
             <div class="p-4 border-b border-gray-200">
                 <input type="text" x-ref="searchInput" name="q" hx-get="{{ search_url }}"
-                    hx-trigger="keyup changed delay:500ms, search" hx-target="#{{ name }}_results"
+                    hx-trigger="keyup[!event.isComposing] changed delay:500ms, search" hx-target="#{{ name }}_results"
                     placeholder="輸入關鍵字搜尋..."
                     class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
