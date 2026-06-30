@@ -66,6 +66,12 @@ def restore_deleted(_modeladmin, _request, queryset):
 restore_deleted.short_description = '還原已刪除的資料'
 
 
+def reactivate_employees(_modeladmin, _request, queryset):
+    # Employee 用 is_active 做軟刪除（非 is_deleted），對應的還原動作
+    queryset.update(is_active=True)
+reactivate_employees.short_description = '重新啟用（還原）員工'
+
+
 @admin.register(Employee)
 class EmployeeAdmin(ImportExportModelAdmin):
     list_display = [
@@ -81,6 +87,8 @@ class EmployeeAdmin(ImportExportModelAdmin):
     search_fields = ['employee_number', 'name', 'id_number', 'email']
     readonly_fields = ['employee_number', 'created_at', 'updated_at']
     
+    actions = [reactivate_employees]
+
     fieldsets = (
         ('基本資料', {
             'fields': ('employee_number', 'name', 'gender', 'id_number', 'line_id', 'extension')
@@ -99,6 +107,24 @@ class EmployeeAdmin(ImportExportModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def _soft_delete(self, obj):
+        """
+        從 admin 刪除員工時改為軟刪除（is_active=False），比照前端行為。
+
+        Employee 的所有子檔（請假單/出勤/餘額…）FK 都是 CASCADE，
+        admin 預設硬刪會把這些資料連帶清光、且不留痕跡。改軟刪可避免。
+        """
+        if obj.is_active:
+            obj.is_active = False
+            obj.save(update_fields=['is_active', 'updated_at'])
+
+    def delete_model(self, _request, obj):
+        self._soft_delete(obj)
+
+    def delete_queryset(self, _request, queryset):
+        for obj in queryset:
+            self._soft_delete(obj)
 
 
 @admin.register(AdvancePayment)
@@ -160,6 +186,27 @@ class LeaveRequestAdmin(admin.ModelAdmin):
 
     def get_queryset(self, _request):
         return self.model._default_manager.all()
+
+    def _soft_delete_with_rollback(self, obj):
+        """
+        從 admin 刪除請假單時，比照前端行為：回沖假期餘額 + 軟刪除。
+
+        admin 預設是硬刪除，不會經過 model 的 cancel()，會導致已扣掉的
+        used_hours 沒被退回（餘額對不起來）。這裡統一改走 cancel()。
+        """
+        obj.cancel()  # status -> cancelled 並回沖 used_hours（pending/approved 才退，idempotent）
+        if not obj.is_deleted:
+            obj.is_deleted = True
+            obj.save(update_fields=['is_deleted', 'updated_at'])
+
+    def delete_model(self, _request, obj):
+        # change 頁面的「刪除」按鈕（單筆）
+        self._soft_delete_with_rollback(obj)
+
+    def delete_queryset(self, _request, queryset):
+        # 列表頁的「刪除選取項目」批次 action
+        for obj in queryset:
+            self._soft_delete_with_rollback(obj)
 
 
 @admin.register(SalaryStructure)

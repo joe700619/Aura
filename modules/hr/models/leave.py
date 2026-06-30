@@ -294,33 +294,50 @@ class LeaveRequest(BaseModel):
             return False
         return approval.requester == user and approval.status in ['PENDING', 'RETURNED']
 
-    def cancel(self):
-        """取消請假並回沖餘額"""
-        if self.status in ('pending', 'approved'):
-            self.status = 'cancelled'
-            self.save(update_fields=['status'])
-            
-            # 回沖餘額 based on the active period covering the start date
-            start_date = self.start_datetime.date()
+    def _rollback_balance(self):
+        """把這張請假單已扣的時數退回對應的假期餘額（取消/駁回共用）。"""
+        # 以涵蓋起始日的有效期間優先；找不到再退回用年度找
+        start_date = self.start_datetime.date()
+        balance = LeaveBalance.objects.filter(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            period_start__lte=start_date,
+            period_end__gt=start_date,
+            is_deleted=False,
+        ).first()
+
+        if not balance:
             balance = LeaveBalance.objects.filter(
                 employee=self.employee,
                 leave_type=self.leave_type,
-                period_start__lte=start_date,
-                period_end__gt=start_date,
+                year=self.start_datetime.year,
                 is_deleted=False,
             ).first()
 
-            if not balance:
-                # Fallback
-                balance = LeaveBalance.objects.filter(
-                    employee=self.employee,
-                    leave_type=self.leave_type,
-                    year=self.start_datetime.year,
-                    is_deleted=False,
-                ).first()
-                
-            if balance:
-                balance.used_hours -= self.total_hours
-                if balance.used_hours < 0:
-                    balance.used_hours = 0
-                balance.save(update_fields=['used_hours'])
+        if balance:
+            balance.used_hours -= self.total_hours
+            if balance.used_hours < 0:
+                balance.used_hours = 0
+            balance.save(update_fields=['used_hours'])
+
+    def _abort_approval(self):
+        """連帶撤銷進行中的核准請求，避免取消後核准單變孤兒卡在審核清單。"""
+        from modules.workflow.services import abort_approval
+        approval = self.get_approval_request()
+        if approval:
+            abort_approval(approval)
+
+    def cancel(self):
+        """取消請假：回沖餘額並撤銷進行中的核准流程。"""
+        if self.status in ('pending', 'approved'):
+            self.status = 'cancelled'
+            self.save(update_fields=['status'])
+            self._rollback_balance()
+            self._abort_approval()
+
+    def reject(self):
+        """駁回請假：請假未成立，回沖已扣的餘額（核准流程本身已由 workflow 標記為 REJECTED）。"""
+        if self.status in ('pending', 'approved'):
+            self.status = 'rejected'
+            self.save(update_fields=['status'])
+            self._rollback_balance()
