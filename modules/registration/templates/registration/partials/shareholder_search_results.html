@@ -1,12 +1,23 @@
+{% comment %}此 partial 同時被兩種選取器使用，兩個事件都要發：
+1. select-item（DOM 冒泡）→ 通用 ModalSelectWidget（如股權交易「搜尋股東」）
+2. shareholder-selected（window）→ 股東名簿董監事 Tab 的搜尋 modal{% endcomment %}
 {% for shareholder in shareholders %}
 <tr class="hover:bg-blue-50 cursor-pointer transition-colors"
-    onclick="window.dispatchEvent(new CustomEvent('shareholder-selected', { detail: { data: {
-        'shareholder_name': '{{ shareholder.name|escapejs }}',
-        'shareholder_id_number': '{{ shareholder.id_number|escapejs }}',
-        'shareholder_address': '{{ shareholder.address|default:""|escapejs }}',
-        'shareholder_nationality': '{{ shareholder.get_nationality_display|escapejs }}',
-        'shareholder_birthday': '{{ shareholder.birthday|date:"Y-m-d"|default:""|escapejs }}'
-    } } }))">
+    onclick="(function(el){
+        var data = {
+            'shareholder_name': '{{ shareholder.name|escapejs }}',
+            'shareholder_id_number': '{{ shareholder.id_number|escapejs }}',
+            'shareholder_address': '{{ shareholder.address|default:""|escapejs }}',
+            'shareholder_nationality': '{{ shareholder.get_nationality_display|escapejs }}',
+            'shareholder_birthday': '{{ shareholder.birthday|date:"Y-m-d"|default:""|escapejs }}'
+        };
+        el.dispatchEvent(new CustomEvent('select-item', { bubbles: true, detail: {
+            value: '{{ shareholder.name|escapejs }}',
+            label: '{{ shareholder.name|escapejs }} ({{ shareholder.id_number|escapejs }})',
+            extra: data
+        } }));
+        window.dispatchEvent(new CustomEvent('shareholder-selected', { detail: { data: data } }));
+    })(this)">
     <td class="px-6 py-3 whitespace-nowrap">
         <div class="text-sm font-medium text-gray-900">{{ shareholder.name }}</div>
     </td>
