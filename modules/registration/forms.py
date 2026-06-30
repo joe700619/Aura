@@ -268,10 +268,11 @@ class CaseAssessmentCRUDForm(forms.ModelForm):
 class ShareholderForm(forms.ModelForm):
     class Meta:
         model = Shareholder
-        fields = ['name', 'id_number', 'nationality', 'birthday', 'address', 'is_active', 'id_card_front', 'id_card_back', 'note']
+        fields = ['name', 'id_number', 'foreign_tax_id', 'nationality', 'birthday', 'address', 'is_active', 'id_card_front', 'id_card_back', 'note']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'id_number': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'foreign_tax_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm', 'placeholder': '例：19890128LE'}),
             'nationality': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'birthday': forms.DateInput(attrs={'type': 'date', 'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),

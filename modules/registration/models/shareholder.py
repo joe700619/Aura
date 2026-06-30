@@ -20,6 +20,7 @@ class Shareholder(BaseModel):
 
     name = models.CharField(_('姓名'), max_length=100)
     id_number = models.CharField(_('身分證字號'), max_length=20, unique=True)
+    foreign_tax_id = models.CharField(_('國稅局外國人證件號碼'), max_length=30, blank=True, null=True)
     nationality = models.CharField(_('國籍'), max_length=2, choices=Nationality.choices, default=Nationality.TW)
     birthday = models.DateField(_('生日'), null=True, blank=True)
     address = models.CharField(_('地址'), max_length=255, blank=True, null=True)

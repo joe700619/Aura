@@ -40,6 +40,18 @@
             {% endif %}
         </div>
 
+        <!-- 國稅局外國人證件號碼 -->
+        <div>
+            <label for="{{ form.foreign_tax_id.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                {{ form.foreign_tax_id.label }}
+            </label>
+            {{ form.foreign_tax_id }}
+            <p class="text-xs text-slate-500 mt-1">外國人適用。規則為「生日 + 姓名前兩字」，例如「李韓」負責人在國稅局的證件號碼為：<span class="font-mono font-semibold text-slate-600">19890128LE</span></p>
+            {% if form.foreign_tax_id.errors %}
+            <div class="text-red-500 text-xs mt-1">{{ form.foreign_tax_id.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
         <!-- 國籍 -->
         <div>
             <label for="{{ form.nationality.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
