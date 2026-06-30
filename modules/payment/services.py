@@ -84,14 +84,13 @@ class ECPayService:
             'NeedExtraPaidInfo': 'N',
         }
 
-        # Business Logic: Disable BNPL if amount <= 500
-        # ECPay allows excluding payment methods via IgnorePayment
-        # Credit#ApplePay#TWQR#BNPL
-        if transaction.total_amount <= 500:
-            # If <= 500, we want to IGNORE BNPL.
-            # But the requirement says: "If > 500, ALL allowed. Else, ONLY BNPL disallowed"
-            # So if <= 500, IgnorePayment="BNPL"
-            params['IgnorePayment'] = 'BNPL'
+        # Business Logic: 依金額決定可用付款方式
+        #   - 金額 <= 1000：全部管道都開（ChoosePayment='ALL'，不排除）
+        #   - 金額 >= 1001：只開 WebATM / ATM / CVS / BARCODE，
+        #                   其餘（Credit、ApplePay、TWQR、BNPL）用 IgnorePayment 排除
+        # ECPay 的 IgnorePayment 以 '#' 分隔，例如 Credit#ApplePay#TWQR#BNPL
+        if transaction.total_amount > 1000:
+            params['IgnorePayment'] = 'Credit#ApplePay#TWQR#BNPL'
 
         # Generate CheckMacValue
         params['CheckMacValue'] = self.generate_check_max_value(params)
