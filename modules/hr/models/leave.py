@@ -294,9 +294,13 @@ class LeaveRequest(BaseModel):
             return False
         return approval.requester == user and approval.status in ['PENDING', 'RETURNED']
 
-    def _rollback_balance(self):
-        """把這張請假單已扣的時數退回對應的假期餘額（取消/駁回共用）。"""
-        # 以涵蓋起始日的有效期間優先；找不到再退回用年度找
+    def _find_balance(self, create_if_missing=False):
+        """
+        找出這張請假單對應的假期餘額。
+
+        以「涵蓋起始日的有效期間」優先（特休是週年制，期間不等於曆年）；
+        找不到再退回用年度找。建立/扣抵/退回/驗證共用，避免邏輯散落。
+        """
         start_date = self.start_datetime.date()
         balance = LeaveBalance.objects.filter(
             employee=self.employee,
@@ -314,6 +318,26 @@ class LeaveRequest(BaseModel):
                 is_deleted=False,
             ).first()
 
+        if not balance and create_if_missing:
+            balance = LeaveBalance.objects.create(
+                employee=self.employee,
+                leave_type=self.leave_type,
+                year=self.start_datetime.year,
+                entitled_hours=0,
+            )
+
+        return balance
+
+    def _apply_balance(self):
+        """扣抵：把這張請假單的時數記入對應餘額（建立/編修共用）。"""
+        balance = self._find_balance(create_if_missing=True)
+        if balance:
+            balance.used_hours += self.total_hours
+            balance.save(update_fields=['used_hours'])
+
+    def _rollback_balance(self):
+        """退回：把這張請假單已扣的時數退回對應餘額（取消/駁回/編修共用）。"""
+        balance = self._find_balance()
         if balance:
             balance.used_hours -= self.total_hours
             if balance.used_hours < 0:

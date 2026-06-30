@@ -154,10 +154,18 @@ class LeaveRequestForm(forms.ModelForm):
                 ).first()
 
             if balance:
-                if balance.remaining_hours < total_hours:
+                available = balance.remaining_hours
+                # 編輯既有假單時，這張單原本已扣抵的時數仍記在 used_hours 裡，
+                # 若扣在「同一筆餘額」上，要先加回來再驗證，否則改小時數會被自己舊額度誤擋
+                if self.instance.pk and self.instance.status in ('pending', 'approved'):
+                    old_balance = self.instance._find_balance()
+                    if old_balance and old_balance.pk == balance.pk:
+                        available += self.instance.total_hours
+
+                if available < total_hours:
                     self.add_error(
                         'total_hours',
-                        f'餘額不足！{leave_type.name} 剩餘 {balance.remaining_hours} 小時，'
+                        f'餘額不足！{leave_type.name} 剩餘 {available} 小時，'
                         f'您申請了 {total_hours} 小時。'
                     )
             else:
