@@ -23,6 +23,8 @@
 
 | # | 問題 | 完成日 | PR | 備註 |
 |---|------|--------|-----|------|
+| 6c | 加班/代墊款刪除留孤兒核准單、admin 硬刪 | 2026-06-30 | #46 | 通用化「刪除要撤銷進行中核准單」：`workflow.mixins.AbortApprovalOnDeleteMixin`（前端）+ admin `SoftDeleteApprovalAdminMixin`，套到加班、代墊款。加班無餘額累計欄位（加班費薪資單即時加總）故無編輯重複扣問題。日後新增有核准流程的單據，刪除路徑照套這兩個 mixin |
+| 6b | 請假單編輯重複扣餘額/誤擋 | 2026-06-30 | #45 | 編輯已存檔假單：原 `form.save()` 不調餘額（8h改4h仍扣8h），且 clean 把自己舊扣抵也算進去誤擋「餘額不足」。改重算：UpdateView 退舊扣抵→存檔→套新；clean 把本單原扣抵加回再驗。新增 `_find_balance()`/`_apply_balance()` 共用 |
 | 6 | 請假/員工刪除的資料一致性漏洞 | 2026-06-30 | #44 | 一筆假單 admin 硬刪查不到 → 順藤摸出整組漏洞：admin 刪假單/員工皆改軟刪（員工硬刪原會 CASCADE 連帶清掉假單/出勤/餘額）；駁回現在會回沖餘額；取消會收掉孤兒核准單；前端「刪除」改進回收桶(is_deleted)。回沖邏輯抽成 `_rollback_balance()` 共用。新增 `inspect_leave_history` 鑑識 command。張家綾誤扣的 4h 已手動退回 |
 | 3 | 搜尋框中文選字途中觸發，結果跳掉 | 2026-06-30 | #41 | 全站 7 個搜尋框加 IME composition 防護（HTMX `[!event.isComposing]` / Alpine `isComposing` 守衛 + `compositionend`） |
 | 5A | 從 form 回列表會丟失排序/篩選狀態 | 2026-06-30 | — | `ListStateMemoryMixin`（併入 `ListActionMixin`，零改 view 全站生效）：session 記住每個列表的篩選/排序/搜尋/每頁筆數，裸網址（回列表/選單）自動還原，`?reset=1` 清除。page 不記憶避免 404。自行覆寫 get() 未呼叫 super 的 5 個列表未涵蓋（後續再補） |
