@@ -17,6 +17,9 @@ import hmac
 import base64
 import logging
 import requests
+from datetime import datetime, timezone as dt_timezone
+from django.db import transaction
+from django.utils import timezone
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -368,9 +371,13 @@ class LineWebhookView(View):
     """
     接收 Line Platform 的所有 Webhook Events（統一入口）。
 
-    支援指令：
-    - 群組 / 聊天室：「綁定 #統一編號」→ 寫入 BookkeepingClient.room_id
-    - 個人訊息：「綁定」       → 引導 LIFF 綁定流程 (Route A，待實作)
+    記錄（A 段）：
+    - message（只記文字）/ join / follow 事件寫入 LineEventLog，作為知識庫素材與提問歷史。
+
+    支援指令 / 自動回覆：
+    - 群組 / 聊天室：「綁定 #統一編號」→ 寫入 Customer.room_id
+    - 個人加好友（follow）：自動歡迎 + 引導 LIFF 綁定
+    - 個人訊息：「綁定」→ 引導 LIFF 綁定流程 (Route A)
     - 個人訊息：「打卡 / 上班 / 下班」→ 呼叫 HR 打卡模組
     """
 
@@ -397,7 +404,28 @@ class LineWebhookView(View):
             return HttpResponse(status=400)
 
         for event in data.get('events', []):
-            if event.get('type') != 'message':
+            etype = event.get('type')
+
+            # ── A 段：記錄 inbound 事件（message 只記文字 / join / follow）──
+            if etype in ('message', 'join', 'follow'):
+                try:
+                    with transaction.atomic():   # savepoint：記錄失敗不污染外層交易、不影響打卡/綁定
+                        self._log_event(event)
+                except Exception:
+                    logger.exception('LineEventLog 寫入失敗')
+
+            # ── follow：自動歡迎 + 引導 LIFF 綁定 ──
+            if etype == 'follow':
+                reply_token = event.get('replyToken', '')
+                if reply_token:
+                    self._reply(reply_token, [{
+                        'type': 'text',
+                        'text': self._binding_guide_text(welcome=True),
+                    }])
+                continue
+
+            # ── 既有指令處理：只針對文字訊息 ──
+            if etype != 'message':
                 continue
             if event.get('message', {}).get('type') != 'text':
                 continue
@@ -424,16 +452,9 @@ class LineWebhookView(View):
             # 路線 A：引導 LIFF 綁定
             if text == '綁定':
                 if reply_token:
-                    liff_id = _get_system_param('LINE_LIFF_ID')
-                    if liff_id:
-                        liff_url = f"https://liff.line.me/{liff_id}"
-                        text_msg = f"請點選以下連結，完成帳號綁定：\n{liff_url}"
-                    else:
-                        text_msg = "系統尚未設定 LIFF ID，無法進行綁定作業。"
-                    
                     self._reply(reply_token, [{
                         'type': 'text',
-                        'text': text_msg,
+                        'text': self._binding_guide_text(),
                     }])
                 continue
 
@@ -454,6 +475,74 @@ class LineWebhookView(View):
                         }])
 
         return HttpResponse(status=200)
+
+    def _binding_guide_text(self, welcome: bool = False) -> str:
+        """個人綁定引導文案（follow 事件與「綁定」指令共用）。"""
+        liff_id = _get_system_param('LINE_LIFF_ID')
+        if not liff_id:
+            return "系統尚未設定 LIFF ID，無法進行綁定作業。"
+        liff_url = f"https://liff.line.me/{liff_id}"
+        prefix = "感謝您加入好友！\n" if welcome else ""
+        return f"{prefix}請點選以下連結，完成帳號綁定：\n{liff_url}"
+
+    def _log_event(self, event: dict):
+        """記錄一筆 inbound 事件到 LineEventLog（append-only）。
+
+        觸發時機：webhook 收到 message / join / follow 事件。
+        副作用：新增一筆 LineEventLog（靠 webhook_event_id 冪等，重送不重複）。
+        規則：
+        - message 只記文字（text）；非文字（圖片/檔案/貼圖…）直接略過、不建 log。
+        - 對應客戶：群組/聊天室用 room_id 比對 Customer.room_id，個人用 user_id 比對 line_id。
+        """
+        from modules.basic_data.models import Customer
+        from .models import LineEventLog
+
+        webhook_event_id = event.get('webhookEventId', '')
+        if not webhook_event_id:
+            return  # 沒有去重鍵就不記，避免空字串互撞
+
+        etype = event.get('type', '')
+        source = event.get('source', {})
+        source_type = source.get('type', '')
+        room_id = source.get('groupId') or source.get('roomId') or ''
+        sender_user_id = source.get('userId', '')
+
+        message_type = text = line_message_id = ''
+        if etype == 'message':
+            msg = event.get('message', {})
+            message_type = msg.get('type', '')
+            # A 段只收文字；非文字訊息直接略過、不建 log
+            if message_type != 'text':
+                return
+            line_message_id = msg.get('id', '')
+            text = msg.get('text', '')
+
+        ts = event.get('timestamp')  # 毫秒 epoch
+        sent_at = (
+            datetime.fromtimestamp(ts / 1000, tz=dt_timezone.utc)
+            if ts else timezone.now()
+        )
+
+        customer = None
+        if source_type in ('group', 'room') and room_id:
+            customer = Customer.objects.filter(room_id=room_id).first()
+        elif sender_user_id:
+            customer = Customer.objects.filter(line_id=sender_user_id).first()
+
+        LineEventLog.objects.get_or_create(
+            webhook_event_id=webhook_event_id,
+            defaults={
+                'event_type': etype,
+                'sent_at': sent_at,
+                'source_type': source_type,
+                'room_id': room_id,
+                'sender_user_id': sender_user_id,
+                'message_type': message_type,
+                'text': text,
+                'line_message_id': line_message_id,
+                'customer': customer,
+            },
+        )
 
     def _bind_room(self, tax_id: str, room_id: str) -> dict:
         """

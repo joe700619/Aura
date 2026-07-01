@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import EmailTemplate, EmailLog, LineMessageTemplate, LineMessageLog
+from .models import EmailTemplate, EmailLog, LineMessageTemplate, LineMessageLog, LineEventLog
 
 @admin.register(EmailTemplate)
 class EmailTemplateAdmin(admin.ModelAdmin):
@@ -26,3 +26,13 @@ class LineMessageLogAdmin(admin.ModelAdmin):
     list_filter = ('status', 'sent_at')
     readonly_fields = ('created_at', 'sent_at', 'error_message')
     search_fields = ('recipient_line_id',)
+
+
+@admin.register(LineEventLog)
+class LineEventLogAdmin(admin.ModelAdmin):
+    list_display = ('sent_at', 'event_type', 'source_type', 'customer',
+                    'message_type', 'text', 'room_id', 'sender_user_id')
+    list_filter = ('event_type', 'source_type', 'message_type', 'sent_at')
+    search_fields = ('text', 'room_id', 'sender_user_id', 'line_message_id')
+    readonly_fields = [f.name for f in LineEventLog._meta.fields]  # 全唯讀，log 不該手改
+    date_hierarchy = 'sent_at'

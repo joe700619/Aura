@@ -110,3 +110,52 @@ class LineMessageLog(models.Model):
         verbose_name = _("Line Log")
         verbose_name_plural = _("Line Logs")
         ordering = ['-created_at']
+
+
+class LineEventLog(models.Model):
+    """LINE inbound 事件紀錄（append-only）。
+
+    收 message（只記文字 text）/ join / follow 三類事件，作為知識庫萃取素材、
+    提問歷史與 userID·roomID 撈取來源。
+
+    刻意不繼承 BaseModel：log 永不修改，不需要 HistoricalRecords / is_deleted，
+    避免每筆寫入被歷史表翻倍。去重靠 webhook_event_id（LINE 重送時不變）。
+    """
+    EVENT_TYPES = (
+        ('message', 'Message'),
+        ('join', 'Join'),
+        ('follow', 'Follow'),
+    )
+
+    webhook_event_id = models.CharField(_("事件 ID"), max_length=64, unique=True)
+    event_type = models.CharField(_("事件類型"), max_length=20, choices=EVENT_TYPES)
+    sent_at = models.DateTimeField(_("發生時間"), db_index=True)
+
+    source_type = models.CharField(_("來源類型"), max_length=10)  # user / group / room
+    room_id = models.CharField(_("RoomID"), max_length=64, blank=True, db_index=True)
+    sender_user_id = models.CharField(_("發話者 UserID"), max_length=64, blank=True, db_index=True)
+
+    # 目前只寫 'text'（非文字不記錄）；join/follow 空。欄位保留供未來擴建
+    message_type = models.CharField(_("訊息類型"), max_length=20, blank=True)
+    text = models.TextField(_("文字內容"), blank=True)
+    # text 訊息填；保留供未來非文字擴建
+    line_message_id = models.CharField(_("訊息 ID"), max_length=64, blank=True)
+
+    customer = models.ForeignKey(
+        'basic_data.Customer', on_delete=models.SET_NULL,
+        null=True, blank=True, db_index=True, verbose_name=_("對應客戶"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("LINE 事件紀錄")
+        verbose_name_plural = _("LINE 事件紀錄")
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['room_id', 'sent_at']),
+            models.Index(fields=['sender_user_id', 'sent_at']),
+        ]
+
+    def __str__(self):
+        who = self.room_id or self.sender_user_id or '?'
+        return f"[{self.event_type}] {who} @ {self.sent_at:%Y-%m-%d %H:%M}"
