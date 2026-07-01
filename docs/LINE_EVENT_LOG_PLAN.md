@@ -1,6 +1,6 @@
 # A 段實作文件：LINE 對話紀錄收進 ERP（LineEventLog）
 
-> 狀態：**待審核，未動工**
+> 狀態：**已實作（本機驗證通過，待部署 + 切換）**
 > 目標：把官方 LINE 帳號的 inbound 事件（客戶提問 + 加入事件）從 Google Apps Script + Sheet 改收進 ERP，作為知識庫 B 段萃取的素材池，並順帶提供客戶頁的提問歷史 / userID·roomID 撈取。
 
 ---
@@ -8,14 +8,15 @@
 ## 1. 範圍
 
 **做：**
-- 收 **inbound** 事件：`message`（客戶訊息）、`join`（bot 被拉進群）、`follow`（個人加好友）
-- 文字訊息存全文；非文字（圖片/檔案/貼圖）只存 metadata（type + message id）
+- 收 **inbound** 事件：`message`（**只記文字 text**）、`join`（bot 被拉進群）、`follow`（個人加好友）
+- 文字訊息存全文
 - 對得到客戶就連 FK，對不到存 null（可回填）
 - admin 列表可瀏覽，取代 Apps Script 的「確認有收到」用途
 
 **不做（明確排除）：**
+- **不記錄非文字訊息**（圖片/檔案/貼圖/位置…）—— 連 metadata 都不存，之後要擴建再說
+- 不下載圖片/檔案本體（LINE 過期即無法回補，見 §8）
 - 不收 outbound（你方回覆收不到，已確認；答案改由 B 段會計師補）
-- 不下載圖片/檔案本體（只留 id，未來要再議）
 - 不抓 displayName / 大頭貼（B 段萃取用不到，且會增加 profile API 呼叫）
 - 不碰 B 段萃取、bot
 
@@ -60,9 +61,9 @@ class LineEventLog(models.Model):
     room_id = models.CharField(max_length=64, blank=True, db_index=True, verbose_name='RoomID')
     sender_user_id = models.CharField(max_length=64, blank=True, db_index=True, verbose_name='發話者 UserID')
 
-    message_type = models.CharField(max_length=20, blank=True, verbose_name='訊息類型')  # text/image/...；join/follow 空
+    message_type = models.CharField(max_length=20, blank=True, verbose_name='訊息類型')  # 目前只寫 'text'；join/follow 空。欄位保留供未來擴建
     text = models.TextField(blank=True, verbose_name='文字內容')
-    line_message_id = models.CharField(max_length=64, blank=True, verbose_name='訊息 ID')  # 只有 message 才填
+    line_message_id = models.CharField(max_length=64, blank=True, verbose_name='訊息 ID')  # text 訊息填；保留供未來非文字擴建
 
     customer = models.ForeignKey(
         'basic_data.Customer', on_delete=models.SET_NULL,
@@ -85,6 +86,8 @@ class LineEventLog(models.Model):
 ```
 
 > 註：Customer.line_id / room_id 為 max_length=50，這裡用 64 足以容納並留餘裕（LINE ID 實際約 33 字元）。
+
+> 註：A 段只寫「文字訊息 + join/follow 事件」。`message_type` / `line_message_id` 欄位保留但目前僅文字會用到——保留空欄位成本為零，未來要擴建收非文字時只改 `_log_event` 寫入邏輯、免 migration。
 
 **Migration**：`python manage.py makemigrations notifications` 後 commit。純新增表，無資料遷移、無對既有表的相依風險。
 
@@ -157,9 +160,11 @@ def _log_event(self, event):
     if event.get('type') == 'message':
         msg = event.get('message', {})
         message_type = msg.get('type', '')
+        # A 段只收文字；非文字訊息（圖片/檔案/貼圖…）直接略過、不建 log
+        if message_type != 'text':
+            return
         line_message_id = msg.get('id', '')
-        if message_type == 'text':
-            text = msg.get('text', '')
+        text = msg.get('text', '')
 
     # 對應客戶：群組/聊天室用 room_id，個人用 user_id
     from modules.basic_data.models import Customer
@@ -228,5 +233,5 @@ class LineEventLogAdmin(admin.ModelAdmin):
 ## 8. 後續（不在本段）
 
 - B 段：批次 LLM 從 `LineEventLog.text` 萃取候選 Q&A → KnowledgeEntry(is_verified=False) → 會計師審核補答案。
-- 圖片/檔案本體下載（留 `line_message_id` 可回頭撈）。
-- follow 事件可接「自動歡迎 + 引導綁定」回覆（目前只記錄、不回覆）。
+- 圖片/檔案本體保存：**LINE 只在收到後短時間內保留本體，過期即無法再下載，無法事後回補**。若未來要保存，唯一做法是「收到當下就背景下載存 R2」（下載 + 上傳會拖垮 webhook，須走背景，不可同步）。屆時要一併補上「記錄非文字訊息」這段（A 段目前完全不記非文字）。
+- ~~follow 事件可接「自動歡迎 + 引導綁定」回覆~~ → **已納入本段**：follow 時自動回覆歡迎 + LIFF 綁定連結（與「綁定」指令共用文案）。
