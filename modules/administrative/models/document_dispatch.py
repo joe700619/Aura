@@ -5,14 +5,13 @@ from core.models import BaseModel
 class DocumentDispatch(BaseModel):
     DISPATCH_METHOD_CHOICES = [
         ('郵局', '郵局'),
-        ('掛號', '掛號'),
         ('快遞', '快遞'),
         ('親送', '親送'),
         ('其他', '其他'),
     ]
 
     date = models.DateField(default=timezone.now, verbose_name="發文日期")
-    dispatch_method = models.CharField(max_length=20, choices=DISPATCH_METHOD_CHOICES, default='掛號', verbose_name="發信方式")
+    dispatch_method = models.CharField(max_length=20, choices=DISPATCH_METHOD_CHOICES, default='郵局', verbose_name="發信方式")
     transferred_advance_payment = models.ForeignKey(
         'administrative.AdvancePayment',
         null=True, blank=True,
@@ -37,8 +36,7 @@ class DocumentDispatchItem(BaseModel):
     customer = models.ForeignKey('basic_data.Customer', on_delete=models.CASCADE, related_name='dispatches', verbose_name="客戶名稱")
     tax_id = models.CharField(max_length=20, blank=True, verbose_name="統一編號")
     address = models.CharField(max_length=255, blank=True, verbose_name="寄送地址")
-    contact_person = models.CharField(max_length=100, blank=True, verbose_name="聯絡人")
-    recipient = models.CharField(max_length=100, blank=True, verbose_name="收件人")
+    contact_person = models.CharField(max_length=100, blank=True, verbose_name="收件人")
     custom_message = models.CharField(max_length=255, blank=True, verbose_name="自訂訊息")
     is_notified = models.BooleanField(default=False, verbose_name="通知客戶")
 

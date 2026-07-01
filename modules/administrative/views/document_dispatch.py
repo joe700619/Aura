@@ -43,7 +43,7 @@ class DocumentDispatchItemListView(ListActionMixin, SearchMixin, BusinessRequire
     template_name = 'administrative/document_dispatch/item_list.html'
     context_object_name = 'items'
     paginate_by = 25
-    search_fields = ['customer__name', 'address', 'contact_person', 'tax_id', 'recipient']
+    search_fields = ['customer__name', 'address', 'contact_person', 'tax_id']
 
     def get_queryset(self):
         return super().get_queryset().select_related('dispatch', 'customer').order_by('-dispatch__date', '-created_at')

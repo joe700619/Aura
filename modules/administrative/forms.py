@@ -124,7 +124,7 @@ class DocumentDispatchForm(forms.ModelForm):
 DocumentDispatchItemFormSet = inlineformset_factory(
     DocumentDispatch,
     DocumentDispatchItem,
-    fields=['is_absorbed_by_customer', 'postage', 'customer', 'tax_id', 'address', 'contact_person', 'recipient', 'custom_message', 'is_notified'],
+    fields=['is_absorbed_by_customer', 'postage', 'customer', 'tax_id', 'address', 'contact_person', 'custom_message', 'is_notified'],
     extra=1,
     can_delete=True,
     widgets={
@@ -132,9 +132,8 @@ DocumentDispatchItemFormSet = inlineformset_factory(
         'postage': forms.NumberInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-right font-mono w-24'}),
         'customer': ModalSelectWidget(search_url='/basic-data/api/customers/search/', label_model=Customer),
         'tax_id': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm w-32'}),
-        'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm w-64'}),
-        'contact_person': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm w-24'}),
-        'recipient': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm w-24'}),
+        'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm'}),
+        'contact_person': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm'}),
         'custom_message': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md text-sm'}),
         'is_notified': forms.CheckboxInput(attrs={'class': 'h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500'}),
     }
