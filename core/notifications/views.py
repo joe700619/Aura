@@ -68,7 +68,10 @@ class SendEmailView(LoginRequiredMixin, View):
 
         # Build Context (Reuse DocumentService's logic)
         context = DocumentService._build_context(obj)
-        
+
+        # 若為應收帳款，補上 payment_url（與 SendLineView 一致）
+        context['payment_url'] = _generate_receivable_payment_url(request, obj)
+
         # recipient resolution
         # Try to find an email field
         recipient = getattr(obj, 'email', None)
