@@ -9,11 +9,15 @@ Line 打卡服務
 """
 
 import logging
-from datetime import date, time
+from datetime import date, time, datetime, timedelta
 from django.utils import timezone
 from ..models import Employee, AttendanceRecord
 
 logger = logging.getLogger(__name__)
+
+# 防呆冷卻時間（分鐘）：距離上一次打卡太近的操作視為誤按/重複，
+# 不寫入下班卡，避免「打完上班馬上又按 → 被判成下班 → 真下班打不進去」。
+CLOCK_COOLDOWN_MINUTES = 10
 
 
 class LineClockResult:
@@ -81,6 +85,23 @@ def process_line_clock(line_user_id: str) -> LineClockResult:
         )
 
     elif record.clock_in and not record.clock_out:
+        # 冷卻防呆：距離上班打卡太近 → 視為誤按/重複，不寫入下班卡。
+        elapsed = datetime.combine(today, now) - datetime.combine(today, record.clock_in)
+        if elapsed < timedelta(minutes=CLOCK_COOLDOWN_MINUTES):
+            clock_in_str = record.clock_in.strftime("%H:%M")
+            logger.info(
+                f"Line clock: 冷卻期內重複打卡忽略, {employee.name}, "
+                f"clock_in={clock_in_str}, now={now.strftime('%H:%M')}"
+            )
+            return LineClockResult(
+                success=False,
+                message=(
+                    f"⚠️ {employee.name}，您剛剛已完成上班打卡（{clock_in_str}）。\n"
+                    f"若要打下班卡，請於 {CLOCK_COOLDOWN_MINUTES} 分鐘後再操作。"
+                ),
+                employee_name=employee.name,
+            )
+
         # 已有上班紀錄、還沒下班 → 下班打卡
         record.clock_out = now
         record.save(update_fields=['clock_out'])
