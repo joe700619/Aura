@@ -9,6 +9,7 @@ import json
 from core.mixins import BusinessRequiredMixin, ModelPermissionMixin, ListActionMixin, SearchMixin, SoftDeleteMixin, FilterMixin
 from ..models import Voucher, Account, VoucherImage
 from ..forms import VoucherForm, VoucherDetailFormSet
+from ..services import next_voucher_no
 
 class VoucherListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ModelPermissionMixin, ListView):
     model = Voucher
@@ -57,11 +58,12 @@ class VoucherCreateView(BusinessRequiredMixin, ModelPermissionMixin, CreateView)
         context = self.get_context_data()
         details = context['details']
         
-        # Auto-generate voucher number if empty
+        # Auto-generate voucher number if empty. 走共用 next_voucher_no（單一真相）：
+        # 用「當日最大序號 +1」而非 count()+1，避免序號缺口/日期不一致撞 unique → 存檔 500。
+        # 日期一律以傳票本身的 date 為準（原本用 timezone.now() 與 date 欄位不一致亦會撞號）。
         if not form.cleaned_data.get('voucher_no'):
-            today = timezone.now().strftime('%Y%m%d')
-            count = Voucher.objects.filter(date=timezone.now().date()).count() + 1
-            form.instance.voucher_no = f'VOU-{today}-{count:03d}'
+            voucher_date = form.cleaned_data.get('date') or timezone.now().date()
+            form.instance.voucher_no = next_voucher_no(voucher_date)
 
         if details.is_valid():
             # Check balance

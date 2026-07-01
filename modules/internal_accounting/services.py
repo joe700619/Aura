@@ -15,6 +15,24 @@ def get_account_aux_types(codes):
     return dict(Account.objects.filter(code__in=codes).values_list('code', 'auxiliary_type'))
 
 
+def next_voucher_no(voucher_date):
+    """
+    產生指定日期的下一個傳票編號（VOU-YYYYMMDD-NNN）。所有傳票產號的單一真相。
+
+    用「當日既有 voucher_no 的最大序號 +1」，而非 count()+1：
+    count()+1 在序號有缺口（某張被硬刪過）或計數基準與嵌入日期不一致時，
+    會算出已存在的號碼而撞 unique constraint。正常無缺口時兩者結果相同。
+    """
+    date_str = voucher_date.strftime('%Y%m%d')
+    last_no = (Voucher.objects
+               .filter(voucher_no__startswith=f'VOU-{date_str}-')
+               .order_by('-voucher_no')
+               .values_list('voucher_no', flat=True)
+               .first())
+    seq = (int(last_no.rsplit('-', 1)[-1]) + 1) if last_no else 1
+    return f'VOU-{date_str}-{seq:03d}'
+
+
 class ReceivableTransferService:
     @staticmethod
     @transaction.atomic
@@ -173,9 +191,7 @@ class ReceivableTransferService:
 
         # Create the Voucher
         today = timezone.now().date()
-        today_str = today.strftime('%Y%m%d')
-        count = Voucher.objects.filter(date=today).count() + 1
-        voucher_no = f'VOU-{today_str}-{count:03d}'
+        voucher_no = next_voucher_no(today)
 
         voucher = Voucher.objects.create(
             date=today,
@@ -297,9 +313,7 @@ class ReceivableTransferService:
 
         # Create the Voucher
         voucher_date = bill.bill_date or timezone.now().date()
-        date_str = voucher_date.strftime('%Y%m%d')
-        count = Voucher.objects.filter(date=voucher_date).count() + 1
-        voucher_no = f'VOU-{date_str}-{count:03d}'
+        voucher_no = next_voucher_no(voucher_date)
 
         voucher = Voucher.objects.create(
             date=voucher_date,
@@ -384,17 +398,7 @@ class ReceivableTransferService:
         company_vat = receivable.unified_business_no or ''
 
         voucher_date = voucher_date or timezone.now().date()
-        date_str = voucher_date.strftime('%Y%m%d')
-        # 用「當日既有 voucher_no 的最大序號 +1」，而非 count()+1；
-        # count()+1 在序號有缺口（例如某張被刪過）時會算出已存在的號碼而撞號，
-        # 大量迴圈建立時尤其致命。
-        last_no = (Voucher.objects
-                   .filter(voucher_no__startswith=f'VOU-{date_str}-')
-                   .order_by('-voucher_no')
-                   .values_list('voucher_no', flat=True)
-                   .first())
-        seq = (int(last_no.rsplit('-', 1)[-1]) + 1) if last_no else 1
-        voucher_no = f'VOU-{date_str}-{seq:03d}'
+        voucher_no = next_voucher_no(voucher_date)
 
         voucher = Voucher.objects.create(
             date=voucher_date,
@@ -469,9 +473,7 @@ class PreCollectionService:
 
         # 建立傳票
         voucher_date = pre_collection.date
-        date_str = voucher_date.strftime('%Y%m%d')
-        count = Voucher.objects.filter(date=voucher_date).count() + 1
-        voucher_no = f'VOU-{date_str}-{count:03d}'
+        voucher_no = next_voucher_no(voucher_date)
 
         voucher = Voucher.objects.create(
             date=voucher_date,
@@ -599,9 +601,7 @@ class AccountingService:
         entries.append({'type': 'credit', 'account': accounts['1123'], 'amount': total_debits, 'remark': '應收帳款沖帳'})
 
         voucher_date = collection.date
-        date_str = voucher_date.strftime('%Y%m%d')
-        count = Voucher.objects.filter(date=voucher_date).count() + 1
-        voucher_no = f'VOU-{date_str}-{count:03d}'
+        voucher_no = next_voucher_no(voucher_date)
 
         voucher = Voucher.objects.create(
             date=voucher_date,
@@ -712,8 +712,7 @@ class AccountingService:
                 'remark': f'{year}年度本期淨損結轉'
             })
 
-        count = Voucher.objects.filter(date=end_date).count() + 1
-        voucher_no = f'VOU-{end_date.strftime("%Y%m%d")}-{count:03d}'
+        voucher_no = next_voucher_no(end_date)
 
         voucher = Voucher.objects.create(
             date=end_date,
@@ -789,8 +788,7 @@ class AccountingService:
         if not entries:
             return None, "無符合條件的固定資產需要提列折舊"
 
-        count = Voucher.objects.filter(date=end_date).count() + 1
-        voucher_no = f'VOU-{end_date.strftime("%Y%m%d")}-{count:03d}'
+        voucher_no = next_voucher_no(end_date)
         
         voucher = Voucher.objects.create(
             date=end_date,

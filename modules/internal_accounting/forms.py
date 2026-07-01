@@ -58,6 +58,19 @@ class VoucherDetailForm(forms.ModelForm):
             'DELETE': forms.CheckboxInput(attrs={'class': 'delete-checkbox hidden'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 複式分錄每列通常只填借方或貸方其中一邊，另一邊留空。
+        # model 上 debit/credit 皆 default=0，留空即視為 0，因此表單不應強制必填。
+        self.fields['debit'].required = False
+        self.fields['credit'].required = False
+
+    def clean_debit(self):
+        return self.cleaned_data.get('debit') or 0
+
+    def clean_credit(self):
+        return self.cleaned_data.get('credit') or 0
+
 VoucherDetailFormSet = inlineformset_factory(
     Voucher, 
     VoucherDetail, 
