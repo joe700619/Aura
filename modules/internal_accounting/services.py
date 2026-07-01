@@ -326,6 +326,100 @@ class ReceivableTransferService:
 
         return voucher
 
+    # 收據號碼前綴 → 服務費收入科目
+    RECEIVABLE_INCOME_MAP = {
+        'AU': '400001',  # 簽證收入
+        'BI': '400002',  # 記帳收入
+        'RO': '400003',  # 登記收入
+    }
+
+    @staticmethod
+    @transaction.atomic
+    def generate_voucher_for_receivable(receivable, user, voucher_date=None):
+        """
+        為「匯入的」應收帳款產生立帳傳票草稿（raigc 期初匯入專用）。
+
+        分錄（方案 B：代墊走股東往來，因代墊付款發生於 Aura 建帳前、未曾入帳）：
+            借 1123 應收帳款  = 服務費 + 代墊款（= 應收總額）
+            貸 收入科目        = 服務費合計（依 quotation_data 前綴：1→簽證 / 2→記帳 / 3→登記）
+            貸 2192 股東往來   = 代墊款合計（9 開頭）
+
+        金額來源為 receivable.quotation_data，故傳票可由應收帳款本身重現。
+        觸發時機：import_receivables_from_raigc command 逐筆呼叫。
+        副作用：建立一張 DRAFT 傳票與其明細；不修改應收帳款。
+        """
+        quotation = receivable.quotation_data or []
+
+        prefix_account_map = {
+            '1': '400001',  # 簽證收入
+            '2': '400002',  # 記帳收入
+            '3': '400003',  # 登記收入
+            '9': '2192',    # 股東往來（代墊）
+        }
+
+        # 依科目彙總貸方金額
+        credit_by_code = {}
+        for item in quotation:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get('service_name', '')).strip()
+            amount = int(item.get('amount') or 0)
+            if amount <= 0 or not name:
+                continue
+            code = prefix_account_map.get(name[:1])
+            if not code:
+                continue
+            credit_by_code[code] = credit_by_code.get(code, 0) + amount
+
+        total = sum(credit_by_code.values())
+        if total <= 0:
+            return None
+
+        needed_codes = set(credit_by_code) | {'1123'}
+        accounts = {code: Account.objects.filter(code=code).first() for code in needed_codes}
+        missing = [c for c, a in accounts.items() if not a]
+        if missing:
+            raise ValueError(f"系統缺少必要會計科目：{', '.join(sorted(missing))}，請先至會計科目管理新增。")
+
+        company_vat = receivable.unified_business_no or ''
+
+        voucher_date = voucher_date or timezone.now().date()
+        date_str = voucher_date.strftime('%Y%m%d')
+        count = Voucher.objects.filter(date=voucher_date).count() + 1
+        voucher_no = f'VOU-{date_str}-{count:03d}'
+
+        voucher = Voucher.objects.create(
+            date=voucher_date,
+            voucher_no=voucher_no,
+            description=f"應收帳款期初立帳（raigc 匯入）：{receivable.company_name}（{receivable.receivable_no}）",
+            status=Voucher.Status.DRAFT,
+            source=Voucher.Source.SYSTEM,
+            created_by=user,
+        )
+
+        # 借：應收帳款
+        ar_account = accounts['1123']
+        VoucherDetail.objects.create(
+            voucher=voucher,
+            account=ar_account,
+            debit=total, credit=0,
+            company_id=company_vat if ar_account.auxiliary_type == 'PARTNER' else '',
+            remark='未收款合計',
+        )
+        # 貸：各收入科目 / 股東往來
+        remark_map = {'400001': '簽證服務費', '400002': '記帳服務費', '400003': '登記服務費', '2192': '代墊款（股東往來）'}
+        for code, amount in credit_by_code.items():
+            acc = accounts[code]
+            VoucherDetail.objects.create(
+                voucher=voucher,
+                account=acc,
+                debit=0, credit=amount,
+                company_id=company_vat if acc.auxiliary_type == 'PARTNER' else '',
+                remark=remark_map.get(code, ''),
+            )
+
+        return voucher
+
 
 class PreCollectionService:
     @staticmethod
