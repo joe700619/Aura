@@ -385,8 +385,16 @@ class ReceivableTransferService:
 
         voucher_date = voucher_date or timezone.now().date()
         date_str = voucher_date.strftime('%Y%m%d')
-        count = Voucher.objects.filter(date=voucher_date).count() + 1
-        voucher_no = f'VOU-{date_str}-{count:03d}'
+        # 用「當日既有 voucher_no 的最大序號 +1」，而非 count()+1；
+        # count()+1 在序號有缺口（例如某張被刪過）時會算出已存在的號碼而撞號，
+        # 大量迴圈建立時尤其致命。
+        last_no = (Voucher.objects
+                   .filter(voucher_no__startswith=f'VOU-{date_str}-')
+                   .order_by('-voucher_no')
+                   .values_list('voucher_no', flat=True)
+                   .first())
+        seq = (int(last_no.rsplit('-', 1)[-1]) + 1) if last_no else 1
+        voucher_no = f'VOU-{date_str}-{seq:03d}'
 
         voucher = Voucher.objects.create(
             date=voucher_date,

@@ -192,6 +192,7 @@ class Command(BaseCommand):
                         quotation_data=quotation,
                     )
 
+                    row_apportions = 0
                     for ap in apportions:
                         emp = self._get_employee(ap['employee_number'], missing_employees)
                         ReceivableFeeApportion.objects.create(
@@ -201,13 +202,15 @@ class Command(BaseCommand):
                             ratio=ap['ratio'],
                             amount=ap['amount'],
                         )
-                        apportion_count += 1
+                        row_apportions += 1
 
                     voucher = ReceivableTransferService.generate_voucher_for_receivable(receivable, user)
-                    if voucher:
-                        voucher_count += 1
 
+                # transaction 成功 commit 後才累計，避免 rollback 的列被算進去
                 created += 1
+                apportion_count += row_apportions
+                if voucher:
+                    voucher_count += 1
             except Exception as e:
                 errors += 1
                 self.stdout.write(self.style.ERROR(f"  [列{idx}] {receivable_no} 匯入失敗：{e}"))
