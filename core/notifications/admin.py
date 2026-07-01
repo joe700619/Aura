@@ -36,3 +36,7 @@ class LineEventLogAdmin(admin.ModelAdmin):
     search_fields = ('text', 'room_id', 'sender_user_id', 'line_message_id')
     readonly_fields = [f.name for f in LineEventLog._meta.fields]  # 全唯讀，log 不該手改
     date_hierarchy = 'sent_at'
+    list_per_page = 50
+    # log 表會一直長大：不跑昂貴的全表 COUNT(*)（分頁照常運作）
+    show_full_result_count = False
+    list_select_related = ('customer',)  # 避免每列查 customer 造成 N+1
