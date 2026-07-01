@@ -199,6 +199,7 @@ class DocumentService:
                 context['outstanding_balance']   = obj.outstanding_balance
                 context['outstanding_balance_fmt'] = f"{int(obj.outstanding_balance):,}"
                 context['status']                = obj.status
+                context['aging']                 = obj.aging
             except Exception:
                 pass
 
