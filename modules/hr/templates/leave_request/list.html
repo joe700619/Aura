@@ -5,9 +5,8 @@
 {% block header_description %}管理員工請假申請{% endblock %}
 
 {% block filters %}
-<form method="get" class="flex flex-wrap items-center gap-3">
-    <input type="text" name="q" value="{{ q }}" placeholder="搜尋員工或假別..."
-        class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600 w-48">
+<form method="get" class="flex items-center gap-2">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
     <select name="status" onchange="this.form.submit()"
         class="px-3 py-1.5 rounded-md text-sm border border-slate-200 bg-white text-slate-600">
         <option value="">全部狀態</option>
@@ -16,16 +15,12 @@
         <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>已駁回</option>
         <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>已取消</option>
     </select>
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors">查詢</button>
-    {% if q or selected_status %}
-    <a href="{% url 'hr:leave_request_list' %}" class="text-sm text-slate-500 hover:text-slate-700">清除</a>
-    {% endif %}
 </form>
 {% endblock %}
 
-{% block extra_pagination_params %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% endblock %}
-{% block extra_pagination_params_num %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% endblock %}
-{% block extra_pagination_params_next %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% endblock %}
+{% block extra_pagination_params %}&status={{ selected_status }}{% endblock %}
+{% block extra_pagination_params_num %}&status={{ selected_status }}{% endblock %}
+{% block extra_pagination_params_next %}&status={{ selected_status }}{% endblock %}
 
 {% block table_headers %}
 <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">員工</th>
