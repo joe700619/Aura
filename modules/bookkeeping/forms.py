@@ -25,7 +25,7 @@ class BookkeepingClientForm(forms.ModelForm):
     class Meta:
         model = BookkeepingClient
         fields = [
-            'customer', 'tax_id', 'tax_registration_no', 'tax_authority_code', 'name', 'line_id', 'room_id',
+            'customer', 'tax_id', 'tax_registration_no', 'tax_authority_code', 'name', 'responsible_name', 'line_id', 'room_id',
             'contact_person', 'phone', 'mobile', 'email',
             'correspondence_address', 'registered_address',
             'acceptance_status', 'billing_status', 'service_type',

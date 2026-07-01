@@ -6,7 +6,7 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = [
-            'tax_id', 'name', 'email', 'phone', 'mobile', 'source', 'line_id', 'room_id',
+            'tax_id', 'name', 'responsible_name', 'email', 'phone', 'mobile', 'source', 'line_id', 'room_id',
             'registered_zip', 'registered_address', 'correspondence_zip', 'correspondence_address',
             'bank_account_last5', 'labor_ins_code', 'health_ins_code', 'contact_person', 'notes'
         ]
