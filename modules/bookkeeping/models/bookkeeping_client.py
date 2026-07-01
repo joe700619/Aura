@@ -89,6 +89,7 @@ class BookkeepingClient(BaseModel):
         help_text=_('城市代號(1碼) + 稅籍單位代碼(4碼)，例如 A0300'),
     )
     name = models.CharField(_('公司名稱'), max_length=100, db_index=True)
+    responsible_name = models.CharField(_('負責人姓名'), max_length=100, blank=True, null=True)
     line_id = models.CharField(_('Line ID'), max_length=50, blank=True, null=True)
     room_id = models.CharField(_('Room ID'), max_length=50, blank=True, null=True)
 

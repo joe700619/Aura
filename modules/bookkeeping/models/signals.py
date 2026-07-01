@@ -48,6 +48,7 @@ def sync_customer_to_bookkeeping_clients(sender, instance, **kwargs):
     instance.bookkeeping_clients.filter(is_deleted=False).update(
         tax_id=instance.tax_id,
         name=instance.name,
+        responsible_name=instance.responsible_name,
         line_id=instance.line_id,
         room_id=instance.room_id,
         contact_person=instance.contact_person,

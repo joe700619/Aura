@@ -42,6 +42,12 @@
     </div>
 
     <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">負責人姓名</label>
+        {{ form.responsible_name }}
+        {{ form.responsible_name.errors }}
+    </div>
+
+    <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Line ID</label>
         {{ form.line_id }}
         {{ form.line_id.errors }}
@@ -138,6 +144,9 @@ function fetchGcisAddress() {
         .then(data => {
             if (data.success) {
                 document.getElementById('id_registered_address').value = data.registered_address;
+                if (data.responsible_name) {
+                    document.getElementById('id_responsible_name').value = data.responsible_name;
+                }
                 msgEl.textContent = '✓ 帶入成功';
                 msgEl.className = 'text-xs text-green-600';
             } else if (data.type === 'no_location') {
