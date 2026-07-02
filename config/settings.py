@@ -286,6 +286,19 @@ if USE_R2:
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',
     }
+    # R2 連線 timeout（2026-07-02 Railway 網路事故後加上）：
+    # boto3 預設 read timeout 60 秒＋自動重試，網路一卡就整個 request 掛住，
+    # 足以觸發 gunicorn WORKER TIMEOUT 拖垮全站。改成快速失敗，讓使用者重試。
+    # 注意：有設 AWS_S3_CLIENT_CONFIG 時 django-storages 不會自己帶
+    # signature_version / addressing_style，必須在這裡一併指定。
+    from botocore.config import Config as BotocoreConfig
+    AWS_S3_CLIENT_CONFIG = BotocoreConfig(
+        signature_version=AWS_S3_SIGNATURE_VERSION,
+        s3={'addressing_style': AWS_S3_ADDRESSING_STYLE},
+        connect_timeout=5,
+        read_timeout=30,
+        retries={'max_attempts': 2, 'mode': 'standard'},
+    )
 
     STORAGES = {
         'default': {

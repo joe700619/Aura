@@ -65,6 +65,7 @@ class ShareholderRegisterSearchApiView(ListView):
                 Q(company_name__icontains=query) |
                 Q(unified_business_no__icontains=query)
             ).order_by('company_name')
+        return ShareholderRegister.objects.none()
 
 class ToggleFilingHistoryStatusApiView(View):
     def post(self, request, pk):
