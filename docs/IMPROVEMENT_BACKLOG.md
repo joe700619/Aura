@@ -18,6 +18,7 @@
 | 1 | 整體 UX 零散問題 | 流程 | — | — | 🔴 | 持續把回報的問題往本清單加，分批處理 |
 | 5B | manager 想用「組員/承辦人姓名」排序 | 列表 UX | 中 | 小 | 🔴 | 點欄位排序底層已存在（SortMixin + list_view.html ↑↓）。只需把目標列表的 `allowed_sort_fields` 補上 `承辦人__name` 類欄位。逐表小調，需確認哪些列表/欄位 |
 | 5C | Ragic 式「每欄 ▼ 篩選下拉」 | 列表 UX | 中 | 大 | 🔴 | 現只有預設整列 tab 篩選（FilterMixin）。manager 真實痛點是「按承辦人篩出他的案子」。**選項1（推薦先做）**：常用列表加「承辦人」下拉篩選（小～中）。**選項2（全面 ▼ 框架）**：共用 mixin 通用化＝浩大，雷多（distinct 效能 / 關聯 N+1 / 多欄組合 / 每 model 設定），等前面穩了再評估。選項3：django-filter/tables2 但與現有 mixin 體系摩擦 |
+| 8 | 通知 sidebar 非全域＋收件人欄位缺漏，需全站排查 | 功能（地雷） | 中 | 中 | 🔴 | 兩個結構性問題（2026-07-02 帳單通知踩到，PR #66 只修帳單三頁）：**(a)** `form_view.html` 只全域內建 `line_sidebar`，`email_sidebar` 靠各頁自行 include——漏掉的頁面按「傳送 Email」毫無反應（不報錯）。列表頁則兩個 sidebar 都要自己 include。**(b)** Email/Line 收件人解析靠 `getattr(obj,'email'/'line_id'/'room_id')`，model 沒這些欄位就要加 proxy property 轉向客戶資料（business_tax、ClientBill 模式），沒加的 model 發 Email 一律「No email address found」。排查方向：①`form_view.html` 直接補全域 `email_sidebar`（要先清掉各頁重複 include 避免雙面板）②盤點有通知範本綁定的 model 是否都有三個收件人屬性 |
 
 ## 已完成
 
