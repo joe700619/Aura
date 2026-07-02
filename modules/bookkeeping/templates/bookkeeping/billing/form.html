@@ -159,7 +159,7 @@
         </button>
         <div x-show="open" x-collapse class="mt-3 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
             <div class="bg-slate-50 px-4 py-2 border-b border-slate-200">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">依代墊類型自動判斷貸方科目（同科目加總後產生一筆）</span>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">服務費依項目名稱字頭、代墊款依類型自動判斷貸方科目（同科目加總後產生一筆）</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm">
@@ -173,9 +173,21 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-50">
                         <tr class="bg-blue-50/30">
-                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費用合計</td>
+                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費：項目 1 開頭（簽證類）</td>
+                            <td class="px-4 py-2 font-mono font-semibold text-slate-800">400001</td>
+                            <td class="px-4 py-2 text-slate-600 font-semibold">簽證收入</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="bg-blue-50/30">
+                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費：項目 2 開頭（記帳類）／無字頭規則</td>
                             <td class="px-4 py-2 font-mono font-semibold text-slate-800">400002</td>
                             <td class="px-4 py-2 text-slate-600 font-semibold">記帳收入</td>
+                            <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
+                        </tr>
+                        <tr class="bg-blue-50/30">
+                            <td class="px-4 py-2 text-slate-700 font-semibold">服務費：項目 3 開頭（登記類，含公司法22-1）</td>
+                            <td class="px-4 py-2 font-mono font-semibold text-slate-800">400003</td>
+                            <td class="px-4 py-2 text-slate-600 font-semibold">登記收入</td>
                             <td class="px-4 py-2"><span class="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">貸</span></td>
                         </tr>
                         <tr class="hover:bg-slate-50">
@@ -224,7 +236,8 @@
                 </table>
             </div>
             <div class="bg-white px-4 py-3 border-t border-slate-100 text-xs text-slate-500 space-y-1 leading-relaxed">
-                <p><span class="font-semibold text-slate-600">相同科目代碼的代墊款</span>會先加總，再產生一筆貸方分錄，避免分錄過於分散。</p>
+                <p><span class="font-semibold text-slate-600">服務費依項目名稱第一個字</span>分收入科目（1→簽證、2→記帳、3→登記），沒有字頭規則的項目歸入 400002 記帳收入。</p>
+                <p><span class="font-semibold text-slate-600">相同科目代碼的服務費與代墊款</span>會先加總，再產生一筆貸方分錄，避免分錄過於分散。</p>
                 <p><span class="font-semibold text-slate-600">借方（1123 應收帳款）</span>固定為服務費用與所有代墊款的總和，確保借貸平衡。</p>
             </div>
         </div>
