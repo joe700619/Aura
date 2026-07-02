@@ -5,6 +5,21 @@ from ..models.progress import Progress
 from ..forms import ProgressForm
 from django.db.models import Q
 
+
+def _save_paper_mandate_uploads(request, progress):
+    """把主表單夾帶的紙本簽回委任書掃描檔歸檔（signed_mandate），並回報訊息。
+
+    create_paper_mandate 會同步把 mandate_return 改為核准（視同已簽回）。
+    """
+    files = request.FILES.getlist('paper_mandate_files')
+    if not files:
+        return
+    from django.contrib import messages
+    from ..services import create_paper_mandate
+    for f in files:
+        create_paper_mandate(progress=progress, file=f, uploaded_by=request.user)
+    messages.success(request, f'已歸檔 {len(files)} 份紙本簽回委任書，委任書簽回狀態已更新為「核准」。')
+
 class ProgressListView(SortMixin, ListActionMixin, BusinessRequiredMixin, ListView):
     model = Progress
     template_name = 'progress/list.html'
@@ -60,6 +75,11 @@ class ProgressCreateView(BusinessRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('registration:progress_edit', kwargs={'pk': self.object.pk})
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        _save_paper_mandate_uploads(self.request, self.object)
+        return response
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '新增登記進度'
@@ -77,7 +97,9 @@ class ProgressUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         from django.contrib import messages
-        
+
+        _save_paper_mandate_uploads(self.request, self.object)
+
         # Check if is_posted just changed from False to True
         if 'is_posted' in form.changed_data and form.cleaned_data['is_posted']:
             try:
@@ -120,7 +142,7 @@ class ProgressUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
 
         from ..models import (
             FilingHistory, CaseAssessment, EquityTransaction, VATEntityChange,
-            DraftConfirmation, RegistrationDocument,
+            DraftConfirmation, RegistrationDocument, RegistrationMandate,
         )
 
         # 稿本確認分頁狀態徽章
@@ -141,6 +163,29 @@ class ProgressUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
         else:
             draft_status = {'label': '未上傳', 'date': None, 'cls': 'bg-slate-100 text-slate-500'}
         context['draft_status'] = draft_status
+
+        # 委任書分頁狀態徽章（電子簽署或紙本簽回擇一成立即算簽回）
+        from ..services import list_paper_mandates
+        paper_mandates = list(list_paper_mandates(self.object))
+        context['paper_mandates'] = paper_mandates
+
+        m_qs = self.object.mandates
+        m_signed = m_qs.filter(status=RegistrationMandate.Status.SIGNED).order_by('-signed_at').first()
+        m_declined = m_qs.filter(status=RegistrationMandate.Status.DECLINED).order_by('-declined_at').first()
+        m_active = m_qs.filter(status=RegistrationMandate.Status.SENT).order_by('-created_at').first()
+        if m_signed:
+            mandate_status = {'label': '已簽署', 'date': m_signed.signed_at, 'cls': 'bg-green-100 text-green-800'}
+        elif paper_mandates:
+            mandate_status = {'label': '已簽回（紙本）', 'date': paper_mandates[-1].created_at, 'cls': 'bg-green-100 text-green-800'}
+        elif m_active and m_active.is_expired:
+            mandate_status = {'label': '連結已過期', 'date': None, 'cls': 'bg-red-100 text-red-700'}
+        elif m_active:
+            mandate_status = {'label': '待客戶簽署', 'date': None, 'cls': 'bg-amber-100 text-amber-800'}
+        elif m_declined:
+            mandate_status = {'label': '客戶婉拒', 'date': m_declined.declined_at, 'cls': 'bg-red-100 text-red-700'}
+        else:
+            mandate_status = {'label': '未發送', 'date': None, 'cls': 'bg-slate-100 text-slate-500'}
+        context['mandate_status'] = mandate_status
 
         # Check if 22-1 is required based on quotation_data
         quotation_data = self.object.quotation_data

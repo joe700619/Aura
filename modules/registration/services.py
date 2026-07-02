@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from io import BytesIO
 
-from .models import RegistrationDocument, BeneficialOwnerDeclaration, DraftConfirmation
+from .models import RegistrationDocument, BeneficialOwnerDeclaration, DraftConfirmation, Progress
 
 
 def create_collected_document(*, doc_type, progress, file,
@@ -325,6 +325,244 @@ def confirm_draft_confirmation(confirmation, *, signature_file, signer_name,
         confirmation.status = DraftConfirmation.Status.CONFIRMED
         confirmation.save()
     return confirmation
+
+
+# ── 公司登記委任書：發送 token 連結給客戶線上閱覽 + 手寫簽名 ──────────────
+# 承辦在委任書工作台按發送 → 用 active 範本 + 進度表資料渲染並凍結快照（含報價明細）→
+# 客戶免登入閱覽 → 簽署/婉拒，service 同步回寫 Progress.mandate_return。
+# 一個 Progress 同時只一筆 active(sent)；重發舊筆自動 voided。
+
+MANDATE_VALID_DAYS = 7
+
+
+def summarize_quotation(quotation_data):
+    """把進度表的報價單資料整理成「明細 + 合計」的快照結構。
+
+    分類規則與報價單前端（components/quotation_table.html）一致：
+    服務項目名稱 8 開頭＝預收款（−）、9 開頭＝代墊款（+）、其餘＝服務費用（+），
+    未收款合計 = 服務費用 + 代墊款 − 預收款。
+    """
+    items = [i for i in quotation_data if isinstance(i, dict)] \
+        if isinstance(quotation_data, list) else []
+
+    def _amount(item):
+        try:
+            return int(item.get('amount') or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    service_fee_total = advance_total = pre_collection_total = 0
+    for item in items:
+        name = (item.get('service_name') or '').strip()
+        amount = _amount(item)
+        if name.startswith('9'):
+            advance_total += amount
+        elif name.startswith('8'):
+            pre_collection_total += amount
+        else:
+            service_fee_total += amount
+
+    return {
+        'items': [
+            {
+                'service_name': (i.get('service_name') or '').strip(),
+                'amount': _amount(i),
+                'remark': (i.get('remark') or '').strip(),
+            }
+            for i in items
+        ],
+        'service_fee_total': service_fee_total,
+        'advance_total': advance_total,
+        'pre_collection_total': pre_collection_total,
+        'uncollected_total': service_fee_total + advance_total - pre_collection_total,
+    }
+
+
+def render_mandate_html(template, progress, quotation_summary):
+    """用範本版本 + 進度表資料渲染委任書條款本文。
+
+    工作台預覽與發送凍結都走這支，確保所見即所簽。
+    """
+    from django.template import Context, Template
+    from django.utils import timezone
+
+    case_type_labels = dict(Progress.CASE_TYPE_CHOICES)
+    case_types = '、'.join(
+        case_type_labels.get(ct, ct) for ct in (progress.case_type or [])
+    )
+    tpl = Template(template.body_html)
+    ctx = Context({
+        'company_name': progress.company_name,
+        'unified_business_no': progress.unified_business_no or '',
+        'main_contact': progress.main_contact or '',
+        'acceptance_date': progress.acceptance_date,
+        'case_types': case_types,
+        'service_fee_total': quotation_summary['service_fee_total'],
+        'advance_total': quotation_summary['advance_total'],
+        'pre_collection_total': quotation_summary['pre_collection_total'],
+        'uncollected_total': quotation_summary['uncollected_total'],
+        'today': timezone.now().date(),
+    })
+    return tpl.render(ctx)
+
+
+def _void_active_mandates(progress):
+    """把該登記案目前 active(sent) 的委任書轉為 voided（重發時呼叫）。
+
+    已簽署/已婉拒的歷史紀錄不動，保留留痕。
+    """
+    from django.utils import timezone
+    from .models import RegistrationMandate
+    RegistrationMandate.objects.filter(
+        progress=progress, status=RegistrationMandate.Status.SENT,
+    ).update(status=RegistrationMandate.Status.VOIDED, updated_at=timezone.now())
+
+
+def create_registration_mandate(*, progress, recipient_email='', recipient_line_id=''):
+    """建立並寄發一筆登記委任書（status=sent），發送當下凍結內容。
+
+    先作廢該案既有 active 委任書（保證同時只一筆），再建新單：
+    - 用 active 範本 + 進度表資料渲染條款，凍進 rendered_snapshot
+    - 報價單明細與合計凍進 quotation_snapshot
+    - 同步 Progress.mandate_return → 簽核中
+    無 active 範本時 raise ValueError（部署須先跑 init_registration_mandate）。
+
+    回傳建立的 RegistrationMandate。連結到期 = 現在 + 7 天。
+    """
+    from django.utils import timezone
+    from .models import RegistrationMandate, RegistrationMandateTemplate
+
+    template = RegistrationMandateTemplate.get_active()
+    if template is None:
+        raise ValueError('尚無使用中的登記委任書範本，請先於後台建立（或執行 init_registration_mandate）。')
+
+    _void_active_mandates(progress)
+
+    quotation_summary = summarize_quotation(progress.quotation_data)
+    now = timezone.now()
+    mandate = RegistrationMandate.objects.create(
+        progress=progress,
+        status=RegistrationMandate.Status.SENT,
+        template_version=template,
+        rendered_snapshot=render_mandate_html(template, progress, quotation_summary),
+        quotation_snapshot=quotation_summary,
+        sent_at=now,
+        expires_at=now + timezone.timedelta(days=MANDATE_VALID_DAYS),
+        recipient_email=recipient_email or '',
+        recipient_line_id=recipient_line_id or '',
+    )
+    if progress.mandate_return != Progress.MandateReturn.SIGNING:
+        progress.mandate_return = Progress.MandateReturn.SIGNING
+        progress.save(update_fields=['mandate_return', 'updated_at'])
+    return mandate
+
+
+def sign_registration_mandate(mandate, *, signature_file, signer_name,
+                              signer_email='', signer_ip=None):
+    """客戶按「同意委任並簽署」時呼叫：凍結手寫簽名 + 留痕，狀態轉 signed。
+
+    idempotent：已簽署則直接回傳，不重複寫入（防重複送出）。
+    同步 Progress.mandate_return → 核准。
+    """
+    from django.core.files.base import ContentFile
+    from django.db import transaction
+    from django.utils import timezone
+    from .models import RegistrationMandate
+
+    with transaction.atomic():
+        if mandate.status == RegistrationMandate.Status.SIGNED:
+            return mandate
+
+        sig_bytes = signature_file.read() if hasattr(signature_file, 'read') else signature_file
+        mandate.signature_image = ContentFile(sig_bytes, name='signature.png')
+        mandate.signed_at = timezone.now()
+        mandate.signer_name = signer_name or ''
+        mandate.signer_email = signer_email or ''
+        mandate.signer_line_id = mandate.recipient_line_id
+        mandate.signer_ip = signer_ip
+        mandate.status = RegistrationMandate.Status.SIGNED
+        mandate.save()
+
+        progress = mandate.progress
+        progress.mandate_return = Progress.MandateReturn.APPROVED
+        progress.save(update_fields=['mandate_return', 'updated_at'])
+    return mandate
+
+
+def decline_registration_mandate(mandate, *, reason='', signer_ip=None):
+    """客戶按「暫不委任」時呼叫：留痕婉拒原因，狀態轉 declined。
+
+    已簽署/已婉拒則直接回傳不動（防重複送出）。
+    同步 Progress.mandate_return → 拒絕。
+    """
+    from django.db import transaction
+    from django.utils import timezone
+    from .models import RegistrationMandate
+
+    with transaction.atomic():
+        if mandate.status in (RegistrationMandate.Status.SIGNED,
+                              RegistrationMandate.Status.DECLINED):
+            return mandate
+
+        mandate.status = RegistrationMandate.Status.DECLINED
+        mandate.declined_at = timezone.now()
+        mandate.decline_reason = reason or ''
+        mandate.signer_ip = signer_ip
+        mandate.save(update_fields=['status', 'declined_at', 'decline_reason',
+                                    'signer_ip', 'updated_at'])
+
+        progress = mandate.progress
+        progress.mandate_return = Progress.MandateReturn.REJECTED
+        progress.save(update_fields=['mandate_return', 'updated_at'])
+    return mandate
+
+
+def list_paper_mandates(progress):
+    """回傳某登記案的紙本簽回委任書掃描檔清單（未刪除）。"""
+    return RegistrationDocument.objects.filter(
+        progress=progress,
+        doc_type=RegistrationDocument.DocType.SIGNED_MANDATE,
+        is_deleted=False,
+    ).order_by('created_at')
+
+
+def create_paper_mandate(*, progress, file, note='', uploaded_by=None):
+    """承辦上傳一份客戶紙本簽回的委任書掃描檔。
+
+    不走電子簽署的客戶用這條路：掃描檔落入登記資料庫（doc_type=signed_mandate），
+    並同步 Progress.mandate_return → 核准（視同已簽回）。
+    回傳建立的 RegistrationDocument。
+    """
+    doc = RegistrationDocument.objects.create(
+        doc_type=RegistrationDocument.DocType.SIGNED_MANDATE,
+        progress=progress,
+        file=file,
+        owner_name=progress.company_name,
+        owner_id_number=progress.unified_business_no or '',
+        source=RegistrationDocument.Source.STAFF_UPLOAD,
+        uploaded_by_user=uploaded_by,
+        note=note,
+    )
+    if progress.mandate_return != Progress.MandateReturn.APPROVED:
+        progress.mandate_return = Progress.MandateReturn.APPROVED
+        progress.save(update_fields=['mandate_return', 'updated_at'])
+    return doc
+
+
+def remove_paper_mandate(progress, document_id):
+    """承辦移除一份紙本簽回掃描檔（軟刪，傳錯檔時用）。
+
+    刻意不回退 mandate_return：委任狀態由承辦在進度表自行調整，避免誤刪連動。
+    回傳被刪的文件（找不到/非本案則回 None）。
+    """
+    doc = RegistrationDocument.objects.filter(
+        pk=document_id, progress=progress,
+        doc_type=RegistrationDocument.DocType.SIGNED_MANDATE, is_deleted=False,
+    ).first()
+    if doc:
+        doc.is_deleted = True
+        doc.save(update_fields=['is_deleted', 'updated_at'])
+    return doc
 
 
 def get_ubns_with_annual_filing(year):
