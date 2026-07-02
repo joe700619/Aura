@@ -50,7 +50,11 @@ class ContactForm(forms.ModelForm):
         model = Contact
         fields = ['name', 'phone', 'mobile', 'fax', 'email', 'address', 'customer', 'tax_id', 'notes']
         widgets = {
-            'customer': ModalSelectWidget(search_url='/basic-data/api/customers/search/', label_model=Customer),
+            'customer': ModalSelectWidget(
+                search_url='/basic-data/api/customers/search/',
+                label_model=Customer,
+                exclude_autofill=['name', 'phone', 'mobile', 'email'],
+            ),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 
