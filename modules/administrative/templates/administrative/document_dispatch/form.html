@@ -187,6 +187,7 @@
                                 <th class="px-2 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">郵資</th>
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-72">公司名稱</th>
                                 <th class="hidden px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">統一編號</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">郵遞區號</th>
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-60">收件地址</th>
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-40">收件人</th>
                                 <th class="px-2 py-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">列印標籤</th>
@@ -212,6 +213,9 @@
                                 </td>
                                 <td class="hidden px-2 py-2 align-middle">
                                     {{ item_form.tax_id }}
+                                </td>
+                                <td class="px-2 py-2 align-middle">
+                                    {{ item_form.postal_code }}
                                 </td>
                                 <td class="px-2 py-2 align-middle">
                                     {{ item_form.address }}
@@ -262,7 +266,30 @@
     </div>
 </div>
 
+{{ zipcode_map|json_script:"tw-zipcode-map" }}
 <script>
+    // 台灣 3 碼郵遞區號查表（資料由 shared/tw_zipcodes.py 經 json_script 嵌入）
+    const ZIPCODE_MAP = JSON.parse(document.getElementById('tw-zipcode-map').textContent);
+    const ZIPCODE_KEYS = Object.keys(ZIPCODE_MAP).sort((a, b) => b.length - a.length);
+
+    function lookupZipcode(address) {
+        if (!address) return '';
+        const normalized = address.replace(/[\s　]/g, '').replace(/台/g, '臺');
+        for (const key of ZIPCODE_KEYS) {
+            if (normalized.startsWith(key)) return ZIPCODE_MAP[key];
+        }
+        return '';
+    }
+
+    // 依地址查表填入郵遞區號；查不到時保留原值（可能是人員手填的正確值）
+    function fillZipcodeFromAddress(row) {
+        const addrInput = row.querySelector('input[name$="-address"]');
+        const zipInput = row.querySelector('input[name$="-postal_code"]');
+        if (!addrInput || !zipInput) return;
+        const zip = lookupZipcode(addrInput.value);
+        if (zip) zipInput.value = zip;
+    }
+
     function addDispatchItemRow() {
         const totalForms = document.getElementById('id_items-TOTAL_FORMS');
         const formIdx = parseInt(totalForms.value);
@@ -351,10 +378,19 @@
                         if(taxInput && data.tax_id) taxInput.value = data.tax_id;
                         if(addrInput && data.address) addrInput.value = data.address;
                         if(contactInput && data.contact_person) contactInput.value = data.contact_person;
+                        fillZipcodeFromAddress(row);
                     }
                 })
                 .catch(err => console.log("Could not auto-fetch customer info:", err));
         });
+
+        // 地址手動修改時重新查表，讓郵遞區號跟地址保持一致
+        const addrInput = row.querySelector('input[name$="-address"]');
+        if (addrInput) {
+            addrInput.addEventListener('change', function() {
+                fillZipcodeFromAddress(row);
+            });
+        }
     }
 
     window.onload = function() {

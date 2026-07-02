@@ -60,8 +60,8 @@
         <td class="px-4 py-3 whitespace-nowrap text-slate-600 font-mono text-sm">
             {{ item.tax_id|default:"-" }}
         </td>
-        <td class="px-4 py-3 text-slate-600 truncate max-w-[150px]" title="{{ item.address }}">
-            {{ item.address|default:"-" }}
+        <td class="px-4 py-3 text-slate-600 truncate max-w-[150px]" title="{% if item.postal_code %}{{ item.postal_code }} {% endif %}{{ item.address }}">
+            {% if item.postal_code %}<span class="font-mono text-slate-500">{{ item.postal_code }}</span> {% endif %}{{ item.address|default:"-" }}
         </td>
         <td class="px-4 py-3 whitespace-nowrap text-slate-600">
             {{ item.contact_person|default:"-" }}

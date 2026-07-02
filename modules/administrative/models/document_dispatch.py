@@ -35,6 +35,7 @@ class DocumentDispatchItem(BaseModel):
     postage = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="郵資費用")
     customer = models.ForeignKey('basic_data.Customer', on_delete=models.CASCADE, related_name='dispatches', verbose_name="客戶名稱")
     tax_id = models.CharField(max_length=20, blank=True, verbose_name="統一編號")
+    postal_code = models.CharField(max_length=6, blank=True, verbose_name="郵遞區號")
     address = models.CharField(max_length=255, blank=True, verbose_name="寄送地址")
     contact_person = models.CharField(max_length=100, blank=True, verbose_name="收件人")
     custom_message = models.CharField(max_length=255, blank=True, verbose_name="自訂訊息")

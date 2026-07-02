@@ -6,6 +6,7 @@ from django.db import transaction
 from django.shortcuts import redirect, get_object_or_404
 from django.utils import timezone
 from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin
+from shared.tw_zipcodes import ZIPCODE_MAP, lookup_zipcode
 from ..models import DocumentDispatch, DocumentDispatchItem, DocumentDispatchImage
 from ..forms import DocumentDispatchForm, DocumentDispatchItemFormSet
 
@@ -73,6 +74,7 @@ class DocumentDispatchCreateView(BusinessRequiredMixin, CreateView):
         else:
             context['items_formset'] = DocumentDispatchItemFormSet()
         context['images'] = []
+        context['zipcode_map'] = ZIPCODE_MAP
         return context
 
     def form_valid(self, form):
@@ -111,6 +113,7 @@ class DocumentDispatchUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateVie
             context['items_formset'] = DocumentDispatchItemFormSet(instance=self.object)
         context['images'] = self.object.images.all()
         context['history'] = self.object.history.all().order_by('-history_date')[:50]
+        context['zipcode_map'] = ZIPCODE_MAP
         return context
 
     def form_valid(self, form):
@@ -156,7 +159,7 @@ def document_dispatch_item_label(_request, item_pk):
     """
     Download a .docx mailing label for a single DocumentDispatchItem.
     Template: document_templates/郵寄標籤_範本.docx
-    Variables: {{ contact_person }}, {{ customer_name }}, {{ address }}
+    Variables: {{ contact_person }}, {{ customer_name }}, {{ postal_code }}, {{ address }}
     """
     import os
     from io import BytesIO
@@ -171,6 +174,8 @@ def document_dispatch_item_label(_request, item_pk):
     doc.render({
         'contact_person': item.contact_person or '',
         'customer_name': item.customer.name if item.customer_id else '',
+        # 舊資料沒存郵遞區號時，列印當下即時查表補上
+        'postal_code': item.postal_code or lookup_zipcode(item.address),
         'address': item.address or '',
     })
 
