@@ -67,6 +67,8 @@ class SealProcurementItem(BaseModel):
         ('large_reg', '大章(登記)'),
         ('small_reg', '小章(登記)'),
         ('invoice', '發票章'),
+        ('ticket_cert', '購票證'),
+        ('natural_person_cert', '自然人憑證'),
     ]
 
     SEAL_DEFAULT_PRICES = {
@@ -75,6 +77,8 @@ class SealProcurementItem(BaseModel):
         'large_reg': 150,
         'small_reg': 50,
         'invoice': 180,
+        'ticket_cert': 0,
+        'natural_person_cert': 0,
     }
 
     procurement = models.ForeignKey(

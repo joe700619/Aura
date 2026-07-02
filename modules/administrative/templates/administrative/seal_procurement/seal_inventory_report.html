@@ -51,6 +51,8 @@
                         <th class="px-4 py-3 whitespace-nowrap text-center">大章(登記)</th>
                         <th class="px-4 py-3 whitespace-nowrap text-center">小章(登記)</th>
                         <th class="px-4 py-3 whitespace-nowrap text-center">發票章</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-center">購票證</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-center">自然人憑證</th>
                         <th class="px-4 py-3 whitespace-nowrap text-right">金額合計</th>
                     </tr>
                 </thead>
@@ -73,12 +75,14 @@
                         <td class="px-4 py-3 whitespace-nowrap text-center font-mono">{{ item.type_qty.large_reg|default:"0" }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center font-mono">{{ item.type_qty.small_reg|default:"0" }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center font-mono">{{ item.type_qty.invoice|default:"0" }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center font-mono">{{ item.type_qty.ticket_cert|default:"0" }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center font-mono">{{ item.type_qty.natural_person_cert|default:"0" }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right text-slate-800 font-medium font-mono">${{ item.total_amount|floatformat:0|intcomma }}</td>
                     </tr>
                     
                     <!-- Expanded Details Row -->
                     <tr x-show="expandedRow === '{{ item.unified_business_no }}'" x-cloak>
-                        <td colspan="8" class="p-0 border-b-2 border-indigo-100">
+                        <td colspan="10" class="p-0 border-b-2 border-indigo-100">
                             <div class="bg-indigo-50/50 p-4 shadow-inner">
                                 <h4 class="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-2">歷次採購明細</h4>
                                 <table class="w-full text-sm text-left bg-white rounded shadow-sm overflow-hidden border border-indigo-100">
@@ -128,7 +132,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="px-4 py-16 text-center">
+                        <td colspan="10" class="px-4 py-16 text-center">
                             <div class="flex flex-col items-center justify-center text-slate-400">
                                 <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                 <span class="italic text-sm">目前無印章庫存資料（請將採購單設為「轉為庫存」）</span>
@@ -140,7 +144,7 @@
                 {% if summary_data %}
                 <tfoot class="border-t-2 border-slate-200 bg-slate-50 font-bold">
                     <tr>
-                        <td colspan="7" class="px-4 py-3 text-right text-slate-700">總計：</td>
+                        <td colspan="9" class="px-4 py-3 text-right text-slate-700">總計：</td>
                         <td class="px-4 py-3 text-right text-slate-800 font-mono">${{ grand_total|floatformat:0|intcomma }}</td>
                     </tr>
                 </tfoot>
