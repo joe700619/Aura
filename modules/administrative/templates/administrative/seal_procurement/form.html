@@ -268,7 +268,9 @@ const SEAL_PRICES = {
     'small_self': 50,
     'large_reg': 150,
     'small_reg': 50,
-    'invoice': 180
+    'invoice': 180,
+    'ticket_cert': 0,
+    'natural_person_cert': 0
 };
 
 // ===== Movement Type Logic =====
@@ -430,6 +432,8 @@ function addSealItemRow() {
                 <option value="large_reg">大章(登記)</option>
                 <option value="small_reg">小章(登記)</option>
                 <option value="invoice">發票章</option>
+                <option value="ticket_cert">購票證</option>
+                <option value="natural_person_cert">自然人憑證</option>
             </select>
         </td>
         <td class="px-3 py-2 text-center">
