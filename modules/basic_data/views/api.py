@@ -50,9 +50,11 @@ class ContactSearchForProgressApiView(ListView):
     def get_queryset(self):
         query = self.request.GET.get('q')
         if query:
-            return Contact.objects.filter(name__icontains=query) | \
-                   Contact.objects.filter(phone__icontains=query) | \
-                   Contact.objects.filter(mobile__icontains=query)
+            qs = Contact.objects.filter(name__icontains=query) | \
+                 Contact.objects.filter(phone__icontains=query) | \
+                 Contact.objects.filter(mobile__icontains=query) | \
+                 Contact.objects.filter(customer__name__icontains=query)
+            return qs.select_related('customer')
         return Contact.objects.none()
 
 class ServiceItemSearchApiView(ListView):

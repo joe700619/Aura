@@ -17,7 +17,9 @@
             const fieldName = '{{ name }}';
             const lastDash = fieldName.lastIndexOf('-');
             const prefix = lastDash !== -1 ? fieldName.substring(0, lastDash + 1) : '';
+            const excludeAutofill = [{% for f in exclude_autofill %}'{{ f|escapejs }}',{% endfor %}];
             for (const [key, val] of Object.entries(extraData)) {
+                if (excludeAutofill.includes(key)) continue;
                 const targetField = document.querySelector(`[name='${prefix}${key}']`);
                 if (targetField) {
                     targetField.value = val;
