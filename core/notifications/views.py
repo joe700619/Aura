@@ -130,6 +130,16 @@ class GetLineTemplatesView(LoginRequiredMixin, View):
         templates = queryset.values('id', 'code', 'name', 'message_type')
         return JsonResponse({'templates': list(templates)})
 
+def _mark_line_notified(obj):
+    """
+    發送成功後回寫通知足跡：若該 model 有 is_line_notified 欄位（如收文紀錄），
+    標記為已通知；沒有此欄位的 model 不受影響。
+    """
+    if hasattr(obj, 'is_line_notified') and not obj.is_line_notified:
+        obj.is_line_notified = True
+        obj.save(update_fields=['is_line_notified'])
+
+
 class SendLineView(LoginRequiredMixin, View):
     def post(self, request, app_label, model_name, object_id):
         template_id = request.POST.get('template_id')
@@ -183,8 +193,9 @@ class SendLineView(LoginRequiredMixin, View):
 
         # Send
         success = LineService.send_message(template.code, recipient_id, context)
-        
+
         if success:
+            _mark_line_notified(obj)
             return JsonResponse({'message': 'Line message sent successfully'})
         else:
             return JsonResponse({'error': 'Failed to send Line message'}, status=500)
@@ -306,6 +317,7 @@ class SendBulkLineView(LoginRequiredMixin, View):
 
             if recipient_id:
                 if LineService.send_message(template.code, recipient_id, context):
+                    _mark_line_notified(obj)
                     success_count += 1
                 else:
                     fail_count += 1

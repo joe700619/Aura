@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import DocumentReceiptListView, DocumentReceiptCreateView, DocumentReceiptUpdateView, DocumentReceiptDeleteView, SendDocumentReceiptLineView
+from .views import DocumentReceiptListView, DocumentReceiptCreateView, DocumentReceiptUpdateView, DocumentReceiptDeleteView
 
 app_name = 'administrative'
 
@@ -10,7 +10,6 @@ urlpatterns = [
     path('document-receipts/add/', DocumentReceiptCreateView.as_view(), name='document_receipt_create'),
     path('document-receipts/<int:pk>/edit/', DocumentReceiptUpdateView.as_view(), name='document_receipt_update'),
     path('document-receipts/<int:pk>/delete/', DocumentReceiptDeleteView.as_view(), name='document_receipt_delete'),
-    path('document-receipts/<int:pk>/send-line/', SendDocumentReceiptLineView.as_view(), name='document_receipt_send_line'),
     
     # IRS Audit Notices
     path('irs-audit-notices/', views.IrsAuditNoticeListView.as_view(), name='irs_audit_notice_list'),

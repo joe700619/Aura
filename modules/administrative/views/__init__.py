@@ -1,7 +1,6 @@
 from .document_receipt import (
-    DocumentReceiptListView, DocumentReceiptCreateView, 
-    DocumentReceiptUpdateView, DocumentReceiptDeleteView, 
-    SendDocumentReceiptLineView
+    DocumentReceiptListView, DocumentReceiptCreateView,
+    DocumentReceiptUpdateView, DocumentReceiptDeleteView
 )
 from .irs_audit_notice import (
     IrsAuditNoticeListView, IrsAuditNoticeCreateView,
@@ -45,7 +44,6 @@ __all__ = [
     'DocumentReceiptCreateView',
     'DocumentReceiptUpdateView',
     'DocumentReceiptDeleteView',
-    'SendDocumentReceiptLineView',
 
     'IrsAuditNoticeListView',
     'IrsAuditNoticeCreateView',
