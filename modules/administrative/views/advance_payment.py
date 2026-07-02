@@ -137,6 +137,7 @@ class AdvancePaymentCreateView(BusinessRequiredMixin, CreateView):
             messages.success(self.request, '代墊款已成功新增。')
             return redirect('administrative:advance_payment_update', pk=self.object.pk)
         else:
+            messages.error(self.request, '明細有欄位未通過驗證，資料「尚未儲存」，請檢查表格中紅字提示。')
             return self.render_to_response(self.get_context_data(form=form))
 
 class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView):
@@ -249,6 +250,7 @@ class AdvancePaymentUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView)
                 redirect_url = f"{redirect_url}?posted_voucher={posted_voucher_pk}"
             return redirect(redirect_url)
         else:
+            messages.error(self.request, '明細有欄位未通過驗證，資料「尚未儲存」，請檢查表格中紅字提示。')
             return self.render_to_response(self.get_context_data(form=form))
 
 
