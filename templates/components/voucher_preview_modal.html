@@ -118,13 +118,27 @@
         let costSharingTotal = 0;
         
         try {
-            /* Parse Service Fees */
+            /* 服務項目字頭 → 收入科目（與後端 generate_voucher_for_bill 一致），無對應字頭預設記帳收入 */
+            const incomePrefixMap = {
+                '1': { code: '400001', name: '簽證收入' },
+                '2': { code: '400002', name: '記帳收入' },
+                '3': { code: '400003', name: '登記收入' },
+            };
+            const defaultIncome = { code: '400002', name: '記帳收入' };
+
+            /* Parse Service Fees — group by income account code */
+            const serviceByCode = {};  /* code -> { name, total } */
             if (quotationInput) {
                 const quotationData = JSON.parse(quotationInput.value || '[]');
                 quotationData.forEach(item => {
                     const amount = parseFloat(item.amount) || 0;
                     const serviceName = (item.service_name || '').trim();
                     if (amount > 0 && !serviceName.startsWith('8') && !serviceName.startsWith('9')) {
+                         const acct = incomePrefixMap[serviceName.charAt(0)] || defaultIncome;
+                         if (!serviceByCode[acct.code]) {
+                             serviceByCode[acct.code] = { name: acct.name, total: 0 };
+                         }
+                         serviceByCode[acct.code].total += amount;
                          serviceFeeTotal += amount;
                     }
                 });
@@ -186,10 +200,11 @@
             }
             const vatFor = (code) => (auxTypes[code] === 'PARTNER' ? companyVat : '');
 
-            /* Generate Entries */
-            if (serviceFeeTotal > 0) {
-                this.addGeneratedEntry('credit', '400002', '記帳收入', serviceFeeTotal, '服務費用合計', vatFor('400002'));
-            }
+            /* Generate Entries — one credit per income account code (sorted, matching backend) */
+            Object.keys(serviceByCode).sort().forEach(code => {
+                const info = serviceByCode[code];
+                this.addGeneratedEntry('credit', code, info.name, info.total, '服務費用合計', vatFor(code));
+            });
 
             /* One credit entry per advance payment account code (grouped & summed) */
             Object.entries(advanceByCode).forEach(([code, info]) => {

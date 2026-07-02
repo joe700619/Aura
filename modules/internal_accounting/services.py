@@ -7,7 +7,7 @@ from modules.internal_accounting.models.voucher_detail import VoucherDetail
 from modules.internal_accounting.models.account import Account
 
 # 帳單拋轉傳票會用到的科目（服務費、各代墊款科目、應收帳款），供前端預覽取多視角設定
-BILLING_VOUCHER_ACCOUNT_CODES = ['400002', '613202', '613203', '1141', '1142', '613204', '6132', '1123']
+BILLING_VOUCHER_ACCOUNT_CODES = ['400001', '400002', '400003', '613202', '613203', '1141', '1142', '613204', '6132', '1123']
 
 
 def get_account_aux_types(codes):
@@ -227,7 +227,9 @@ class ReceivableTransferService:
     def generate_voucher_for_bill(bill, user):
         """
         依帳單產生傳票，分錄規則與前端預覽 (generateBillingEntries) 完全一致：
-        - 服務費（報價單中非 8、非 9 開頭項目）合計 → 貸 400002 記帳收入
+        - 服務費（報價單中非 8、非 9 開頭項目）依項目名稱字頭分收入科目 → 貸
+          1→400001 簽證收入 / 2→400002 記帳收入 / 3→400003 登記收入，
+          無對應字頭者預設 400002（同科目加總一筆）
         - 代墊款（帳單附的代墊明細 advance_payment_data）依代墊類型分到各科目 → 貸
         - 未收款合計（服務費 + 代墊款）→ 借 1123 應收帳款
         - 統編只有「科目多視角＝PARTNER」才帶入往來對象 (company_id)
@@ -258,7 +260,12 @@ class ReceivableTransferService:
         }
         default_advance = ('6132', '代墊費用')
 
-        # 1) 服務費合計（排除 8、9 開頭，與前端一致）
+        # 服務項目字頭 → 收入科目（與登記進度表拋轉一致），無對應字頭預設記帳收入
+        income_prefix_map = {'1': '400001', '2': '400002', '3': '400003'}
+        default_income_code = '400002'
+
+        # 1) 服務費依收入科目分組加總（排除 8、9 開頭，與前端一致）
+        service_by_code = {}  # code -> total
         service_fee_total = 0
         for item in quotation:
             if not isinstance(item, dict):
@@ -267,6 +274,8 @@ class ReceivableTransferService:
             amount = float(item.get('amount', 0) or 0)
             if amount <= 0 or service_name.startswith('8') or service_name.startswith('9'):
                 continue
+            code = income_prefix_map.get(service_name[:1], default_income_code)
+            service_by_code[code] = service_by_code.get(code, 0) + amount
             service_fee_total += amount
 
         # 2) 代墊款依類型分組加總（來源為 advance_payment_data，與前端一致）
@@ -287,9 +296,7 @@ class ReceivableTransferService:
         uncollected_total = service_fee_total + advance_total
 
         # 收集需要的科目並一次檢查是否存在
-        needed_codes = set(advance_by_code.keys())
-        if service_fee_total > 0:
-            needed_codes.add('400002')
+        needed_codes = set(advance_by_code.keys()) | set(service_by_code.keys())
         if uncollected_total > 0:
             needed_codes.add('1123')
         if not needed_codes:
@@ -300,10 +307,10 @@ class ReceivableTransferService:
         if missing_accounts:
             raise ValueError(f"系統缺少必要的會計科目代碼：{', '.join(sorted(missing_accounts))}，請先至會計科目管理新增。")
 
-        # 組分錄（順序與前端一致：服務費 → 各代墊款 → 應收帳款）
+        # 組分錄（順序與前端一致：各收入科目（依代碼排序）→ 各代墊款 → 應收帳款）
         entries = []
-        if service_fee_total > 0:
-            entries.append({'type': 'credit', 'account': accounts['400002'], 'amount': int(service_fee_total), 'remark': '服務費用合計'})
+        for code in sorted(service_by_code):
+            entries.append({'type': 'credit', 'account': accounts[code], 'amount': int(service_by_code[code]), 'remark': '服務費用合計'})
         for code, info in advance_by_code.items():
             entries.append({'type': 'credit', 'account': accounts[code], 'amount': int(info['total']), 'remark': '代墊款合計'})
         if uncollected_total > 0:
