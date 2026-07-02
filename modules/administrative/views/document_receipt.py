@@ -1,14 +1,11 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
-from django.views import View
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.db import transaction
 from core.mixins import BusinessRequiredMixin, ListActionMixin, SearchMixin, CopyMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin
 from ..models import DocumentReceipt, DocumentReceiptAttachment
 from ..forms import DocumentReceiptForm
-from core.notifications.services import LineService
 
 class DocumentReceiptListView(FilterMixin, ListActionMixin, SearchMixin, BusinessRequiredMixin, ListView):
     model = DocumentReceipt
@@ -46,6 +43,7 @@ class DocumentReceiptCreateView(CopyMixin, BusinessRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['attachments'] = []
+        context['category_default_subjects'] = DocumentReceipt.CATEGORY_DEFAULT_SUBJECTS
         return context
 
     def form_valid(self, form):
@@ -86,6 +84,7 @@ class DocumentReceiptUpdateView(PrevNextMixin, BusinessRequiredMixin, UpdateView
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['category_default_subjects'] = DocumentReceipt.CATEGORY_DEFAULT_SUBJECTS
         if self.object:
             context['attachments'] = self.object.attachments.all()
         if self.object and hasattr(self.object, 'history'):
@@ -105,35 +104,3 @@ class DocumentReceiptDeleteView(SoftDeleteMixin, BusinessRequiredMixin, DeleteVi
     template_name = 'administrative/document_receipt/confirm_delete.html'
     success_url = reverse_lazy('administrative:document_receipt_list')
 
-class SendDocumentReceiptLineView(BusinessRequiredMixin, View):
-    def post(self, request, pk):
-        receipt = get_object_or_404(DocumentReceipt, pk=pk)
-        
-        # recipient resolution
-        recipient_id = getattr(receipt.customer, 'line_id', None)
-        if not recipient_id and hasattr(receipt.customer, 'contacts'):
-            first_contact = receipt.customer.contacts.first()
-            if first_contact:
-                recipient_id = getattr(first_contact, 'line_id', None)
-
-        if not recipient_id:
-             return JsonResponse({'error': '此客戶尚未設定 Line ID，無法發送通知'}, status=400)
-
-        # Build message directly instead of using template to keep it simple as requested
-        date_str = receipt.receipt_date.strftime('%Y-%m-%d')
-        message = f"親愛的 {receipt.customer.name} 您好：\n我們已於 {date_str} 收到您的信件/物件：{receipt.subject}。\n若有需要後續處理的事項，我們將盡快為您服務，謝謝！"
-        
-        # Use existing LineService to send raw message if supported. 
-        from linebot.models import TextSendMessage
-        try:
-            line_bot_api = LineService._get_line_bot_api()
-            line_bot_api.push_message(recipient_id, TextSendMessage(text=message))
-            
-            # Update status
-            receipt.is_line_notified = True
-            receipt.save(update_fields=['is_line_notified'])
-            return JsonResponse({'message': 'Line 通知發送成功'})
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'error': f'Failed to send Line message: {str(e)}'}, status=500)

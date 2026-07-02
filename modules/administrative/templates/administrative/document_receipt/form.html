@@ -232,8 +232,26 @@ function receiptFileViewer() {
 {% endblock %}
 
 {% block modals %}
+{{ category_default_subjects|json_script:"category-default-subjects" }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 依信件分類帶入預設主旨：只在主旨空白、或仍是某個分類的預設值時才覆蓋，
+    // 使用者手動輸入過的內容不動
+    const defaultsEl = document.getElementById('category-default-subjects');
+    const defaults = defaultsEl ? JSON.parse(defaultsEl.textContent) : {};
+    const categorySelect = document.querySelector('[name="category"]');
+    const subjectInput = document.querySelector('[name="subject"]');
+    if (categorySelect && subjectInput) {
+        categorySelect.addEventListener('change', function() {
+            const current = subjectInput.value.trim();
+            const isAutoValue = current === '' || Object.values(defaults).includes(current);
+            if (!isAutoValue) return;
+            const next = defaults[this.value] || '';
+            subjectInput.value = next;
+            if (next) subjectInput.focus();
+        });
+    }
+
     const customerInput = document.querySelector('[name="customer"]');
     if (!customerInput || !customerInput.value) return;
 

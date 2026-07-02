@@ -137,14 +137,6 @@
     </td>
     <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
         <div class="flex justify-center items-center space-x-4">
-            <button type="button" class="text-[#06C755] hover:text-green-700 focus:outline-none transition-colors line-notify-btn" 
-                    title="發送 Line 通知"
-                    data-receipt-id="{{ receipt.pk }}"
-                    data-receipt-subject="{{ receipt.subject }}">
-                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22.5 12c0-5.783-5.01-10.5-11.25-10.5C5.01 1.5 0 6.216 0 12c0 5.176 3.996 9.536 9.405 10.375.405.084.95.215 1.09.615.127.363.082 1.05.04 1.455-.062.6-.285 1.838 1.625 1.033 1.91-.806 10.34-6.075 10.34-13.478zm-14.86 2.373a.873.873 0 01-.874-.875v-3.873a.876.876 0 011.75 0v2.997h1.616a.876.876 0 110 1.751H7.64zm4.072-4.748a.876.876 0 01.875.875v3.873a.876.876 0 11-1.75 0v-4.748zm2.4 4.748h-1.61v-4.748h1.61zM19.165 9.625v2.855c0 .324.088.636.252.898H20.08a.874.874 0 010-1.75h-.355v-.73h.355a.874.874 0 010-1.75h-.355V8.75h-.56z"/>
-                </svg>
-            </button>
             <a href="{% url 'administrative:document_receipt_update' receipt.pk %}"
                class="text-blue-600 hover:text-blue-800 transition duration-200" title="編輯">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,58 +167,3 @@
 {% block extra_pagination_params %}&filter={{ current_filter }}{% endblock %}
 {% block extra_pagination_params_num %}&filter={{ current_filter }}{% endblock %}
 {% block extra_pagination_params_next %}&filter={{ current_filter }}{% endblock %}
-
-{% block extra_js %}
-{{ block.super }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.line-notify-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const receiptId = this.dataset.receiptId;
-            const subject = this.dataset.receiptSubject;
-            
-            if (!confirm(`確定要針對收文「${subject}」發送 Line 通知給客戶嗎？`)) {
-                return;
-            }
-            
-            const url = `{% url 'administrative:document_receipt_list' %}${receiptId}/send-line/`;
-    
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
-            'Content-Type': 'application/json'
-        },
-    })
-    .then(response => response.json().then(data => ({ status: response.status, body: data })))
-    .then(({ status, body }) => {
-        if (status === 200) {
-            if (typeof toastr !== 'undefined') {
-                toastr.success(body.message);
-            } else {
-                alert(body.message);
-            }
-            // Reload page to update the status badge
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            const errorMsg = body.error || '發送失敗';
-            if (typeof toastr !== 'undefined') {
-                toastr.error(errorMsg);
-            } else {
-                alert(errorMsg);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (typeof toastr !== 'undefined') {
-            toastr.error('網路錯誤，請稍後再試');
-        } else {
-            alert('網路錯誤，請稍後再試');
-        }
-    });
-        });
-    });
-});
-</script>
-{% endblock %}
