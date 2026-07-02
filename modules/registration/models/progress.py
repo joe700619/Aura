@@ -37,6 +37,7 @@ class Progress(BaseModel):
     main_contact = models.CharField(_('主要聯絡人'), max_length=100, blank=True, null=True)
     mobile = models.CharField(_('手機'), max_length=50, blank=True, null=True)
     phone = models.CharField(_('電話'), max_length=50, blank=True, null=True)
+    email = models.EmailField(_('Email'), max_length=254, blank=True, null=True)
     address = models.CharField(_('通訊地址'), max_length=255, blank=True, null=True)
 
     # 3. Other
@@ -70,6 +71,7 @@ class Progress(BaseModel):
             'main_contact': self.main_contact,
             'mobile': self.mobile,
             'phone': self.phone,
+            'email': self.email,
             'address': self.address,
             'line_id': self.line_id,
             'room_id': self.room_id,

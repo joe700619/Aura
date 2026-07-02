@@ -70,6 +70,7 @@ class ReceivableTransferService:
             main_contact=data.get('main_contact'),
             mobile=data.get('mobile'),
             phone=data.get('phone'),
+            email=data.get('email'),
             address=data.get('address'),
             line_id=data.get('line_id'),
             room_id=data.get('room_id'),
