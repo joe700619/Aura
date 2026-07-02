@@ -1,0 +1,322 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公司登記委任書 | 勤信會計</title>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --fg1:#1a1816; --fg2:#4b4842; --fg3:#78716c; --fg4:#a8a194;
+    --bg-page:#faf8f5; --bg-subtle:#f2efe9;
+    --border-subtle:#e6e2d9; --border-default:#cfc9bd;
+    --accent:#a0332a; --success:#5a7a4f; --warning:#b8861b; --warning-soft:#fbf4e3; --warning-border:#f0e0b8;
+    --danger-soft:#fbeae8; --danger:#a0332a;
+    --primary:#1a1816; --fg-on-primary:#faf8f5;
+    --font-serif:"Noto Serif TC", serif;
+    --font-sans:"Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --shadow-xs:0 1px 2px rgba(26,24,22,0.04);
+  }
+  html, body { font-family:var(--font-sans); font-size:15px; color:var(--fg2); background:var(--bg-page); min-height:100vh; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:760px; margin:0 auto; padding:32px 20px 60px; }
+  .card { background:#fff; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-xs); overflow:hidden; }
+  .head { padding:26px 28px 18px; border-bottom:1px solid var(--border-subtle); text-align:center; }
+  .head h1 { font-family:var(--font-serif); font-size:22px; font-weight:700; color:var(--fg1); }
+  .head .sub { font-size:13px; color:var(--fg3); margin-top:4px; }
+  .body { padding:22px 28px; }
+
+  .msg { margin-bottom:16px; padding:12px 16px; border-radius:var(--radius-md); font-size:13.5px; }
+  .msg.error { background:var(--danger-soft); border:1px solid #e9c3bd; color:var(--danger); }
+
+  .banner { text-align:center; padding:30px 20px; }
+  .banner .icon { font-size:40px; }
+  .banner h2 { font-family:var(--font-serif); font-size:19px; color:var(--fg1); margin:10px 0 6px; }
+  .banner p { font-size:13.5px; color:var(--fg3); }
+  .banner.ok .icon { color:var(--success); }
+  .banner.warn .icon { color:var(--warning); }
+
+  .sec-title { font-size:13px; font-weight:700; color:var(--fg1); margin:0 0 8px; }
+
+  .terms { font-size:13.5px; line-height:1.9; color:var(--fg2); text-align:justify; margin-bottom:20px; }
+  .terms p { margin-bottom:8px; }
+  .terms ol, .terms ul { padding-left:22px; margin-bottom:8px; }
+  .terms li { margin-bottom:4px; }
+
+  .quo-table { width:100%; border:1px solid var(--border-subtle); border-radius:var(--radius-md); border-collapse:separate; border-spacing:0; overflow:hidden; margin-bottom:20px; font-size:13px; }
+  .quo-table th { background:var(--bg-subtle); color:var(--fg3); font-weight:600; text-align:left; padding:9px 12px; border-bottom:1px solid var(--border-subtle); }
+  .quo-table td { padding:9px 12px; border-bottom:1px solid var(--border-subtle); color:var(--fg1); }
+  .quo-table .num { text-align:right; white-space:nowrap; }
+  .quo-table tfoot td { background:var(--bg-subtle); font-weight:600; }
+  .quo-table tfoot .total td { color:var(--fg1); font-weight:700; border-top:2px solid var(--border-default); }
+  .quo-table tr:last-child td { border-bottom:none; }
+  .quo-table .rm { color:var(--fg3); font-size:12px; }
+
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:var(--fg2); margin-bottom:5px; }
+  .field label .req { color:var(--accent); }
+  .field input[type=text], .field input[type=email], .field textarea {
+    width:100%; padding:9px 12px; border:1px solid var(--border-default); border-radius:var(--radius-sm);
+    font-family:var(--font-sans); font-size:14px; color:var(--fg1); background:#fff;
+  }
+  .field input:focus, .field textarea:focus { outline:none; border-color:var(--accent); }
+
+  .sign-label { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .sign-label span { font-size:13px; font-weight:600; color:var(--fg2); }
+  .sign-label .req { color:var(--accent); }
+  .clear { background:none; border:none; cursor:pointer; font-family:var(--font-sans); font-size:12.5px; color:var(--fg3); text-decoration:underline; }
+  .clear:hover { color:var(--accent); }
+  .pad-box { position:relative; border:1.5px dashed var(--border-default); border-radius:var(--radius-md); background:#fff; touch-action:none; }
+  .pad-box canvas { display:block; width:100%; height:180px; border-radius:var(--radius-md); }
+  .pad-ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--fg4); font-size:13px; pointer-events:none; }
+
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 24px; border-radius:var(--radius-sm); font-family:var(--font-sans); font-size:14px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+  .btn-primary { background:var(--primary); color:var(--fg-on-primary); width:100%; margin-top:8px; }
+  .btn-primary:hover { background:#0d0c0b; }
+  .footer { text-align:center; font-size:11px; color:var(--fg4); margin-top:22px; }
+
+  .preamble { font-size:13.5px; line-height:1.9; color:var(--fg2); text-align:justify; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid var(--border-subtle); }
+  .declaration { font-size:13.5px; line-height:1.9; color:var(--fg1); text-align:justify; background:var(--bg-subtle); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:20px; }
+  .confirmed-ribbon { display:flex; align-items:center; gap:8px; background:#eef3ea; border:1px solid #cfe0c4; color:var(--success); font-size:13px; font-weight:600; padding:10px 14px; border-radius:var(--radius-md); margin-bottom:20px; }
+  .signed-block { border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px 18px; }
+  .signed-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; margin-bottom:14px; }
+  .signed-meta > div { font-size:13.5px; color:var(--fg1); }
+  .signed-meta span { display:block; font-size:11px; color:var(--fg4); margin-bottom:1px; }
+  .signed-sig { border-top:1px dashed var(--border-default); padding-top:12px; }
+  .signed-sig .sig-cap { display:block; font-size:11px; color:var(--fg4); margin-bottom:6px; }
+  .signed-sig img { height:90px; max-width:100%; }
+
+  .parties { border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:18px 20px; margin-bottom:20px; }
+  .party-row { display:flex; gap:16px; margin-bottom:12px; font-size:13.5px; }
+  .party-row:last-of-type { margin-bottom:0; }
+  .party-label { flex:none; width:72px; font-weight:700; color:var(--fg1); }
+  .party-val { color:var(--fg1); }
+  .party-sub { display:block; font-size:12.5px; color:var(--fg3); margin-top:2px; }
+  .party-date { text-align:right; font-family:var(--font-serif); font-size:13.5px; font-weight:600; color:var(--fg1); margin-top:16px; padding-top:14px; border-top:1px dashed var(--border-default); }
+
+  .decline-box { margin-top:18px; border-top:1px solid var(--border-subtle); padding-top:14px; }
+  .decline-box summary { font-size:12.5px; color:var(--fg3); cursor:pointer; }
+  .decline-box summary:hover { color:var(--accent); }
+  .decline-inner { margin-top:12px; }
+  .btn-decline { background:#fff; color:var(--fg3); border:1px solid var(--border-default); width:100%; }
+  .btn-decline:hover { color:var(--danger); border-color:var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  {% if messages %}
+    {% for m in messages %}
+    <div class="msg {% if m.tags %}{{ m.tags }}{% endif %}">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card">
+    <div class="head">
+      <h1>公司登記委任書</h1>
+      <div class="sub">{{ m.progress.company_name }}</div>
+    </div>
+
+    {% if m.status == 'voided' %}
+    <div class="banner warn">
+      <div class="icon">！</div>
+      <h2>此連結已失效</h2>
+      <p>委任書內容已有更新，請使用承辦人員最新提供的連結，或與我們聯繫。</p>
+    </div>
+
+    {% elif m.status == 'declined' %}
+    <div class="banner warn">
+      <div class="icon">！</div>
+      <h2>已回覆暫不委任</h2>
+      <p>您已於 {{ m.declined_at|date:"Y-m-d H:i" }} 回覆暫不委任。如改變想法或有任何疑問，歡迎與承辦人員聯繫。</p>
+    </div>
+
+    {% elif m.status != 'signed' and not m.is_signable %}
+    <div class="banner warn">
+      <div class="icon">！</div>
+      <h2>連結已過期</h2>
+      <p>此簽署連結已逾有效期限，請聯繫承辦人員重新發送。</p>
+    </div>
+
+    {% else %}
+    <div class="body">
+      {% if m.status == 'signed' %}
+      <div class="confirmed-ribbon">
+        <span>✓</span>本委任書已於 {{ m.signed_at|date:"Y 年 m 月 d 日 H:i" }} 由 {{ m.signer_name }} 簽署確認，內容自此凍結存證。
+      </div>
+      {% endif %}
+
+      <p class="preamble">敬啟者：<br>
+        感謝　貴公司委任本所辦理公司登記事宜。茲檢附委任條款與委辦費用明細如下，
+        敬請　台端詳予審閱；如內容確認無誤，請於文末親自簽名，以完成委任確認。
+      </p>
+
+      <p class="sec-title">一、委任條款</p>
+      <div class="terms">{{ m.rendered_snapshot|safe }}</div>
+
+      <p class="sec-title">二、委辦費用明細</p>
+      <table class="quo-table">
+        <thead>
+          <tr>
+            <th>服務項目</th>
+            <th class="num">金額（元）</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in quotation.items %}
+          <tr>
+            <td>{{ item.service_name|default:"—" }}{% if item.remark %}<div class="rm">{{ item.remark }}</div>{% endif %}</td>
+            <td class="num">{{ item.amount|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2">（無明細）</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>服務費用合計（+）</td>
+            <td class="num">{{ quotation.service_fee_total|intcomma }}</td>
+          </tr>
+          <tr>
+            <td>代墊款合計（+）</td>
+            <td class="num">{{ quotation.advance_total|intcomma }}</td>
+          </tr>
+          <tr>
+            <td>預收款合計（−）</td>
+            <td class="num">{{ quotation.pre_collection_total|intcomma }}</td>
+          </tr>
+          <tr class="total">
+            <td>未收款合計（=）</td>
+            <td class="num">{{ quotation.uncollected_total|intcomma }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p class="sec-title">三、確認聲明</p>
+      <p class="declaration">
+        本人茲聲明：已詳閱上列委任條款與委辦費用明細，確認其內容均屬正確無誤，
+        同意依上開條款委任 貴所辦理本案公司登記事宜。
+      </p>
+
+      <div class="parties">
+        <div class="party-row">
+          <span class="party-label">委任人</span>
+          <div class="party-val">
+            {{ m.progress.company_name }}
+            <span class="party-sub">統一編號：{{ m.progress.unified_business_no|default:"（籌備中，尚未配發）" }}</span>
+          </div>
+        </div>
+        <div class="party-row">
+          <span class="party-label">受任人</span>
+          <div class="party-val">勤信聯合會計師事務所</div>
+        </div>
+        <div class="party-date">{{ doc_date_roc }}</div>
+      </div>
+
+      {% if m.status == 'signed' %}
+      <div class="signed-block">
+        <div class="signed-meta">
+          <div><span>簽署人</span>{{ m.signer_name }}</div>
+          <div><span>簽署時間</span>{{ m.signed_at|date:"Y-m-d H:i" }}</div>
+          {% if m.signer_email %}<div><span>Email</span>{{ m.signer_email }}</div>{% endif %}
+          <div><span>來源 IP</span>{{ m.signer_ip|default:"—" }}</div>
+        </div>
+        {% if m.signature_image %}
+        <div class="signed-sig">
+          <span class="sig-cap">手寫簽名</span>
+          <img src="{{ m.signature_image.url }}" alt="簽名">
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <form method="post" id="sign-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="sign">
+        <div class="field">
+          <label>簽署人姓名 <span class="req">*</span></label>
+          <input type="text" name="signer_name" required placeholder="請填寫您的姓名">
+        </div>
+        <div class="field">
+          <label>Email（選填）</label>
+          <input type="email" name="signer_email" value="{{ m.recipient_email }}">
+        </div>
+
+        <div class="field">
+          <div class="sign-label">
+            <span>手寫簽名 <span class="req">*</span></span>
+            <button type="button" class="clear" id="clear">清除重簽</button>
+          </div>
+          <div class="pad-box">
+            <canvas id="pad"></canvas>
+            <div class="pad-ph" id="pad-ph">請用手指或滑鼠在此簽名</div>
+          </div>
+          <input type="hidden" name="signature" id="signature">
+        </div>
+
+        <button type="submit" class="btn btn-primary">確認委任內容無誤，同意委任並送出簽署</button>
+      </form>
+
+      <details class="decline-box">
+        <summary>暫時不委任？點此回覆</summary>
+        <div class="decline-inner">
+          <form method="post"
+                onsubmit="return confirm('確定回覆「暫不委任」嗎？回覆後此連結將失效。');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="decline">
+            <div class="field">
+              <label>原因（選填）</label>
+              <textarea name="decline_reason" rows="2" placeholder="方便的話，請告訴我們原因"></textarea>
+            </div>
+            <button type="submit" class="btn btn-decline">回覆暫不委任</button>
+          </form>
+        </div>
+      </details>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="footer">Aura ERP · 安全電子簽署</div>
+</div>
+
+{% if m.is_signable %}
+<script>
+  const canvas = document.getElementById('pad');
+  const ph = document.getElementById('pad-ph');
+  const pad = new SignaturePad(canvas, { penColor: '#13204f', minWidth: 1.2, maxWidth: 2.6 });
+
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const data = pad.toData();
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    canvas.getContext('2d').scale(ratio, ratio);
+    pad.clear();
+    if (data && data.length) pad.fromData(data);
+    togglePh();
+  }
+  function togglePh() { ph.style.display = pad.isEmpty() ? 'flex' : 'none'; }
+
+  pad.addEventListener('endStroke', togglePh);
+  window.addEventListener('resize', resizeCanvas);
+  setTimeout(resizeCanvas, 50);
+
+  document.getElementById('clear').addEventListener('click', () => { pad.clear(); togglePh(); });
+
+  document.getElementById('sign-form').addEventListener('submit', (e) => {
+    if (pad.isEmpty()) {
+      e.preventDefault();
+      alert('請先手寫簽名後再送出。');
+      return;
+    }
+    document.getElementById('signature').value = pad.toDataURL('image/png');
+  });
+</script>
+{% endif %}
+
+</body>
+</html>

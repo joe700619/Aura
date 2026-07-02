@@ -65,6 +65,12 @@ from .views.draft_confirmation import (
     DraftConfirmationSendView,
     DraftConfirmationPublicView,
 )
+from .views.mandate import (
+    MandateWorkbenchView,
+    MandateSendView,
+    MandatePublicView,
+    MandatePaperDeleteView,
+)
 
 app_name = 'registration'
 
@@ -156,4 +162,14 @@ urlpatterns = [
          DraftConfirmationSendView.as_view(), name='draft_confirmation_send'),
     path('draft-confirm/<uuid:token>/',
          DraftConfirmationPublicView.as_view(), name='draft_confirm_public'),
+
+    # 登記委任書（承辦工作台 + 客戶端免登入簽署頁）
+    path('progress/<int:progress_pk>/mandate/',
+         MandateWorkbenchView.as_view(), name='mandate_workbench'),
+    path('progress/<int:progress_pk>/mandate/send/',
+         MandateSendView.as_view(), name='mandate_send'),
+    path('mandate/<uuid:token>/',
+         MandatePublicView.as_view(), name='mandate_public'),
+    path('progress/<int:progress_pk>/mandate/paper/<int:document_id>/delete/',
+         MandatePaperDeleteView.as_view(), name='mandate_paper_delete'),
 ]

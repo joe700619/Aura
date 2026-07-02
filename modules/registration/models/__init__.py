@@ -10,3 +10,4 @@ from .vat_entity_change import VATEntityChange, CASE_TYPE_DOCUMENTS, DOCUMENT_NO
 from .registration_document import RegistrationDocument
 from .beneficial_owner_declaration import BeneficialOwnerDeclaration
 from .draft_confirmation import DraftConfirmation
+from .mandate import RegistrationMandate, RegistrationMandateTemplate

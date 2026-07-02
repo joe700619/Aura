@@ -5,6 +5,7 @@ from .models import (
     ClientAssessment, CaseAssessment, Shareholder, ShareholderRegister,
     EquityTransaction, CompanyFiling, Progress, VATEntityChange,
     RegistrationDocument, BeneficialOwnerDeclaration, DraftConfirmation,
+    RegistrationMandate, RegistrationMandateTemplate,
 )
 from .resources import EquityTransactionResource
 
@@ -51,6 +52,32 @@ class DraftConfirmationAdmin(SimpleHistoryAdmin):
                      'signer_name', 'signer_email', 'recipient_email', 'recipient_line_id']
     readonly_fields = ['token', 'created_at', 'updated_at', 'signed_at']
     filter_horizontal = ['documents']
+
+    @admin.display(description='發送通道')
+    def sent_channels(self, obj):
+        ch = []
+        if obj.recipient_line_id:
+            ch.append('LINE')
+        if obj.recipient_email:
+            ch.append('Email')
+        return ' + '.join(ch) or '—'
+
+
+@admin.register(RegistrationMandateTemplate)
+class RegistrationMandateTemplateAdmin(SimpleHistoryAdmin):
+    list_display = ['version', 'title', 'status', 'effective_from', 'updated_at']
+    list_filter = ['status']
+    readonly_fields = ['version', 'created_at', 'updated_at']
+
+
+@admin.register(RegistrationMandate)
+class RegistrationMandateAdmin(SimpleHistoryAdmin):
+    list_display = ['progress', 'status', 'sent_channels', 'recipient_email', 'recipient_line_id',
+                    'sent_at', 'signer_name', 'signed_at']
+    list_filter = ['status']
+    search_fields = ['progress__company_name', 'progress__registration_no',
+                     'signer_name', 'signer_email', 'recipient_email', 'recipient_line_id']
+    readonly_fields = ['token', 'created_at', 'updated_at', 'signed_at', 'declined_at']
 
     @admin.display(description='發送通道')
     def sent_channels(self, obj):

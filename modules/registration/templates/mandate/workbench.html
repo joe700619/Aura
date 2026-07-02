@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block page_title %}委任書工作台{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto pb-16">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-slate-800">委任書工作台</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        {{ progress.registration_no }} · {{ progress.company_name }}
+      </p>
+    </div>
+    <a href="{% url 'registration:progress_edit' pk=progress.pk %}"
+       class="text-sm text-slate-500 hover:text-slate-800">← 返回進度表</a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+    <div class="mb-4 px-4 py-3 rounded-lg text-sm
+        {% if m.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+        {% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+      {{ m }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+    流程：確認下方預覽（條款由後台範本 + 本案資料自動產生，費用明細取自「報價單」分頁）→
+    選通道發送簽署連結給客戶 → 客戶免登入閱覽 + 手寫簽名（或婉拒）→ 簽署結果自動回寫進度表「委任書簽回」。
+    <br>注意：內容於發送當下凍結；發送後若修改報價單，須重新發送（舊連結自動作廢）。
+  </p>
+
+  {% if not template %}
+  <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 mb-6">
+    尚無使用中的委任書範本，無法產生內容。請先到後台「登記委任書範本」建立並啟用一版
+    （或請系統管理員執行 <code class="text-xs bg-amber-100 px-1 rounded">init_registration_mandate</code>）。
+  </div>
+  {% endif %}
+
+  <!-- 目前簽署狀態 -->
+  {% if active %}
+  <div class="bg-white border border-amber-200 rounded-lg overflow-hidden shadow-sm mb-6"
+       x-data="{ copied: false }">
+    <div class="bg-amber-50 px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">已寄送 · 等待客戶簽署</span>
+      <span class="text-xs text-slate-500">到期：{{ active.expires_at|date:"Y-m-d H:i" }}</span>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="flex items-center gap-2">
+        <input type="text" readonly :value="$refs.link.value" x-ref="link"
+               value="{{ active_public_url }}"
+               class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded bg-slate-50 text-slate-600">
+        <button type="button"
+                @click="navigator.clipboard.writeText($refs.link.value); copied = true; setTimeout(() => copied = false, 1500)"
+                class="px-3 py-2 text-xs font-bold rounded bg-slate-700 text-white hover:bg-slate-800 whitespace-nowrap">
+          <span x-show="!copied">複製連結</span>
+          <span x-show="copied" x-cloak>已複製 ✓</span>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">
+        範本 v{{ active.template_version.version }}
+        {% if active.recipient_email %} · 已寄 {{ active.recipient_email }}{% endif %}
+        {% if active.recipient_line_id %} · 已推 LINE{% endif %}
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 最近一筆已簽署 -->
+  {% if latest_signed %}
+  <div class="bg-white border border-green-200 rounded-lg overflow-hidden shadow-sm mb-6">
+    <div class="bg-green-50 px-4 py-3 border-b border-green-200 flex items-center justify-between">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">✓ 客戶已簽署</span>
+      <a href="{{ signed_url }}" target="_blank"
+         class="text-xs font-bold text-green-700 hover:text-green-900">檢視完整委任書 ↗</a>
+    </div>
+    <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+      <div><span class="text-slate-400 text-xs block">簽署人</span>{{ latest_signed.signer_name|default:"—" }}</div>
+      <div><span class="text-slate-400 text-xs block">簽署時間</span>{{ latest_signed.signed_at|date:"Y-m-d H:i" }}</div>
+      <div><span class="text-slate-400 text-xs block">範本版本</span>v{{ latest_signed.template_version.version }}</div>
+      <div><span class="text-slate-400 text-xs block">來源 IP</span>{{ latest_signed.signer_ip|default:"—" }}</div>
+      {% if latest_signed.signature_image %}
+      <div class="col-span-2">
+        <span class="text-slate-400 text-xs block mb-1">手寫簽名</span>
+        <img src="{{ latest_signed.signature_image.url }}" alt="簽名" class="h-20 border border-slate-200 rounded bg-white">
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 最近一筆婉拒 -->
+  {% if latest_declined and not latest_signed %}
+  <div class="bg-white border border-red-200 rounded-lg overflow-hidden shadow-sm mb-6">
+    <div class="bg-red-50 px-4 py-3 border-b border-red-200">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">客戶已回覆暫不委任</span>
+      <span class="text-xs text-slate-500 ml-2">{{ latest_declined.declined_at|date:"Y-m-d H:i" }}</span>
+    </div>
+    {% if latest_declined.decline_reason %}
+    <div class="p-4 text-sm text-slate-600">原因：{{ latest_declined.decline_reason }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- 內容預覽 -->
+  {% if template %}
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm mb-6"
+       x-data="{ showPreview: false }">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+      <h3 class="font-bold text-slate-700 text-sm">步驟 1 · 確認委任書內容（範本 v{{ template.version }}）</h3>
+      <button type="button" @click="showPreview = !showPreview"
+              class="text-xs font-bold text-blue-600 hover:text-blue-800">
+        <span x-show="!showPreview">展開預覽 ▾</span>
+        <span x-show="showPreview" x-cloak>收合預覽 ▴</span>
+      </button>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-1">
+        <div><span class="text-slate-400 text-xs block">服務費用（+）</span>{{ preview_quotation.service_fee_total|intcomma }}</div>
+        <div><span class="text-slate-400 text-xs block">代墊款（+）</span>{{ preview_quotation.advance_total|intcomma }}</div>
+        <div><span class="text-slate-400 text-xs block">預收款（−）</span>{{ preview_quotation.pre_collection_total|intcomma }}</div>
+        <div><span class="text-slate-400 text-xs block">未收款合計</span><b>{{ preview_quotation.uncollected_total|intcomma }}</b></div>
+      </div>
+      <p class="text-xs text-slate-400">共 {{ preview_quotation.items|length }} 項報價明細，客戶頁會逐項列出。金額不對請回進度表「報價單」分頁修改並儲存。</p>
+
+      <div x-show="showPreview" x-cloak
+           class="mt-4 border border-slate-200 rounded-lg p-5 bg-slate-50 text-sm text-slate-700 leading-relaxed">
+        {{ preview_html|safe }}
+        <div class="mt-4 pt-4 border-t border-slate-200 space-y-1.5 text-sm text-slate-700">
+          <div><span class="font-bold mr-3">委任人</span>{{ progress.company_name }}（統一編號：{{ progress.unified_business_no|default:"籌備中" }}）</div>
+          <div><span class="font-bold mr-3">受任人</span>勤信聯合會計師事務所</div>
+          <div class="text-right font-semibold pt-2">{{ doc_date_roc }}<span class="text-xs text-slate-400 font-normal ml-2">（實際以發送日為準）</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 發送簽署連結 -->
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-700 text-sm">步驟 2 · 產生並發送簽署連結</h3>
+    </div>
+    <form method="post" action="{% url 'registration:mandate_send' progress_pk=progress.pk %}"
+          class="p-4 space-y-4">
+      {% csrf_token %}
+
+      <div>
+        <p class="text-xs font-semibold text-slate-600 mb-2">通知方式（至少一種）</p>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="channel_line" {% if progress.line_id or progress.room_id %}checked{% endif %}>
+            <span class="text-sm text-slate-700">LINE 推播
+              {% if progress.line_id or progress.room_id %}
+              <span class="text-xs text-green-600">（已綁定）</span>
+              {% else %}
+              <span class="text-xs text-slate-400">（此案未綁定 LINE，無法使用）</span>
+              {% endif %}
+            </span>
+          </label>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+              <input type="checkbox" name="channel_email">
+              <span class="text-sm text-slate-700">Email</span>
+            </label>
+            <input type="email" name="recipient_email" placeholder="客戶 Email"
+                   value="{{ progress.email|default:'' }}"
+                   class="flex-1 text-sm px-3 py-1.5 border border-slate-300 rounded">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" {% if not template %}disabled{% endif %}
+              class="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg">
+        {% if active %}重新發送簽署連結（作廢舊連結）{% else %}發送簽署連結{% endif %}
+      </button>
+      {% if not template %}
+      <p class="text-xs text-slate-400 text-center">尚無使用中的委任書範本，無法發送。</p>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- 發送與簽署紀錄 -->
+  {% if send_records %}
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm mt-6">
+    <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+      <h3 class="font-bold text-slate-700 text-sm">發送與簽署紀錄</h3>
+      <p class="text-xs text-slate-400 mt-0.5">每次發送都留一筆，記錄走的通道、對象與時間；重新發送會作廢舊連結但紀錄保留。</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500 text-xs">
+            <th class="px-4 py-2 text-left font-semibold">狀態</th>
+            <th class="px-4 py-2 text-left font-semibold">發送通道 / 對象</th>
+            <th class="px-4 py-2 text-left font-semibold">發送時間</th>
+            <th class="px-4 py-2 text-left font-semibold">簽署 / 回覆時間</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in send_records %}
+          <tr>
+            <td class="px-4 py-2.5 whitespace-nowrap">
+              {% if r.status == 'signed' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">已簽署</span>
+              {% elif r.status == 'declined' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">已婉拒</span>
+              {% elif r.status == 'sent' and r.is_expired %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">已過期</span>
+              {% elif r.status == 'sent' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">待簽署</span>
+              {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">已作廢</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-slate-600">
+              {% if r.recipient_line_id %}
+              <div class="flex items-center gap-1">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>LINE
+                {% if r.line_status == 'sent' %}<span class="text-xs text-green-600">· 已送達</span>
+                {% elif r.line_status == 'failed' %}<span class="text-xs text-red-600">· 寄送失敗</span>
+                {% elif r.line_status %}<span class="text-xs text-slate-400">· 處理中</span>{% endif %}
+              </div>
+              {% endif %}
+              {% if r.recipient_email %}
+              <div class="flex items-center gap-1">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>{{ r.recipient_email }}
+                {% if r.email_status == 'sent' %}<span class="text-xs text-green-600">· 已送達</span>
+                {% elif r.email_status == 'failed' %}<span class="text-xs text-red-600">· 寄送失敗</span>
+                {% elif r.email_status %}<span class="text-xs text-slate-400">· 處理中</span>{% endif %}
+              </div>
+              {% endif %}
+              {% if not r.recipient_line_id and not r.recipient_email %}<span class="text-slate-300">—（手動轉發）</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">{{ r.sent_at|date:"Y-m-d H:i"|default:"—" }}</td>
+            <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">
+              {% if r.signed_at %}{{ r.signed_at|date:"Y-m-d H:i" }}（{{ r.signer_name }}）
+              {% elif r.declined_at %}{{ r.declined_at|date:"Y-m-d H:i" }}（婉拒）
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

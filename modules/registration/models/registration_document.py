@@ -42,6 +42,8 @@ class RegistrationDocument(BaseModel):
         AML_DECLARATION = 'aml_declaration', _('所有權人/實質受益人聲明書')
         # 承辦上傳、正式送件前給客戶確認的商工登記稿本（會議紀錄、股東同意書等）
         DRAFT = 'draft', _('登記稿本（待客戶確認）')
+        # 承辦上傳：客戶紙本簽回的委任書掃描檔（不走電子簽署的客戶）
+        SIGNED_MANDATE = 'signed_mandate', _('委任書（紙本簽回）')
         OTHER = 'other', _('其他')
 
     class Source(models.TextChoices):
