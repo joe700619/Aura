@@ -167,6 +167,24 @@ class ClientBill(BaseModel):
             'remarks': f"帳單編號：{self.bill_no}，客戶：{self.client.name}",
         }
 
+    # ── 以下 property 是供核心通知系統用的收件人解析入口 ──
+    # 通知系統會嘗試 getattr(obj, 'email') / getattr(obj, 'room_id') / getattr(obj, 'line_id')，
+    # ClientBill 本身沒有這些欄位，所以透過 property 轉向記帳客戶資料。
+    @property
+    def email(self):
+        """代理：讀取關聯客戶的 Email，供批次 Email 通知使用"""
+        return getattr(self.client, 'email', None)
+
+    @property
+    def line_id(self):
+        """代理：讀取關聯客戶的 Line ID，供批次 Line 通知使用"""
+        return getattr(self.client, 'line_id', None)
+
+    @property
+    def room_id(self):
+        """代理：讀取關聯客戶的 Line Room ID，供 Line 群組通知使用"""
+        return getattr(self.client, 'room_id', None)
+
 
 class ClientBillItem(BaseModel):
     """帳單明細（子表）- 快照式紀錄"""
