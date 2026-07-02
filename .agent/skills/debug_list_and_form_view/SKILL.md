@@ -167,6 +167,26 @@ Base template 會自動根據 `{model_name}_create` 組成 URL。確認：
 
 ---
 
+### 症狀 1.4：子表格（inline formset）存檔看似成功，離開頁面後修改消失
+
+**根本原因：formset 驗證失敗 → view 走 `render_to_response` 重新渲染，但 template 沒有渲染任何 formset 錯誤 → 畫面跟存檔成功長得一模一樣。**
+
+使用者輸入的值會因為 POST 資料回填而留在畫面上，更加深「已儲存」的錯覺；一離開頁面資料就消失。
+
+**典型觸發：明細 form 有 `required=True` 的欄位，而某些「既有資料」該欄位是空的**（例如批次匯入的歷史資料沒填 `is_registration_case`）。本機測試都正常（測試資料欄位都有填），只有碰到那批資料才爆 → 又是「本機好、線上壞＝資料差異」家族。
+
+**修正原則（三件事都要做）：**
+1. 子表格上方加驗證失敗 banner：`{% if formset.total_error_count %}<div class="bg-red-50 ...">明細未通過驗證，本次修改「尚未儲存」…</div>{% endif %}`
+2. 每個 `<td>` 的 widget 後面渲染該欄位錯誤：`{{ detail_form.xxx.errors|join:"、" }}`（紅色小字）
+3. view 的 formset invalid 分支加 `messages.error(...)`，確保使用者在任何頁籤都看得到
+
+實例：`advance_payment/form.html` 的代墊費用明細，`is_registration_case` 必填但匯入資料為空，儲存靜默失敗。
+
+> [!NOTE]
+> 排查時先用 DevTools Network 看 POST 的回應是 302（有存）還是 200（重新渲染＝沒存），一秒分辨。
+
+---
+
 ### 症狀 1.5：按「儲存」完全沒反應（無 loading、無錯誤、頁面不動）
 
 **根本原因：隱藏頁籤裡有「不可聚焦的無效欄位」，導致 `requestSubmit()` 靜默中止。**

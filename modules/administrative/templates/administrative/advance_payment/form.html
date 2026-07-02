@@ -243,6 +243,12 @@
         <!-- Details Tab -->
         <div x-show="activeTab === 'details'" class="py-4">
             {{ details.management_form }}
+            {% if details.total_error_count %}
+            <div class="mb-3 bg-red-50 border border-red-300 rounded-md p-3 text-sm text-red-700">
+                <p class="font-bold">明細未通過驗證，本次修改「尚未儲存」，請修正下方紅字欄位後再按儲存。</p>
+                {{ details.non_form_errors }}
+            </div>
+            {% endif %}
             <div class="flex justify-between items-center mb-2">
                 <h4 class="font-bold text-slate-800 text-sm">代墊費用明細</h4>
                 <button type="button" onclick="addDetailRow()" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition font-semibold shadow-sm">
@@ -271,14 +277,14 @@
                             {% for hidden in detail_form.hidden_fields %}
                                 {{ hidden }}
                             {% endfor %}
-                            <td class="px-3 py-2 align-top">{{ detail_form.is_registration_case }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.is_customer_absorbed }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.customer }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.unified_business_no }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.reason }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.amount }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.is_billed }}</td>
-                            <td class="px-3 py-2 align-top">{{ detail_form.payment_type }}</td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.is_registration_case }}<div class="text-xs text-red-600 mt-1">{{ detail_form.is_registration_case.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.is_customer_absorbed }}<div class="text-xs text-red-600 mt-1">{{ detail_form.is_customer_absorbed.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.customer }}<div class="text-xs text-red-600 mt-1">{{ detail_form.customer.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.unified_business_no }}<div class="text-xs text-red-600 mt-1">{{ detail_form.unified_business_no.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.reason }}<div class="text-xs text-red-600 mt-1">{{ detail_form.reason.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.amount }}<div class="text-xs text-red-600 mt-1">{{ detail_form.amount.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.is_billed }}<div class="text-xs text-red-600 mt-1">{{ detail_form.is_billed.errors|join:"、" }}</div></td>
+                            <td class="px-3 py-2 align-top">{{ detail_form.payment_type }}<div class="text-xs text-red-600 mt-1">{{ detail_form.payment_type.errors|join:"、" }}</div></td>
                             <td class="px-3 py-2 text-center align-middle">
                                 <div class="hidden delete-wrapper">{{ detail_form.DELETE }}</div>
                                 <button type="button" class="text-red-500 hover:text-red-700 transition" onclick="deleteRow(this)" title="刪除明細">
