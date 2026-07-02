@@ -36,7 +36,7 @@ class ProgressForm(forms.ModelForm):
         model = Progress
         fields = [
             'unified_business_no', 'company_name', 'line_id', 'room_id',
-            'main_contact', 'mobile', 'phone', 'address',
+            'main_contact', 'mobile', 'phone', 'email', 'address',
             'progress_status', 'mandate_return', 'acceptance_date', 'case_type',
             'note', 'quotation_data', 'cost_sharing_data', 'is_posted'
         ]
@@ -51,6 +51,7 @@ class ProgressForm(forms.ModelForm):
             'main_contact': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'mobile': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'phone': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
+            'email': forms.EmailInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'address': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'progress_status': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
             'mandate_return': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm'}),
