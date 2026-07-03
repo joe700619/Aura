@@ -41,6 +41,7 @@ from .views.shareholder_register import (
     ShareholderRegisterCreateView,
     ShareholderRegisterUpdateView,
     ShareholderRegisterDeleteView,
+    shareholder_register_roster_download,
 )
 from .views.company_filing import (
     CompanyFilingListView,
@@ -134,6 +135,7 @@ urlpatterns = [
     path('shareholder-registers/add/', ShareholderRegisterCreateView.as_view(), name='shareholder_register_create'),
     path('shareholder-registers/<int:pk>/edit/', ShareholderRegisterUpdateView.as_view(), name='shareholder_register_update'),
     path('shareholder-registers/<int:pk>/delete/', ShareholderRegisterDeleteView.as_view(), name='shareholder_register_delete'),
+    path('shareholder-registers/<int:pk>/roster/', shareholder_register_roster_download, name='shareholder_register_roster'),
 
     # Company Filing (Company Law 22-1)
     path('company-filings/', CompanyFilingListView.as_view(), name='company_filing_list'),
