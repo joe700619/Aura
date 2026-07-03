@@ -190,9 +190,27 @@
                     </div>
                 </div>
 
-                <!-- Date indicator -->
-                <p class="text-xs text-slate-400 mb-2" x-show="selectedDate">截至 <strong class="text-slate-600"
-                        x-text="selectedDate"></strong> 之股東名簿</p>
+                <!-- Date indicator + 下載名冊 -->
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs text-slate-400" x-show="selectedDate">截至 <strong class="text-slate-600"
+                            x-text="selectedDate"></strong> 之股東名簿</p>
+                    <div class="flex gap-2">
+                        <a :href="`{% url 'registration:shareholder_register_roster' object.pk %}?date=${selectedDate || ''}`"
+                            class="inline-flex items-center gap-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded-md text-xs font-bold shadow-sm transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            下載名冊 Word</a>
+                        <a :href="`{% url 'registration:shareholder_register_roster' object.pk %}?date=${selectedDate || ''}&format=pdf`"
+                            class="inline-flex items-center gap-1 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-2.5 py-1 rounded-md text-xs font-bold shadow-sm transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            PDF</a>
+                    </div>
+                </div>
 
                 <!-- Shareholder table -->
                 <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
@@ -549,7 +567,7 @@
 {% endblock %}
 
 {% block overlays %}
-<!-- Removed block.super to prevent double overlay issues -->
+{{ block.super }}
 {% include 'shareholder_register/shareholder_search_modal.html' %}
 {% endblock %}
 

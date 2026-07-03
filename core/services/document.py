@@ -5,15 +5,17 @@ from core.models import DocumentTemplate
 
 class DocumentService:
     @staticmethod
-    def render_template(template: DocumentTemplate, context_object: Model, output_format='docx') -> BytesIO:
+    def render_template(template: DocumentTemplate, context_object: Model, output_format='docx',
+                        as_of_date=None) -> BytesIO:
         """
         Renders a Word document using the given template and context object.
         If output_format is 'pdf', converts via LibreOffice headless (soffice).
+        as_of_date（date，可選）：股東名冊基準日，只彙總交易日期 ≤ 該日的股權交易。
         """
         doc = DocxTemplate(template.file)
-        
+
         # Build context from the object
-        context = DocumentService._build_context(context_object)
+        context = DocumentService._build_context(context_object, as_of_date=as_of_date)
         
         doc.render(context)
         
@@ -59,9 +61,10 @@ class DocumentService:
         return output
 
     @staticmethod
-    def _build_context(obj: Model) -> dict:
+    def _build_context(obj: Model, as_of_date=None) -> dict:
         """
         Converts a model instance into a dictionary context.
+        as_of_date：股東名冊基準日（未指定＝當下最新）。
         """
         context = {}
         
@@ -85,6 +88,20 @@ class DocumentService:
         # Let's pass the object as 'object' or 'obj' and also spread its fields.
         
         context['obj'] = obj
+
+        # 列印當天日期（所有模板通用）：西元 + 民國
+        from django.utils import timezone
+        _today = timezone.localdate()
+        context['today'] = _today.strftime('%Y/%m/%d')
+        context['roc_year'] = str(_today.year - 1911)
+        context['roc_month'] = str(_today.month)
+        context['roc_day'] = str(_today.day)
+        context['today_roc'] = f"中華民國{_today.year - 1911}年{_today.month}月{_today.day}日"
+
+        # 基準日（股東名冊用）：未指定基準日時＝今天
+        _basis = as_of_date or _today
+        context['as_of_date'] = _basis.strftime('%Y/%m/%d')
+        context['as_of_date_roc'] = f"中華民國{_basis.year - 1911}年{_basis.month}月{_basis.day}日"
 
         # ClientBill: 帳單明細、代墊款明細、合計、支付網址
         if obj.__class__.__name__ == 'ClientBill':
@@ -283,8 +300,11 @@ class DocumentService:
 
         # ShareholderRegister: serialize equity transactions for docxtpl loops
         if hasattr(obj, 'equity_transactions'):
+            tx_qs = obj.equity_transactions.filter(is_deleted=False).order_by('transaction_date', 'created_at')
+            if as_of_date:
+                tx_qs = tx_qs.filter(transaction_date__lte=as_of_date)
             tx_list = []
-            for tx in obj.equity_transactions.order_by('transaction_date', 'created_at'):
+            for tx in tx_qs:
                 tx_list.append({
                     'shareholder_name': tx.shareholder_name,
                     'shareholder_id_number': tx.shareholder_id_number,
@@ -300,6 +320,43 @@ class DocumentService:
             context['equity_transactions'] = tx_list
             context['total_shares'] = sum(tx['share_count'] for tx in tx_list)
             context['total_amount'] = sum(tx['total_amount'] for tx in tx_list)
+            context['total_shares_fmt'] = f"{int(context['total_shares']):,}"
+            context['total_amount_fmt'] = f"{int(context['total_amount']):,}"
+
+            # 股東名冊（shareholders）：與名簿頁相同的彙總邏輯——
+            # 依「身分證字號＋股票種類＋面額」分組加總，剔除持股 0 的股東
+            holdings = {}
+            addresses = {}
+            for tx in tx_qs:
+                key = (tx.shareholder_id_number, tx.stock_type, tx.unit_price)
+                row = holdings.setdefault(key, {
+                    'name': tx.shareholder_name,
+                    'id_number': tx.shareholder_id_number,
+                    'stock_type': tx.stock_type,
+                    'stock_type_display': tx.get_stock_type_display(),
+                    'unit_price': float(tx.unit_price),
+                    'share_count': 0,
+                    'amount': 0.0,
+                })
+                row['name'] = tx.shareholder_name          # 用最近一筆交易的姓名
+                row['share_count'] += int(tx.share_count)
+                row['amount'] += float(tx.total_amount)
+                if tx.shareholder_address:
+                    addresses[tx.shareholder_id_number] = tx.shareholder_address
+
+            shareholders = [r for r in holdings.values() if r['share_count'] > 0]
+            roster_total = sum(r['share_count'] for r in shareholders)
+            for i, r in enumerate(shareholders, start=1):
+                r['no'] = i
+                r['address'] = addresses.get(r['id_number'], '')
+                r['share_count_fmt'] = f"{r['share_count']:,}"
+                r['amount'] = int(r['amount'])
+                r['amount_fmt'] = f"{r['amount']:,}"
+                unit = r['unit_price']
+                r['unit_price_fmt'] = f"{int(unit):,}" if unit == int(unit) else f"{unit:,.2f}"
+                r['ratio'] = f"{r['share_count'] / roster_total * 100:.2f}%" if roster_total else ''
+            context['shareholders'] = shareholders
+            context['shareholder_count'] = len({r['id_number'] for r in shareholders})
 
         # SealProcurement: items
         if hasattr(obj, 'items') and hasattr(obj, 'seal_cost_subtotal'):

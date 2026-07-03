@@ -1,6 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.forms import inlineformset_factory
 from collections import defaultdict
 from core.mixins import BusinessRequiredMixin, ListActionMixin, PrevNextMixin, SoftDeleteMixin, FilterMixin, SearchMixin, SortMixin
@@ -149,3 +150,54 @@ class ShareholderRegisterDeleteView(SoftDeleteMixin, BusinessRequiredMixin, Dele
     model = ShareholderRegister
     template_name = 'shareholder_register/confirm_delete.html'
     success_url = reverse_lazy('registration:shareholder_register_list')
+
+
+@login_required
+def shareholder_register_roster_download(request, pk):
+    """下載股東名冊（Word/PDF），可帶 ?date=YYYY-MM-DD 印「截至該日」的名冊。
+
+    範本取 admin「文件模板」中綁定股東名簿查詢模型的最新一筆；
+    變數與彙總邏輯共用 core.services.document.DocumentService（as_of_date 參數）。
+    ?format=pdf 走 LibreOffice 轉檔，預設 docx。
+    """
+    import urllib.parse
+    from datetime import datetime
+    from django.contrib.contenttypes.models import ContentType
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404, redirect
+    from core.models import DocumentTemplate
+    from core.services.document import DocumentService
+
+    register = get_object_or_404(ShareholderRegister, pk=pk, is_deleted=False)
+
+    content_type = ContentType.objects.get_for_model(ShareholderRegister)
+    template = DocumentTemplate.objects.filter(model_content_type=content_type).first()
+    if template is None:
+        messages.error(request, '尚未在 admin「文件模板」上傳綁定「股東名簿查詢」的範本，無法產生名冊。')
+        return redirect('registration:shareholder_register_update', pk=pk)
+
+    as_of_date = None
+    date_str = request.GET.get('date', '').strip()
+    if date_str:
+        try:
+            as_of_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, f'基準日格式錯誤：{date_str}')
+            return redirect('registration:shareholder_register_update', pk=pk)
+
+    output_format = 'pdf' if request.GET.get('format') == 'pdf' else 'docx'
+    try:
+        buffer = DocumentService.render_template(
+            template, register, output_format=output_format, as_of_date=as_of_date)
+    except Exception as e:
+        messages.error(request, f'產生名冊失敗：{e}')
+        return redirect('registration:shareholder_register_update', pk=pk)
+
+    suffix = f'_{date_str}' if date_str else ''
+    filename = f'股東名冊_{register.company_name}{suffix}.{output_format}'
+    quoted = urllib.parse.quote(filename)
+    mime = ('application/pdf' if output_format == 'pdf'
+            else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response = HttpResponse(buffer.getvalue(), content_type=mime)
+    response['Content-Disposition'] = f"attachment; filename*=UTF-8''{quoted}"
+    return response
